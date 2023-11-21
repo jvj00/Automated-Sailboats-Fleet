@@ -1,5 +1,4 @@
-from src.Sensor import Sensor
-
+from sensor import Sensor
 
 class Boat:
     anemometer: Sensor
