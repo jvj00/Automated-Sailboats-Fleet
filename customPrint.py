@@ -18,13 +18,24 @@ def now():
     return datetime.datetime.now().strftime("%H:%M:%S")
 
 def error(buffer):
-    print(now()+" ["+colors.BOLD+colors.FAIL+"ERROR"+colors.ENDC+"] " + str(buffer) +"\n")
+    custom_print("ERROR", buffer, colors.FAIL)
     
 def warning(buffer):
-    print(now()+" ["+colors.BOLD+colors.ORANGE+"WARNING"+colors.ENDC+"] " + str(buffer) +"\n")
+    custom_print("WARNING", buffer, colors.ORANGE)
 
-def debugging(buffer):
-    print(now()+" ["+colors.BOLD+colors.DEBUGGING+"DEBUG"+colors.ENDC+"] " + str(buffer) +"\n")
+def debug(buffer):
+    custom_print("DEBUG", buffer, colors.DEBUGGING)
     
 def info(buffer):
-    print(now()+" ["+colors.BOLD+colors.OKGREEN+"INFO"+colors.ENDC+"] " + str(buffer) +"\n")
+    custom_print("INFO", buffer, colors.RESULT)
+
+def custom_print(label, buffer, color):
+    date = now()
+    prefix = f'[{colors.BOLD}{color}{label}{colors.ENDC}]'
+    print(f'{date} {prefix} {str(buffer)}\n')
+
+if __name__ == "__main__":
+    error("main")
+    warning("warning")
+    debug("debug")
+    info("info")
