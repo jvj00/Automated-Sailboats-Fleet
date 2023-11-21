@@ -32,9 +32,3 @@ def custom_print(label, buffer, color):
     date = now()
     prefix = f'[{colors.BOLD}{color}{label}{colors.ENDC}]'
     print(f'{date} {prefix} {str(buffer)}\n')
-
-if __name__ == "__main__":
-    Logger.error("main")
-    Logger.warning("warning")
-    Logger.debug("debug")
-    Logger.info("info")

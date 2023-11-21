@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+from customprint import Logger
 from utils import value_from_gaussian
 
 class Sensor:
@@ -21,6 +22,8 @@ class Sensor:
 
 if __name__ == "__main__":
     sensor = Sensor("test", 0)
-    for i in range(100):
-        sensor.add_data(i, value_from_gaussian(1, 0.2))
+    for i in range(20):
+        data = value_from_gaussian(1, 0.2)
+        sensor.add_data(i, data)
+        Logger.debug(data)
     sensor.plot()
