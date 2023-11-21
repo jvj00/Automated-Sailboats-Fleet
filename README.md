@@ -13,5 +13,5 @@ source .venv/bin/activate
 
 Install dependencies
 ```bash
-pip install PyQt5 pandas matplotlib
+pip install PyQt5 pandas matplotlib numpy
 ```
