@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+from utils import value_from_gaussian
 
 class Sensor:
     def __init__(self, name, address):
@@ -16,10 +17,10 @@ class Sensor:
         y = sorted_data.values()
         plt.plot(x, y)
         plt.show()
+    
 
 if __name__ == "__main__":
     sensor = Sensor("test", 0)
-    sensor.add_data(0, 3)
-    sensor.add_data(4, 2)
-    sensor.add_data(2, 9)
+    for i in range(100):
+        sensor.add_data(i, value_from_gaussian(1, 0.2))
     sensor.plot()
