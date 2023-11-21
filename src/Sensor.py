@@ -1,4 +1,4 @@
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import pandas as pd
 
 class Sensor:
@@ -13,3 +13,10 @@ class Sensor:
     def plot(self):
         plt.plot(self.sensor_data)
         plt.show()
+
+if __name__ == "__main__":
+    sensor = Sensor("test", 0)
+    sensor.add_data(0, 3)
+    sensor.add_data(1, 2)
+    sensor.add_data(2, 9)
+    sensor.plot()
