@@ -1,5 +1,6 @@
 from customprint import Logger
 import numpy as np
+import matplotlib.pyplot as plt
 
 # gravity [m/s^2]
 gravity_acc = np.array([9.81])
@@ -63,9 +64,23 @@ if __name__ == '__main__':
     position = np.zeros(3)
     velocity = np.zeros(3)
 
-    for dt in np.arange(1, 10, 0.5):
+    # plot setup
+    positions = []
+    velocities = []
+    dts = []
+    dt = 0.5
+
+    for time_elapsed in np.arange(1, 100, dt):
         if compute_magnitude(acceleration) == 0:
             Logger.info("The boat cannot move")
         velocity = compute_velocity(acceleration, velocity, dt)
         position = compute_position(acceleration, velocity, position, dt)
+
+        velocities.append(compute_magnitude(velocity))
+        positions.append(compute_magnitude(position))
+        dts.append(time_elapsed)
+
         Logger.debug(f'Velocity: {velocity}, Position: {position}')
+    
+    plt.plot(dts, velocities)
+    plt.show()
