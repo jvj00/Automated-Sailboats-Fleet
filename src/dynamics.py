@@ -1,6 +1,11 @@
 from customprint import Logger
 import numpy as np
 
+# gravity [m/s^2]
+gravity_acc = np.array([9.81])
+# dynamic friction
+mu_s = 0.01
+
 class DynamicBody:
     def __init__(self) -> None:
         self.velocity = np.array([0.0, 0.0, 0.0])
@@ -17,6 +22,11 @@ def compute_velocity(acc_prev, vel_prev, dt):
 
 def compute_position(acc_prev, vel_prev, pos_prev, dt):
     return (0.5 * acc_prev * dt * dt) + (vel_prev * dt) + pos_prev
+
+# mass [kg]
+# acc [m / s^2]
+def compute_force(mass: float, acc):
+    return mass * acc
 
 # air_density [kg / m^3]
 # wing_area [m^2]
