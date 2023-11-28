@@ -13,7 +13,7 @@ class Wind:
 class Boat:
     def __init__(self):
         self.wing_area = 15
-        self.mass = 200.0
+        self.mass = 100.0
         self.friction = 0.02
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
@@ -41,7 +41,6 @@ class World:
         self.boat.velocity += (acceleration * dt)
         self.boat.position += (self.boat.velocity * dt)
 
-
 def compute_magnitude(vec):
     return np.sqrt(np.sum([c*c for c in vec]))
 
@@ -60,26 +59,31 @@ if __name__ == '__main__':
     boat = Boat()
     world = World(wind, boat)
 
-    velocities = []
-    positions = []
+    boat_velocities = []
+    boat_positions = []
+    wind_velocities = []
     times = []
 
-    MAX_SPEED = 20
+    MAX_SPEED = 5
 
-    dt = 0.5
+    dt = 0.1
 
     for time_elapsed in np.arange(0, 20, dt):
-        world.wind.velocity = np.array([MAX_SPEED * np.cos(time_elapsed), MAX_SPEED * np.cos(time_elapsed), 0.0])
-        Logger.debug(world.wind.velocity)
+        world.wind.velocity = np.array([MAX_SPEED * np.cos(time_elapsed * 2), 0.0, 0.0])
+        # Logger.debug(world.wind.velocity)
 
-        velocities.append(world.boat.velocity.copy())
-        positions.append(world.boat.position.copy())
+        boat_velocities.append(world.boat.velocity.copy())
+        wind_velocities.append(world.wind.velocity.copy())
+        boat_positions.append(world.boat.position.copy())
         times.append(time_elapsed)
 
-        Logger.debug(f'Boat velocity: {world.boat.velocity}, Boat position: {world.boat.position}')
+        # Logger.debug(f'Boat velocity: {world.boat.velocity}, Boat position: {world.boat.position}')
         
         world.update(dt)
         
-    plt.plot(times, list(map(lambda p: p[0], velocities)))
+    plt.plot(times, list(map(lambda p: p[0], boat_velocities)), color='green', label='Boat vel')
+    plt.plot(times, list(map(lambda p: p[0], wind_velocities)), color='orange', label='Wind vel')
+    plt.plot(times, list(map(lambda p: p[0], boat_positions)), color='blue', label='Boat pos')
+    plt.legend()
     # plt.plot(times, list(map(lambda p: p[1], velocities)))
     plt.show()
