@@ -2,11 +2,6 @@ from customprint import Logger
 import numpy as np
 import matplotlib.pyplot as plt
 
-# gravity [m/s^2]
-gravity_acc = np.array([9.81])
-# dynamic friction
-mu_s = 0.01
-
 class DynamicBody:
     def __init__(self) -> None:
         self.velocity = np.array([0.0, 0.0, 0.0])
@@ -44,7 +39,6 @@ if __name__ == '__main__':
     wing_area = 1.5
     wind_force = compute_wind_force(air_density, wind_velocity, wing_area)
     wind_angle = np.arctan2(wind_velocity[1], wind_velocity[0])
-    wind_mag = compute_magnitude(wind_force)
 
     # boat setup
     gravity = np.array([0.0, 0.0, 9.81])
@@ -57,9 +51,8 @@ if __name__ == '__main__':
     friction_force_x = friction_force_perp[2] * np.cos(wind_angle)
     friction_force_y = friction_force_perp[2] * np.sin(wind_angle)
     friction_force = np.array([friction_force_x, friction_force_y, 0.0])
-    friction_mag = compute_magnitude(friction_force)
-    
-    acceleration = np.zeros(3) if wind_mag < friction_mag else compute_acceleration(wind_force - friction_force, mass)
+
+    acceleration = compute_acceleration(wind_force - friction_force, mass)
 
     position = np.zeros(3)
     velocity = np.zeros(3)
@@ -71,16 +64,13 @@ if __name__ == '__main__':
     dt = 0.5
 
     for time_elapsed in np.arange(1, 100, dt):
-        if compute_magnitude(acceleration) == 0:
-            Logger.info("The boat cannot move")
         velocity = compute_velocity(acceleration, velocity, dt)
         position = compute_position(acceleration, velocity, position, dt)
-
         velocities.append(compute_magnitude(velocity))
         positions.append(compute_magnitude(position))
         dts.append(time_elapsed)
-
         Logger.debug(f'Velocity: {velocity}, Position: {position}')
     
     plt.plot(dts, velocities)
+    # plt.plot(dts, positions)
     plt.show()
