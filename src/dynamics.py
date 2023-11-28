@@ -2,15 +2,29 @@ from customprint import Logger
 import numpy as np
 import matplotlib.pyplot as plt
 
-# gravity [m/s^2]
-gravity_acc = np.array([9.81])
-# dynamic friction
-mu_s = 0.01
+global world
+global velocities
+global positions
+global times
 
-class DynamicBody:
-    def __init__(self) -> None:
-        self.velocity = np.array([0.0, 0.0, 0.0])
-        self.acceleration = np.array([0.0, 0.0, 0.0])
+class Wind:
+    def __init__(self):
+        self.density = 1.293
+        self.velocity = np.zeros(3)
+
+class Boat:
+    def __init__(self):
+        self.wing_area = 1.5
+        self.mass = 15.0
+        self.friction = 0.2
+        self.position = np.zeros(3)
+        self.velocity = np.zeros(3)
+
+class World:
+    def __init__(self, wind: Wind, boat: Boat):
+        self.gravity = np.array([0.0, 0.0, 9.81])
+        self.wind = wind
+        self.boat = boat
 
 def compute_magnitude(vec):
     return np.sqrt(np.sum([c*c for c in vec]))
@@ -18,16 +32,14 @@ def compute_magnitude(vec):
 def compute_acceleration(force, mass):
     return force / mass
 
+def compute_force(mass: float, acc):
+    return mass * acc
+
 def compute_velocity(acc_prev, vel_prev, dt):
     return vel_prev + acc_prev * dt
 
 def compute_position(acc_prev, vel_prev, pos_prev, dt):
     return (0.5 * acc_prev * dt * dt) + (vel_prev * dt) + pos_prev
-
-# mass [kg]
-# acc [m / s^2]
-def compute_force(mass: float, acc):
-    return mass * acc
 
 # air_density [kg / m^3]
 # wing_area [m^2]
@@ -36,51 +48,44 @@ def compute_wind_force(air_density: float, wind_velocity, wing_area: float):
     air_mass = air_density * wing_area
     return air_mass * wind_velocity
 
-if __name__ == '__main__':
-    # wind setup
-    # kg / m^3
-    air_density = 1.293
-    wind_velocity = np.array([16.0, 8.0, 0.0])
-    wing_area = 1.5
-    wind_force = compute_wind_force(air_density, wind_velocity, wing_area)
-    wind_angle = np.arctan2(wind_velocity[1], wind_velocity[0])
-    wind_mag = compute_magnitude(wind_force)
-
-    # boat setup
-    gravity = np.array([0.0, 0.0, 9.81])
-    mass = 15.0
-    weight = gravity * mass
+def process(dt: float):
+    
+    boat_weight = world.gravity * world.boat.mass
 
     # boat/water friction setup
-    friction = 0.2
-    friction_force_perp = friction * weight
+    friction_force_perp = world.boat.friction * boat_weight
+    
+    wind_force = compute_wind_force(world.wind.density, world.wind.velocity, world.boat.wing_area)
+    wind_angle = np.arctan2(world.wind.velocity[1], world.wind.velocity[0])
+
     friction_force_x = friction_force_perp[2] * np.cos(wind_angle)
     friction_force_y = friction_force_perp[2] * np.sin(wind_angle)
     friction_force = np.array([friction_force_x, friction_force_y, 0.0])
-    friction_mag = compute_magnitude(friction_force)
-    
-    acceleration = np.zeros(3) if wind_mag < friction_mag else compute_acceleration(wind_force - friction_force, mass)
 
-    position = np.zeros(3)
-    velocity = np.zeros(3)
+    acceleration = compute_acceleration(wind_force - friction_force, world.boat.mass)
 
-    # plot setup
-    positions = []
+    world.boat.velocity = compute_velocity(acceleration, world.boat.velocity, dt)
+    world.boat.position = compute_position(acceleration, world.boat.velocity, world.boat.position, dt)
+
+    velocities.append(compute_magnitude(world.boat.velocity))
+    positions.append(compute_magnitude(world.boat.position))
+    times.append(time_elapsed)
+
+    Logger.debug(f'Velocity: {world.boat.velocity}, Position: {world.boat.position}')
+
+if __name__ == '__main__':
+    wind = Wind()
+    boat = Boat()
+    world = World(wind, boat)
+
     velocities = []
-    dts = []
+    positions = []
+    times = []
+
     dt = 0.5
-
-    for time_elapsed in np.arange(1, 100, dt):
-        if compute_magnitude(acceleration) == 0:
-            Logger.info("The boat cannot move")
-        velocity = compute_velocity(acceleration, velocity, dt)
-        position = compute_position(acceleration, velocity, position, dt)
-
-        velocities.append(compute_magnitude(velocity))
-        positions.append(compute_magnitude(position))
-        dts.append(time_elapsed)
-
-        Logger.debug(f'Velocity: {velocity}, Position: {position}')
     
-    plt.plot(dts, velocities)
+    for time_elapsed in np.arange(0, 100, dt):
+        process(dt)
+            
+    plt.plot(times, velocities)
     plt.show()
