@@ -12,9 +12,9 @@ class Wind:
 
 class Boat:
     def __init__(self):
-        self.wing_area = 1.5
-        self.mass = 15.0
-        self.friction = 0.2
+        self.wing_area = 15
+        self.mass = 200.0
+        self.friction = 0.02
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
 
@@ -38,8 +38,8 @@ class World:
 
         acceleration = compute_acceleration(wind_force - friction_force, self.boat.mass)
 
-        self.boat.velocity = compute_velocity(acceleration, self.boat.velocity, dt)
-        self.boat.position = compute_position(acceleration, self.boat.velocity, self.boat.position, dt)
+        self.boat.velocity += (acceleration * dt)
+        self.boat.position += (self.boat.velocity * dt)
 
 
 def compute_magnitude(vec):
@@ -47,15 +47,6 @@ def compute_magnitude(vec):
 
 def compute_acceleration(force, mass):
     return force / mass
-
-def compute_force(mass: float, acc):
-    return mass * acc
-
-def compute_velocity(acc_prev, vel_prev, dt):
-    return vel_prev + acc_prev * dt
-
-def compute_position(acc_prev, vel_prev, pos_prev, dt):
-    return (0.5 * acc_prev * dt * dt) + (vel_prev * dt) + pos_prev
 
 # air_density [kg / m^3]
 # wing_area [m^2]
@@ -66,7 +57,6 @@ def compute_wind_force(air_density: float, wind_velocity, wing_area: float):
 
 if __name__ == '__main__':
     wind = Wind()
-    wind.velocity = np.array([13.0, 11.0, 0.0])
     boat = Boat()
     world = World(wind, boat)
 
@@ -75,13 +65,16 @@ if __name__ == '__main__':
     times = []
 
     dt = 0.5
-    
-    for time_elapsed in np.arange(0, 100, dt):
-        world.update(dt)
-        velocities.append(world.boat.velocity)
-        positions.append(world.boat.position)
+
+    for time_elapsed in np.arange(0, 20, dt):
+        velocities.append(world.boat.velocity.copy())
+        positions.append(world.boat.position.copy())
         times.append(time_elapsed)
 
-    y = list(map(lambda p: compute_magnitude(p), velocities))
-    plt.plot(times, y)
+        Logger.debug(f'Boat velocity: {world.boat.velocity}, Boat position: {world.boat.position}')
+        
+        world.update(dt)
+        
+    plt.plot(times, list(map(lambda p: compute_magnitude(p), velocities)))
+    # plt.plot(times, list(map(lambda p: p[1], velocities)))
     plt.show()
