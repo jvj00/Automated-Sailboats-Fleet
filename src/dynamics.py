@@ -64,9 +64,14 @@ if __name__ == '__main__':
     positions = []
     times = []
 
+    MAX_SPEED = 20
+
     dt = 0.5
 
     for time_elapsed in np.arange(0, 20, dt):
+        world.wind.velocity = np.array([MAX_SPEED * np.cos(time_elapsed), MAX_SPEED * np.cos(time_elapsed), 0.0])
+        Logger.debug(world.wind.velocity)
+
         velocities.append(world.boat.velocity.copy())
         positions.append(world.boat.position.copy())
         times.append(time_elapsed)
@@ -75,6 +80,6 @@ if __name__ == '__main__':
         
         world.update(dt)
         
-    plt.plot(times, list(map(lambda p: compute_magnitude(p), velocities)))
+    plt.plot(times, list(map(lambda p: p[0], velocities)))
     # plt.plot(times, list(map(lambda p: p[1], velocities)))
     plt.show()
