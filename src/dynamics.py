@@ -16,6 +16,7 @@ class Boat:
         self.mass = 100
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
+        self.acceleration = np.zeros(3)
 
 # m_velocity -= m_velocity * m_linearDrag * a_timeStep;
 
@@ -32,17 +33,15 @@ class Boat:
 
 class World:
     def __init__(self, wind: Wind, boat: Boat):
-        self.gravity = 9.81
+        self.gravity = np.array([0, 0, 9.81])
         self.wind = wind
         self.boat = boat
     
     def update(self, dt):
-        # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
-
         # apply friction to the boat
-        damping_factor = 10 / (self.boat.mass * self.gravity)
-        friction_velocity = self.boat.velocity * damping_factor * dt
-        self.boat.velocity -= friction_velocity
+        boat_weight = self.boat.mass * self.gravity
+        damping_factor = 10 / boat_weight[2]
+        self.boat.velocity -= self.boat.velocity * damping_factor * dt
 
         if compute_magnitude(self.boat.velocity) < 0.01:
             self.boat.velocity = np.zeros(3)
@@ -50,9 +49,8 @@ class World:
         # apply wind force to the boat
         wind_force = compute_wind_force(self.wind.density, self.wind.velocity, self.boat.wing_area)
 
-        acceleration = compute_acceleration(wind_force, self.boat.mass)
-
-        self.boat.velocity += (acceleration * dt)
+        self.boat.acceleration = compute_acceleration(wind_force, self.boat.mass)
+        self.boat.velocity += (self.boat.acceleration * dt)
         self.boat.position += (self.boat.velocity * dt)
 
 def compute_magnitude(vec):
