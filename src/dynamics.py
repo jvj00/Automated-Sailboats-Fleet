@@ -13,7 +13,6 @@ class Wind:
 class Boat:
     def __init__(self):
         self.wing_area = 15
-        self.friction = 0.1
         self.mass = 100
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
@@ -33,7 +32,7 @@ class Boat:
 
 class World:
     def __init__(self, wind: Wind, boat: Boat):
-        self.gravity = np.array([0.0, 0.0, 9.81])
+        self.gravity = 9.81
         self.wind = wind
         self.boat = boat
     
@@ -41,9 +40,12 @@ class World:
         # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
 
         # apply friction to the boat
-        boat.velocity -= boat.velocity * boat.friction * dt
-        if compute_magnitude(boat.velocity) < 0.01 and compute_magnitude(boat.velocity) < compute_magnitude(self.gravity * boat.friction * dt):
-            boat.velocity = np.zeros(3)
+        damping_factor = 10 / (self.boat.mass * self.gravity)
+        friction_velocity = self.boat.velocity * damping_factor * dt
+        self.boat.velocity -= friction_velocity
+
+        if compute_magnitude(self.boat.velocity) < 0.01:
+            self.boat.velocity = np.zeros(3)
         
         # apply wind force to the boat
         wind_force = compute_wind_force(self.wind.density, self.wind.velocity, self.boat.wing_area)
@@ -93,5 +95,5 @@ if __name__ == '__main__':
         world.update(dt)
         
     plt.plot(times, list(map(lambda p: p[0], velocities)))
-    # plt.plot(times, list(map(lambda p: p[1], velocities)))
+    # plt.plot(times, list(map(lambda p: p[0] / 10, positions)))
     plt.show()
