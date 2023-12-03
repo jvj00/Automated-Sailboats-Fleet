@@ -13,10 +13,23 @@ class Wind:
 class Boat:
     def __init__(self):
         self.wing_area = 15
-        self.mass = 200.0
-        self.friction = 0.02
+        self.friction = 0.1
+        self.mass = 100
         self.position = np.zeros(3)
         self.velocity = np.zeros(3)
+
+# m_velocity -= m_velocity * m_linearDrag * a_timeStep;
+
+# if (glm::length(m_velocity) < 0.001f)
+# {
+#     if (glm::length(m_velocity) < glm::length(a_gravity) * m_linearDrag * a_timeStep)
+#     {
+#         m_velocity = glm::vec2(0);
+#     }
+# }
+
+# m_position += GetVelocity() * a_timeStep;
+# ApplyForce(a_gravity * GetMass() * a_timeStep, glm::vec2(0));
 
 class World:
     def __init__(self, wind: Wind, boat: Boat):
@@ -25,18 +38,17 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        boat_weight = self.gravity * self.boat.mass
+        # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
 
-        # boat/water friction setup
-        friction_force_perp = self.boat.friction * boat_weight
+        # apply friction to the boat
+        boat.velocity -= boat.velocity * boat.friction * dt
+        if compute_magnitude(boat.velocity) < 0.01 and compute_magnitude(boat.velocity) < compute_magnitude(self.gravity * boat.friction * dt):
+            boat.velocity = np.zeros(3)
         
+        # apply wind force to the boat
         wind_force = compute_wind_force(self.wind.density, self.wind.velocity, self.boat.wing_area)
-        wind_angle = self.wind.get_angle()
-        friction_force_x = friction_force_perp[2] * np.cos(wind_angle)
-        friction_force_y = friction_force_perp[2] * np.sin(wind_angle)
-        friction_force = np.array([friction_force_x, friction_force_y, 0.0])
 
-        acceleration = compute_acceleration(wind_force - friction_force, self.boat.mass)
+        acceleration = compute_acceleration(wind_force, self.boat.mass)
 
         self.boat.velocity += (acceleration * dt)
         self.boat.position += (self.boat.velocity * dt)
@@ -67,10 +79,11 @@ if __name__ == '__main__':
 
     dt = 0.5
 
-    for time_elapsed in np.arange(0, 20, dt):
-        world.wind.velocity = np.array([MAX_SPEED * np.cos(time_elapsed), MAX_SPEED * np.cos(time_elapsed), 0.0])
-        Logger.debug(world.wind.velocity)
+    world.wind.velocity = np.array([25.0, 25.0, 0.0])
 
+    for time_elapsed in np.arange(0, 100, dt):
+        if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
+            world.wind.velocity = np.zeros(3)
         velocities.append(world.boat.velocity.copy())
         positions.append(world.boat.position.copy())
         times.append(time_elapsed)
