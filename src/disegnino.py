@@ -3,22 +3,27 @@ import numpy as np
 import time
 
 from boat import Boat
+from dynamics import compute_angle
 
-def draw_boat(win, boat: Boat):
-    width = 30
-    length = 60
-    ul = Point(boat.position[0] - (width*0.5), boat.position[1] + (length*0.5))
-    ur = Point(boat.position[0] + (width*0.5), boat.position[1] + (length*0.5))
-    dr = Point(boat.position[0] + (width*0.5), boat.position[1] - (length*0.5))
-    dl = Point(boat.position[0] - (width*0.5), boat.position[1] - (length*0.5))
-    vertices = [ul, ur, dr, dl]
-    poly = Polygon(vertices)
-    poly.setFill(color_rgb(255,168,168))
-    poly.setOutline(color_rgb(255,168,168))
-    poly.draw(win)
-    return poly
+class Drawer:
+    def __init__(self, width: int, height: int):
+        self.win = GraphWin("roadmap", width, height)
+    
+    def draw_boat(self, boat: Boat):
+        width = 30
+        length = 60
+        ul = Point(boat.position[0] - (width*0.5), boat.position[1] + (length*0.5))
+        ur = Point(boat.position[0] + (width*0.5), boat.position[1] + (length*0.5))
+        dr = Point(boat.position[0] + (width*0.5), boat.position[1] - (length*0.5))
+        dl = Point(boat.position[0] - (width*0.5), boat.position[1] - (length*0.5))
+        angle = compute_angle(boat.heading)
+        vertices = rotate_polygon([ul, ur, dr, dl], angle)
+        poly = Polygon(vertices)
+        poly.setFill(color_rgb(255,168,168))
+        poly.setOutline(color_rgb(255,168,168))
+        poly.draw(self.win)
 
-def rotate_polygon(vertices: list[Point], angle):
+def rotate_polygon(vertices: list[Point], angle: float):
     # Calculate the center of the polygon
     cx = sum(p.x for p in vertices) / len(vertices)
     cy = sum(p.y for p in vertices) / len(vertices)
@@ -37,28 +42,3 @@ def rotate_polygon(vertices: list[Point], angle):
     ]
 
     return rotated_vertices
-
-
-def main():
-
-    width = 300
-    height = 300
-
-    win = GraphWin("roadmap", width, height)
-
-    boat = Boat()
-
-    poly = draw_boat(win, boat)
-
-    dt = 1
-    speed = np.array([10, 10])
-    angle = 0.3
-    while True:
-        poly.undraw()
-        poly.points = rotate_polygon(poly.points, angle * dt)
-        poly.draw(win)
-        s = speed * dt
-        poly.move(s[0], s[1])
-        time.sleep(dt)
-
-main()
