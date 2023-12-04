@@ -1,3 +1,4 @@
+from boat import Boat
 from customprint import Logger
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,20 +8,6 @@ class Wind:
         self.density = 1.293
         self.velocity = np.zeros(2)
 
-class Wing:
-    def __init__(self, heading):
-        self.area = 15
-        # heading is perpendicular to the surface of the wing, pointing forward
-        self.heading = heading
-
-class Boat:
-    def __init__(self):
-        self.mass = 100
-        self.position = np.zeros(2)
-        self.velocity = np.zeros(2)
-        self.acceleration = np.zeros(2)
-        self.heading = np.zeros(2)
-        self.wing = Wing(self.heading)
 
 # m_velocity -= m_velocity * m_linearDrag * a_timeStep;
 
