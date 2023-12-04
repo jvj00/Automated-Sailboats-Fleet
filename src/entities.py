@@ -31,7 +31,7 @@ class World:
     def update(self, dt):
         # apply friction to the boat
         boat_weight = self.boat.mass * self.gravity
-        damping_factor = 10 / boat_weight
+        damping_factor = 80 / boat_weight
         self.boat.velocity -= self.boat.velocity * damping_factor * dt
 
         if compute_magnitude(self.boat.velocity) < 0.01:

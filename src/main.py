@@ -18,8 +18,8 @@ if __name__ == '__main__':
 
     dt = 0.1
 
-    world.wind.velocity = np.array([30.0, 30.0])
-
+    world.wind.velocity = np.array([20.0, 10.0])
+    
     for time_elapsed in np.arange(0, 100, dt):
         if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
             world.wind.velocity = np.zeros(2)
@@ -33,7 +33,11 @@ if __name__ == '__main__':
         drawer.draw_boat(world.boat)
 
         time.sleep(dt)
-        
-    plt.plot(times, list(map(lambda p: p[0], velocities)))
-    plt.plot(times, list(map(lambda p: p[1], velocities)))
+
+        plt.cla()
+        plt.plot(times, list(map(lambda p: p[0], velocities)))
+        plt.plot(times, list(map(lambda p: p[1], velocities)))
+
+        plt.pause(dt)
+    
     plt.show()
