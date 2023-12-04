@@ -2,7 +2,6 @@ from matplotlib import pyplot as plt
 import numpy as np
 from disegnino import Drawer
 from entities import Boat, Wind, World
-import time
 
 from logger import Logger
 
@@ -31,8 +30,6 @@ if __name__ == '__main__':
 
         drawer.clear()
         drawer.draw_boat(world.boat)
-
-        time.sleep(dt)
 
         plt.cla()
         plt.plot(times, list(map(lambda p: p[0], velocities)))
