@@ -1,25 +1,26 @@
-from boat import Boat
-from customprint import Logger
+from logger import Logger
 import numpy as np
 import matplotlib.pyplot as plt
+
+class Wing:
+    def __init__(self, heading):
+        self.area = 15
+        # heading is perpendicular to the surface of the wing, pointing forward
+        self.heading = heading
+
+class Boat:
+    def __init__(self):
+        self.mass = 100
+        self.position = np.zeros(2)
+        self.velocity = np.zeros(2)
+        self.acceleration = np.zeros(2)
+        self.heading = np.zeros(2)
+        self.wing = Wing(self.heading)
 
 class Wind:
     def __init__(self):
         self.density = 1.293
         self.velocity = np.zeros(2)
-
-# m_velocity -= m_velocity * m_linearDrag * a_timeStep;
-
-# if (glm::length(m_velocity) < 0.001f)
-# {
-#     if (glm::length(m_velocity) < glm::length(a_gravity) * m_linearDrag * a_timeStep)
-#     {
-#         m_velocity = glm::vec2(0);
-#     }
-# }
-
-# m_position += GetVelocity() * a_timeStep;
-# ApplyForce(a_gravity * GetMass() * a_timeStep, glm::vec2(0));
 
 class World:
     def __init__(self, wind: Wind, boat: Boat):
@@ -42,6 +43,7 @@ class World:
         self.boat.acceleration = compute_acceleration(wind_force, self.boat.mass)
         self.boat.velocity += (self.boat.acceleration * dt)
         self.boat.position += (self.boat.velocity * dt)
+
 
 def compute_angle(vec):
     return np.arctan2(vec[1], vec[0])

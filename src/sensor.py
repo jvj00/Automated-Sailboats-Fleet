@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-from customprint import Logger
+from logger import Logger
 from utils import value_from_gaussian
 
 class Sensor:

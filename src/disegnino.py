@@ -1,9 +1,7 @@
 from graphics import *
 import numpy as np
-import time
 
-from boat import Boat
-from dynamics import compute_angle
+from entities import compute_angle, Boat
 
 class Drawer:
     def __init__(self, width: int, height: int):
