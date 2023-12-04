@@ -15,10 +15,11 @@ class Drawer:
     def draw_boat(self, boat: Boat):
         width = 30
         length = 60
-        ul = Point(boat.position[0] - (width*0.5), boat.position[1] + (length*0.5))
-        ur = Point(boat.position[0] + (width*0.5), boat.position[1] + (length*0.5))
-        dr = Point(boat.position[0] + (width*0.5), boat.position[1] - (length*0.5))
-        dl = Point(boat.position[0] - (width*0.5), boat.position[1] - (length*0.5))
+        gain = 2
+        ul = Point((boat.position[0] * gain) - (width*0.5), (boat.position[1] * gain) + (length*0.5))
+        ur = Point((boat.position[0] * gain) + (width*0.5), (boat.position[1] * gain) + (length*0.5))
+        dr = Point((boat.position[0] * gain) + (width*0.5), (boat.position[1] * gain) - (length*0.5))
+        dl = Point((boat.position[0] * gain) - (width*0.5), (boat.position[1] * gain) - (length*0.5))
         angle = compute_angle(boat.heading)
         vertices = rotate_polygon([ul, ur, dr, dl], angle)
         poly = Polygon(vertices)
