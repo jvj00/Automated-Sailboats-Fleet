@@ -65,30 +65,3 @@ def compute_wind_force(wind: Wind, boat: Boat):
     air_mass = wind.density * boat.wing.area
     gain = np.abs(np.sin(compute_angle(wind.velocity)))
     return air_mass * wind.velocity * gain
-
-if __name__ == '__main__':
-    wind = Wind()
-    boat = Boat()
-    world = World(wind, boat)
-
-    velocities = []
-    positions = []
-    times = []
-
-    dt = 0.5
-
-    world.wind.velocity = np.array([15.0, 8.0])
-
-    for time_elapsed in np.arange(0, 100, dt):
-        if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
-            world.wind.velocity = np.zeros(2)
-        velocities.append(world.boat.velocity.copy())
-        positions.append(world.boat.position.copy())
-        times.append(time_elapsed)
-
-        world.update(dt)
-        
-    plt.plot(times, list(map(lambda p: p[0], velocities)))
-    plt.plot(times, list(map(lambda p: p[1], velocities)))
-    # plt.plot(times, list(map(lambda p: p[0] / 10, positions)))
-    plt.show()

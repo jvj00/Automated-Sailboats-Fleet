@@ -7,6 +7,11 @@ class Drawer:
     def __init__(self, width: int, height: int):
         self.win = GraphWin("roadmap", width, height)
     
+    def clear(self):
+        for item in self.win.items:
+            item.undraw()
+        self.win.update()
+    
     def draw_boat(self, boat: Boat):
         width = 30
         length = 60
