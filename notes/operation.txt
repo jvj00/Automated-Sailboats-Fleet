@@ -7,6 +7,7 @@ SENSORI:
  - GPS (Galileo)
  - UWB (DW3000)
  - Anemometro
+ - Sensore di velocità DX900+
 
 ACTUATORS:
  - Timone
