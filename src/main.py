@@ -23,6 +23,11 @@ if __name__ == '__main__':
     # spawn the boat in the center of the map
     world.boat.position[0] = width * 0.5
     world.boat.position[1] = height * 0.5
+    world.boat.wing.heading[0] = 0.5
+    world.boat.wing.heading[1] = 0.5
+
+    Logger.debug(world.boat.heading)
+    Logger.debug(world.boat.wing.heading)
 
     world.wind.velocity[0] = 10.0
     world.wind.velocity[1] = -10.0

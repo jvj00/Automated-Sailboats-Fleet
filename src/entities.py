@@ -3,10 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Wing:
-    def __init__(self, heading):
+    def __init__(self):
         self.area = 15
         # heading is perpendicular to the surface of the wing, pointing forward
-        self.heading = heading
+        self.heading = np.zeros(2)
 
 class Boat:
     def __init__(self):
@@ -15,7 +15,7 @@ class Boat:
         self.velocity = np.zeros(2)
         self.acceleration = np.zeros(2)
         self.heading = np.zeros(2)
-        self.wing = Wing(self.heading)
+        self.wing = Wing()
     
     def to_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
