@@ -23,14 +23,12 @@ if __name__ == '__main__':
     # spawn the boat in the center of the map
     world.boat.position[0] = width * 0.5
     world.boat.position[1] = height * 0.5
-    world.boat.wing.heading[0] = 0.5
-    world.boat.wing.heading[1] = 0.5
 
     Logger.debug(world.boat.heading)
     Logger.debug(world.boat.wing.heading)
 
     world.wind.velocity[0] = 10.0
-    world.wind.velocity[1] = -10.0
+    world.wind.velocity[1] = 0
     
     for time_elapsed in np.arange(0, 100, dt):
         if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
@@ -43,10 +41,13 @@ if __name__ == '__main__':
 
         drawer.clear()
         drawer.draw_boat(world.boat)
+        drawer.draw_wind(world.wind, [width * 0.9, height * 0.1])
 
         plt.cla()
-        plt.plot(times, list(map(lambda p: p[0], velocities)))
-        plt.plot(times, list(map(lambda p: p[1], velocities)))
+        plt.plot(times, list(map(lambda p: p[0], velocities)), label='Velocity X')
+        plt.plot(times, list(map(lambda p: p[1], velocities)), label='Velocity Y')
+
+        plt.legend()
 
         plt.pause(dt)
     

@@ -6,7 +6,7 @@ class Wing:
     def __init__(self):
         self.area = 15
         # heading is perpendicular to the surface of the wing, pointing forward
-        self.heading = np.zeros(2)
+        self.heading = np.array([1, 0])
 
 class Boat:
     def __init__(self):
@@ -14,7 +14,7 @@ class Boat:
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
         self.acceleration = np.zeros(2)
-        self.heading = np.zeros(2)
+        self.heading = np.array([1, 0])
         self.wing = Wing()
     
     def to_matrix(self):
@@ -67,5 +67,6 @@ def compute_acceleration(force, mass):
 # wing and the wind
 def compute_wind_force(wind: Wind, boat: Boat):
     air_mass = wind.density * boat.wing.area
-    gain = np.abs(np.sin(compute_angle(wind.velocity)))
-    return air_mass * wind.velocity * gain
+    wind_force = air_mass * wind.velocity
+
+    return np.dot(wind_force, boat.wing.heading) * boat.wing.heading
