@@ -1,0 +1,8 @@
+DINAMICA:
+- Forza perpendicolare del vento non genera spostamenti laterali
+- La velocità della barca dovuta alla forza del vento diminuisce nel tempo secondo un damping factor
+
+
+ARCHITETTURA:
+- Batteria per sostenere i sensori / attuatori / controllori necessari, adeguatamente isolata per evitare cortocircuiti dovuti all'acqua
+- I sensori UWB possono condividere i dati ogni volta che effettuano un ranging con le altre barche
