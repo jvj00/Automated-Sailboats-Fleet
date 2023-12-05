@@ -34,8 +34,7 @@ class World:
     def update(self, dt):
         # apply friction to the boat
         # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
-        velocity_angle = compute_angle(self.boat.velocity)
-        gravity = np.array([self.gravity_z * np.cos(velocity_angle), self.gravity_z * np.sin(velocity_angle)])
+        gravity = normalize(self.boat.velocity) * self.gravity_z
         damping = 0.01
         self.boat.velocity -= self.boat.velocity * damping * compute_magnitude(gravity) * dt
 
@@ -45,6 +44,10 @@ class World:
         self.boat.acceleration = compute_acceleration(wind_force, self.boat.mass)
         self.boat.velocity += (self.boat.acceleration * dt)
         self.boat.position += (self.boat.velocity * dt)
+
+def normalize(vec):
+    mag = compute_magnitude(vec)
+    return np.array([vec[0] / mag, vec[1] / mag]) if mag != 0 else vec
 
 def compute_angle(vec):
     return np.arctan2(vec[1], vec[0])
