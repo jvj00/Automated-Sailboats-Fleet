@@ -1,7 +1,7 @@
 from graphics import *
 import numpy as np
 
-from entities import compute_angle, Boat
+from entities import Wing, compute_angle, Boat
 
 class Drawer:
     def __init__(self, width: int, height: int):
@@ -11,20 +11,30 @@ class Drawer:
         for item in self.win.items:
             item.undraw()
         self.win.update()
-    
-    def draw_boat(self, boat: Boat):
-        width = 30
-        length = 60
-        ul = Point(boat.position[0] - (width*0.5), boat.position[1] + (length*0.5))
-        ur = Point(boat.position[0] + (width*0.5), boat.position[1] + (length*0.5))
-        dr = Point(boat.position[0] + (width*0.5), boat.position[1] - (length*0.5))
-        dl = Point(boat.position[0] - (width*0.5), boat.position[1] - (length*0.5))
-        angle = compute_angle(boat.heading)
+
+    def draw_rectangle(self, width: int, height: int, position, heading, color):
+        ul = Point(position[0] - (width * 0.5), position[1] + (height * 0.5))
+        ur = Point(position[0] + (width * 0.5), position[1] + (height * 0.5))
+        dr = Point(position[0] + (width * 0.5), position[1] - (height * 0.5))
+        dl = Point(position[0] - (width * 0.5), position[1] - (height * 0.5))
+        angle = compute_angle(heading)
         vertices = rotate_polygon([ul, ur, dr, dl], angle)
-        poly = Polygon(vertices)
-        poly.setFill(color_rgb(255,168,168))
-        poly.setOutline(color_rgb(255,168,168))
-        poly.draw(self.win)
+        draw = Polygon(vertices)
+        draw.setFill(color)
+        draw.setOutline(color)
+        draw.draw(self.win)
+        
+    def draw_boat(self, boat: Boat):
+        # draw boat
+        width = 30
+        height = 60
+        color = color_rgb(255,168,168)
+        self.draw_rectangle(width, height, boat.position, boat.heading, color)
+
+        width = 25
+        height = 5
+        color = color_rgb(150, 150, 150)
+        self.draw_rectangle(width, height, boat.position, boat.wing.heading, color)
 
 def rotate_polygon(vertices: list[Point], angle: float):
     # Calculate the center of the polygon
