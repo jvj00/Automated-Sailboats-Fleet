@@ -16,6 +16,9 @@ class Boat:
         self.acceleration = np.zeros(2)
         self.heading = np.zeros(2)
         self.wing = Wing(self.heading)
+    
+    def to_matrix(self):
+        return np.array([*self.position, compute_angle(self.heading)])
 
 class Wind:
     def __init__(self):
