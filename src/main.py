@@ -9,7 +9,10 @@ if __name__ == '__main__':
     wind = Wind()
     boat = Boat()
     world = World(wind, boat)
-    drawer = Drawer(900, 500)
+
+    width = 900
+    height = 500
+    drawer = Drawer(width, height)
 
     velocities = []
     positions = []
@@ -17,7 +20,12 @@ if __name__ == '__main__':
 
     dt = 0.1
 
-    world.wind.velocity = np.array([20.0, 10.0])
+    # spawn the boat in the center of the map
+    world.boat.position[0] = width * 0.5
+    world.boat.position[1] = height * 0.5
+
+    world.wind.velocity[0] = 10.0
+    world.wind.velocity[1] = -10.0
     
     for time_elapsed in np.arange(0, 100, dt):
         if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
