@@ -10,7 +10,7 @@ class Wing:
 
 class Boat:
     def __init__(self):
-        self.mass = 100
+        self.mass = 50
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
         self.acceleration = np.zeros(2)
@@ -24,26 +24,24 @@ class Wind:
 
 class World:
     def __init__(self, wind: Wind, boat: Boat):
-        self.gravity = 9.81
+        self.gravity_z = 9.81
         self.wind = wind
         self.boat = boat
     
     def update(self, dt):
         # apply friction to the boat
-        boat_weight = self.boat.mass * self.gravity
-        damping_factor = 80 / boat_weight
-        self.boat.velocity -= self.boat.velocity * damping_factor * dt
+        # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
+        velocity_angle = compute_angle(self.boat.velocity)
+        gravity = np.array([self.gravity_z * np.cos(velocity_angle), self.gravity_z * np.sin(velocity_angle)])
+        damping = 0.01
+        self.boat.velocity -= self.boat.velocity * damping * compute_magnitude(gravity) * dt
 
-        if compute_magnitude(self.boat.velocity) < 0.01:
-            self.boat.velocity = np.zeros(2)
-        
         # apply wind force to the boat
         wind_force = compute_wind_force(self.wind, self.boat)
 
         self.boat.acceleration = compute_acceleration(wind_force, self.boat.mass)
         self.boat.velocity += (self.boat.acceleration * dt)
         self.boat.position += (self.boat.velocity * dt)
-
 
 def compute_angle(vec):
     return np.arctan2(vec[1], vec[0])
