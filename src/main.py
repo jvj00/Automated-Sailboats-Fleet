@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from disegnino import Drawer
-from entities import Boat, Wind, World
+from entities import Boat, Wind, World, compute_angle
 
 from logger import Logger
 
@@ -21,15 +21,13 @@ if __name__ == '__main__':
     dt = 0.1
 
     # spawn the boat in the center of the map
-    world.boat.position[0] = width * 0.5
-    world.boat.position[1] = height * 0.5
+    world.boat.position = np.array([width * 0.5, height * 0.5])
 
-    Logger.debug(world.boat.heading)
-    Logger.debug(world.boat.wing.heading)
-
-    world.wind.velocity[0] = 10.0
-    world.wind.velocity[1] = 0
+    world.wind.velocity = np.array([-10, 15])
     
+    wing_angle = np.pi * 0.2
+    world.boat.wing.heading = np.array([np.cos(wing_angle),np.cos(wing_angle)]) 
+
     for time_elapsed in np.arange(0, 100, dt):
         if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
             world.wind.velocity = np.zeros(2)
