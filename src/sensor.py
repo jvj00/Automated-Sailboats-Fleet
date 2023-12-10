@@ -36,5 +36,4 @@ if __name__ == "__main__":
     for i in range(20):
         data = value_from_gaussian(1, 0.2)
         sensor.add_data(i, data)
-        Logger.debug(data)
     sensor.plot()

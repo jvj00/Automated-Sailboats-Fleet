@@ -41,8 +41,7 @@ class Rudder:
 
     def move(self, dt):
         angle_delta = self.target - self.get_angle()
-        if angle_delta < 0.1:
+        if angle_delta < 0.05:
             return
-        Logger.debug(f'Delta angle: {angle_delta}')
         self.stepper.direction = StepperDirection.Clockwise if angle_delta > 0 else StepperDirection.CounterClockwise
         self.stepper.move(dt)

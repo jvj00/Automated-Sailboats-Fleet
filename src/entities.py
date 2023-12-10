@@ -24,14 +24,13 @@ class Boat:
         self.heading = np.zeros(2)
         self.wing = wing
         self.rudder = rudder
-        self.damping = 0.01
+        self.damping = 0.005
     
     def position_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
     
     def move(self, dt):
         self.rudder.move(dt)
-        Logger.debug(f'Rudder angle: {self.rudder.get_angle()}')
         angle = self.rudder.get_angle()
         x_h = np.cos(angle)
         y_h = np.sin(angle)
