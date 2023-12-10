@@ -1,4 +1,3 @@
-from random import seed
 from random import gauss
 from datetime import datetime
 import numpy as np
@@ -21,3 +20,11 @@ def value_from_gaussian(mu, sigma):
 ## TIME
 def now():
     return datetime.now().strftime("%H:%M:%S")
+
+def mod2pi(angle):
+    angle = np.fmod(angle, 2 * np.pi)
+
+    if angle < 0:
+        angle += 2 * np.pi
+
+    return angle
