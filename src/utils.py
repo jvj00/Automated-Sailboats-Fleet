@@ -13,6 +13,16 @@ def compute_angle(vec):
 def compute_magnitude(vec):
     return np.sqrt(vec[0]*vec[0] + vec[1]*vec[1])
 
+def cartesian_to_polar(vec):
+    angle = compute_angle(vec)
+    mag = compute_magnitude(vec)
+    return mag, angle
+
+def polar_to_cartesian(angle, mag):
+    x = mag * np.cos(angle)
+    y = mag * np.sin(angle)
+    return np.array([x, y])
+
 ## RANDOM
 def value_from_gaussian(mu, sigma):
     return gauss(mu, sigma)

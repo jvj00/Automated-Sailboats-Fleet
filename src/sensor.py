@@ -27,7 +27,8 @@ class Anemometer:
         self.sigma = sigma
     
     def measure(self, wind: Wind, boat: Boat):
-        wind_vel_anemo = (np.cos(compute_angle(wind.velocity)-boat.position_matrix()[2]) * compute_magnitude(wind.velocity)) - compute_magnitude(boat.velocity)
+        wind_mag, wing_angle = cartesian_to_polar(wind.velocity)
+        wind_vel_anemo = (np.cos(wing_angle - boat.position_matrix()[2]) * wind_mag) - wind_mag
         return wind_vel_anemo, value_from_gaussian(wind_vel_anemo, self.sigma)
 
 if __name__ == "__main__":

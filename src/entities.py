@@ -32,6 +32,7 @@ class Boat:
     def move(self, dt):
         self.velocity += (self.acceleration * dt)
         self.position += (self.velocity * dt)
+        self.rudder.move(dt)
     
     def apply_wind(self, wind: Wind):
         wind_force = compute_wind_force(wind, self)
