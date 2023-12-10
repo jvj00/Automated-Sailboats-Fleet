@@ -39,8 +39,8 @@ class Boat:
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
-        gravity = normalize(self.velocity) * gravity
-        self.velocity -= self.velocity * self.damping * compute_magnitude(gravity) * dt
+        g = normalize(self.velocity) * gravity
+        self.velocity -= self.velocity * self.damping * compute_magnitude(g) * dt
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):
@@ -51,7 +51,7 @@ class World:
     def update(self, dt):
         self.boat.apply_friction(self.gravity_z, dt)
         self.boat.apply_wind(self.wind)
-        self.boat.move()
+        self.boat.move(dt)
 
 def compute_acceleration(force, mass):
     return force / mass
