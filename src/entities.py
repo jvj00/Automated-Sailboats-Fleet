@@ -1,34 +1,36 @@
+from actuator import Rudder
 from logger import Logger
 import numpy as np
 import matplotlib.pyplot as plt
 from utils import *
 
 class Wing:
-    def __init__(self):
-        self.area = 15
+    def __init__(self, area):
+        self.area = area
         # heading is perpendicular to the surface of the wing, pointing forward
         self.heading = np.array([1, 0])
 
 class Boat:
-    def __init__(self):
-        self.mass = 50
+    def __init__(self, mass, wing: Wing, rudder: Rudder):
+        self.mass = mass
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
         self.acceleration = np.zeros(2)
-        self.heading = np.array([1, 0])
-        self.wing = Wing()
+        self.heading = np.zeros(2)
+        self.wing = wing
+        self.rudder = rudder
     
     def position_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
 
 class Wind:
-    def __init__(self):
-        self.density = 1.293
+    def __init__(self, density):
+        self.density = density
         self.velocity = np.zeros(2)
 
 class World:
-    def __init__(self, wind: Wind, boat: Boat):
-        self.gravity_z = 9.81
+    def __init__(self, gravity, wind: Wind, boat: Boat):
+        self.gravity_z = gravity
         self.wind = wind
         self.boat = boat
     

@@ -1,16 +1,17 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from actuator import Rudder, Stepper
 from disegnino import Drawer
-from entities import Boat, Wind, World
+from entities import Boat, Wind, Wing, World
 from sensor import Anemometer
 
 from logger import Logger
 
 if __name__ == '__main__':
-    wind = Wind()
-    boat = Boat()
+    wind = Wind(1.291)
+    boat = Boat(100, Wing(10), Rudder(Stepper(100, 2)))
     anemo = Anemometer(0.5)
-    world = World(wind, boat)
+    world = World(9.81, wind, boat)
 
     width = 900
     height = 500
