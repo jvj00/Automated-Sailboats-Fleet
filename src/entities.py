@@ -30,9 +30,15 @@ class Boat:
         return np.array([*self.position, compute_angle(self.heading)])
     
     def move(self, dt):
+        self.rudder.move(dt)
+        Logger.debug(f'Rudder angle: {self.rudder.get_angle()}')
+        angle = self.rudder.get_angle()
+        x_h = np.cos(angle)
+        y_h = np.sin(angle)
+        self.heading = np.array([x_h, y_h])
+        self.acceleration = np.dot(self.acceleration, self.heading) * self.heading
         self.velocity += (self.acceleration * dt)
         self.position += (self.velocity * dt)
-        self.rudder.move(dt)
     
     def apply_wind(self, wind: Wind):
         wind_force = compute_wind_force(wind, self.wing)

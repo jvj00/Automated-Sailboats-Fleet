@@ -41,11 +41,11 @@ class RudderTest(unittest.TestCase):
         stepper = Stepper(100, 0.5)
         rudder = Rudder(stepper)
         rudder.move(0.1)
-        rudder.move(0.1)
+        rudder.move(0.2)
         rudder.move(0.2)
         self.assertEqual(rudder.get_angle(), 0)
     
-    def test_1(self):
+    def test_2(self):
         stepper = Stepper(100, 0.5)
         rudder = Rudder(stepper)
         rudder.set_target(np.pi * 0.5)
@@ -58,6 +58,14 @@ class RudderTest(unittest.TestCase):
         rudder.move(0.1)
         rudder.move(0.1)
         rudder.move(0.1)
+        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
+        rudder.move(0.1)
+        rudder.move(0.1)
+        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
+        rudder.move(0.1)
+        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
+        rudder.move(0.1)
+        rudder.move(1.2)
         self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
 
 if __name__ == '__main__':
