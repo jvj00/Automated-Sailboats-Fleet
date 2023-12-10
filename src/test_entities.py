@@ -13,7 +13,7 @@ class ToolTest(unittest.TestCase):
         boat = Boat(100, Wing(10), Rudder(Stepper(100, 5)))
         boat.heading = np.array([0, 1])
         boat.wing.heading = np.array([0, 1])
-        f = compute_wind_force(wind, boat)
+        f = compute_wind_force(wind, boat.wing)
         self.assertEqual(f[0], 0)
         self.assertEqual(f[1], 128)
     
@@ -23,19 +23,19 @@ class ToolTest(unittest.TestCase):
         boat = Boat(100, Wing(10), Rudder(Stepper(100, 5)))
         boat.heading = np.array([1, 0])
         boat.wing.heading = np.array([0, 1])
-        f = compute_wind_force(wind, boat)
+        f = compute_wind_force(wind, boat.wing)
         self.assertEqual(f[0], 0)
         self.assertEqual(f[1], 0)
     
-    def test_compute_wind_force_2(self):
+    def test_compute_wind_force_3(self):
         wind = Wind(1.28)
         wind.velocity = np.array([10, 0])
         boat = Boat(100, Wing(10), Rudder(Stepper(100, 5)))
         boat.heading = normalize(np.array([0.5, 0.5]))
         boat.wing.heading = np.array([1, 0])
-        f = compute_wind_force(wind, boat)
-        self.assertAlmostEqual(f[0], 64)
-        self.assertAlmostEqual(f[1], 64)
+        f = compute_wind_force(wind, boat.wing)
+        self.assertAlmostEqual(f[0], 128)
+        self.assertAlmostEqual(f[1], 0)
 
 if __name__ == '__main__':
     unittest.main()

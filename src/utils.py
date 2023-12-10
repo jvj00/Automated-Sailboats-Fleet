@@ -18,7 +18,7 @@ def cartesian_to_polar(vec):
     mag = compute_magnitude(vec)
     return mag, angle
 
-def polar_to_cartesian(angle, mag):
+def polar_to_cartesian(mag, angle):
     x = mag * np.cos(angle)
     y = mag * np.sin(angle)
     return np.array([x, y])
