@@ -10,6 +10,11 @@ class Wing:
         # heading is perpendicular to the surface of the wing, pointing forward
         self.heading = np.array([1, 0])
 
+class Wind:
+    def __init__(self, density):
+        self.density = density
+        self.velocity = np.zeros(2)
+
 class Boat:
     def __init__(self, mass, wing: Wing, rudder: Rudder):
         self.mass = mass
@@ -19,14 +24,23 @@ class Boat:
         self.heading = np.zeros(2)
         self.wing = wing
         self.rudder = rudder
+        self.damping = 0.01
     
     def position_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
+    
+    def move(self, dt):
+        self.velocity += (self.acceleration * dt)
+        self.position += (self.velocity * dt)
+    
+    def apply_wind(self, wind: Wind):
+        wind_force = compute_wind_force(wind, self)
+        self.acceleration = compute_acceleration(wind_force, self.mass)
 
-class Wind:
-    def __init__(self, density):
-        self.density = density
-        self.velocity = np.zeros(2)
+    # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
+    def apply_friction(self, gravity: float, dt):
+        gravity = normalize(self.velocity) * gravity
+        self.velocity -= self.velocity * self.damping * compute_magnitude(gravity) * dt
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):
@@ -35,18 +49,9 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        # apply friction to the boat
-        # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
-        gravity = normalize(self.boat.velocity) * self.gravity_z
-        damping = 0.01
-        self.boat.velocity -= self.boat.velocity * damping * compute_magnitude(gravity) * dt
-
-        # apply wind force to the boat
-        wind_force = compute_wind_force(self.wind, self.boat)
-
-        self.boat.acceleration = compute_acceleration(wind_force, self.boat.mass)
-        self.boat.velocity += (self.boat.acceleration * dt)
-        self.boat.position += (self.boat.velocity * dt)
+        self.boat.apply_friction(self.gravity_z, dt)
+        self.boat.apply_wind(self.wind)
+        self.boat.move()
 
 def compute_acceleration(force, mass):
     return force / mass
