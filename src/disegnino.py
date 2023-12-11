@@ -48,7 +48,7 @@ class Drawer:
         width = 25
         height = 5
         color = color_rgb(150, 150, 150)
-        self.draw_rectangle(width, height, boat.position, boat.wing.heading, color)
+        self.draw_rectangle(width, height, boat.position, boat.wing.get_heading(), color)
 
 def rotate_polygon(vertices: list[Point], angle: float):
     # Calculate the center of the polygon

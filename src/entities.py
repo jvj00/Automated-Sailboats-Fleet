@@ -1,17 +1,19 @@
-from actuator import Rudder
+from actuator import Stepper, StepperController
 from logger import Logger
 import numpy as np
-import matplotlib.pyplot as plt
 from utils import *
 
-class Wing:
-    def __init__(self, area):
+class Wing(StepperController):
+    def __init__(self, area: float, stepper: Stepper):
+        super().__init__(stepper)
         self.area = area
-        # heading is perpendicular to the surface of the wing, pointing forward
-        self.heading = np.array([1, 0])
+
+class Rudder(StepperController):
+    def __init__(self, stepper: Stepper):
+        super().__init__(stepper)
 
 class Wind:
-    def __init__(self, density):
+    def __init__(self, density: float):
         self.density = density
         self.velocity = np.zeros(2)
 
@@ -31,10 +33,8 @@ class Boat:
     
     def move(self, dt):
         self.rudder.move(dt)
-        angle = self.rudder.get_angle()
-        x_h = np.cos(angle)
-        y_h = np.sin(angle)
-        self.heading = np.array([x_h, y_h])
+        self.wing.move(dt)
+        self.heading = self.rudder.get_heading()
         self.acceleration = np.dot(self.acceleration, self.heading) * self.heading
         self.velocity += (self.acceleration * dt)
         self.position += (self.velocity * dt)
@@ -70,4 +70,5 @@ def compute_acceleration(force, mass):
 def compute_wind_force(wind: Wind, wing: Wing):
     air_mass = wind.density * wing.area
     wind_force = air_mass * wind.velocity
-    return np.dot(wind_force, wing.heading) * wing.heading
+    wind_heading = wing.get_heading()
+    return np.dot(wind_force, wind_heading) * wind_heading

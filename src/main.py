@@ -1,15 +1,15 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from actuator import Rudder, Stepper
+from actuator import Stepper
 from disegnino import Drawer
-from entities import Boat, Wind, Wing, World
+from entities import Boat, Wind, Wing, Rudder, World
 from sensor import Anemometer
 
 from logger import Logger
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    boat = Boat(100, Wing(area=15), Rudder(Stepper(100, 0.05)))
+    boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.05)))
     anemo = Anemometer(0.5)
     world = World(9.81, wind, boat)
 
@@ -28,15 +28,14 @@ if __name__ == '__main__':
     # spawn the boat in the center of the map
     world.boat.position = np.array([width * 0.5, height * 0.5])
     world.boat.heading = np.array([0, -1])
-    world.boat.wing.heading = np.array([0, -1])
     world.wind.velocity = np.array([-10, 15])
     world.boat.rudder.set_target(np.pi * 0.5)
+    world.boat.wing.set_target(np.pi)
     
     wing_angle = np.pi * 0.2
 
-    for time_elapsed in np.arange(0, 10, dt):
-        Logger.debug(world.boat.rudder.get_angle())
-        if time_elapsed % 5 == 0 and  0 < time_elapsed < 10:
+    for time_elapsed in np.arange(0, 100, dt):
+        if time_elapsed == 20:
             world.wind.velocity = np.zeros(2)
         velocities.append(world.boat.velocity.copy())
         positions.append(world.boat.position.copy())

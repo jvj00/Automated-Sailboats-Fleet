@@ -1,5 +1,6 @@
 import numpy as np
 from logger import Logger
+from utils import polar_to_cartesian
 
 class StepperDirection:
     Clockwise = 1
@@ -28,7 +29,7 @@ class Stepper:
     def get_angle(self):
         return (self.get_steps() / self.resolution) * 2 * np.pi
 
-class Rudder:
+class StepperController:
     def __init__(self, stepper: Stepper):
         self.stepper = stepper
         self.target = stepper.get_angle()
@@ -38,6 +39,9 @@ class Rudder:
     
     def get_angle(self):
         return self.stepper.get_angle()
+    
+    def get_heading(self):
+        return polar_to_cartesian(1, self.get_angle())
 
     def move(self, dt):
         angle_delta = self.target - self.get_angle()
