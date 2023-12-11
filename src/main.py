@@ -58,10 +58,10 @@ if __name__ == '__main__':
         drawer.draw_vector(world.boat.position, world.boat.velocity, 'green')
 
         #Plot anemometer measurements
-        # plt.figure(1)
-        # plt.cla()
-        # plt.plot(times, anemo_truth, label="Anemo truth")
-        # plt.plot(times, anemo_meas, label="Anemo meas")
+        plt.figure(1)
+        plt.cla()
+        plt.plot(times, anemo_truth, label="Anemo truth")
+        plt.plot(times, anemo_meas, label="Anemo meas")
         # plt.plot(times, list(map(lambda p: p[0], velocities)), label='Boat Velocity X')
         # plt.plot(times, list(map(lambda p: p[1], velocities)), label='Boat Velocity Y')
 
