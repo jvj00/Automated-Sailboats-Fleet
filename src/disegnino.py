@@ -11,7 +11,7 @@ class Drawer:
         for item in self.win.items:
             item.undraw()
         self.win.update()
-    
+
     def draw_wind(self, wind: Wind, position):
         width = 15
         height = 30
@@ -49,6 +49,14 @@ class Drawer:
         height = 5
         color = color_rgb(150, 150, 150)
         self.draw_rectangle(width, height, boat.position, boat.wing.get_heading(), color)
+    
+    def draw_vector(self, start, vec, color):
+        gain = 2
+        end = start + (vec * gain)
+        draw = Line(Point(start[0], start[1]), Point(end[0], end[1]))
+        draw.setFill(color)
+        draw.setOutline(color)
+        draw.draw(self.win)
 
 def rotate_polygon(vertices: list[Point], angle: float):
     # Calculate the center of the polygon

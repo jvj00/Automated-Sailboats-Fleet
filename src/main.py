@@ -9,7 +9,7 @@ from logger import Logger
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.05)))
+    boat = Boat(100, Wing(15, Stepper(100, 0.02)), Rudder(Stepper(100, 0.05)))
     anemo = Anemometer(0.5)
     world = World(9.81, wind, boat)
 
@@ -34,9 +34,12 @@ if __name__ == '__main__':
     
     wing_angle = np.pi * 0.2
 
-    for time_elapsed in np.arange(0, 100, dt):
+    for time_elapsed in np.arange(0, 1000, dt):
         if time_elapsed == 20:
             world.wind.velocity = np.zeros(2)
+        if time_elapsed == 10:
+            world.boat.rudder.set_target(np.pi)
+        
         velocities.append(world.boat.velocity.copy())
         positions.append(world.boat.position.copy())
 
@@ -51,6 +54,8 @@ if __name__ == '__main__':
         drawer.clear()
         drawer.draw_boat(world.boat)
         drawer.draw_wind(world.wind, [width * 0.9, height * 0.1])
+        drawer.draw_vector(world.boat.position, world.wind.velocity, 'blue')
+        drawer.draw_vector(world.boat.position, world.boat.velocity, 'green')
 
         #Plot anemometer measurements
         # plt.figure(1)
