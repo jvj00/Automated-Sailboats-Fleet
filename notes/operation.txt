@@ -4,14 +4,15 @@
 
 
 SENSORI:
- - GPS (Galileo)
- - UWB (DW3000)
- - Anemometro
+ - GNSS SAM-M10Q
+ - UWB DW3000
+ - Anemometro JRC WS-12
  - Sensore di velocità DX900+
+ - Bussola HSC100 (+-3°)
 
 ACTUATORS:
- - Timone
- - Vela
+ - Timone (Stepper)
+ - Vela (Stepper)
 
 MICROCONTROLLORE:
  - Atmega 2560
