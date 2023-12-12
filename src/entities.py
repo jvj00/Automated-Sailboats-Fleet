@@ -27,18 +27,29 @@ class Boat:
         self.wing = wing
         self.rudder = rudder
         self.damping = 0.005
+        self.angular_damping = 0.05
     
     def position_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
     
+    # compute the rotation rate
+    # the rotation rate is directly proportional to the rudder angle and the boat velocity.
+    # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
+    # the result is scaled is using an angular damping
+    def rotate(self, dt):
+        rotation_rate = self.rudder.get_heading() * self.angular_damping
+        self.heading += rotation_rate * compute_magnitude(self.velocity) * dt
+    
+    def translate(self, dt):
+        self.velocity += (self.acceleration * dt)
+        self.position += (self.velocity * dt)
+
     def move(self, dt):
         self.rudder.move(dt)
         self.wing.move(dt)
-        self.heading = self.rudder.get_heading()
-        self.acceleration = np.dot(self.acceleration, self.heading) * self.heading
-        self.velocity += (self.acceleration * dt)
-        self.position += (self.velocity * dt)
-    
+        self.rotate(dt)
+        self.translate(dt)
+        
     def apply_wind(self, wind: Wind):
         wind_force = compute_wind_force(wind, self)
         self.acceleration = compute_acceleration(wind_force, self.mass)
