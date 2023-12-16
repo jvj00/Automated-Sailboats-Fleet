@@ -28,6 +28,9 @@ class Stepper:
     
     def get_angle(self):
         return (self.get_steps() / self.resolution) * 2 * np.pi
+    
+    def set_angle(self, angle):
+        self.steps = (angle * self.resolution) / (2 * np.pi)
 
 class StepperController:
     def __init__(self, stepper: Stepper):
