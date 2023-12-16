@@ -42,7 +42,7 @@ class ToolTest(unittest.TestCase):
     # wind and wing have the same heading, with angle = 0
     # boat has a perpendicular heading with respect to the wind/wing, with angle = PI/2
     # the produced force must be 0
-    def test_compute_wind_force_min(self):
+    def test_compute_wind_force_boat_perp(self):
         wind = Wind(1.28)
         wind.velocity = np.array([10, 0])
         boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
@@ -54,12 +54,21 @@ class ToolTest(unittest.TestCase):
     # wind and boat have the same heading, with angle = 0
     # wing has a perpendicular heading with respect to the wind/boat, with angle = PI/2
     # the produced force must be 0, as above
-    def test_compute_wind_force_min(self):
+    def test_compute_wind_force_wing_perp(self):
         wind = Wind(1.28)
         wind.velocity = np.array([10, 0])
         boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
         boat.heading = np.array([1, 0])
         boat.wing.stepper.set_angle(np.pi * 0.5)
+        f = compute_wind_force(wind, boat)
+        self.assertAlmostEqual(f[0], 0)
+        self.assertAlmostEqual(f[1], 0)
+    
+    def test_compute_wind_force_none(self):
+        wind = Wind(1.28)
+        wind.velocity = np.array([0, 0])
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
+        boat.heading = np.array([1, 0])
         f = compute_wind_force(wind, boat)
         self.assertAlmostEqual(f[0], 0)
         self.assertAlmostEqual(f[1], 0)

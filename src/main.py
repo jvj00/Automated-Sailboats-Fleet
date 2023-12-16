@@ -10,7 +10,7 @@ from logger import Logger
 if __name__ == '__main__':
     wind = Wind(1.291)
     boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
-    anemo = Anemometer(0.5)
+    # anemo = Anemometer(0.5)
     world = World(9.81, wind, boat)
 
     width = 900
@@ -35,6 +35,8 @@ if __name__ == '__main__':
     wing_angle = np.pi * 0.2
 
     for time_elapsed in np.arange(0, 500, dt):
+        if time_elapsed == 10:
+            world.boat.rudder.set_target(0)
         if time_elapsed == 20:
             world.wind.velocity = np.zeros(2)
         # if time_elapsed == 10:
@@ -43,9 +45,9 @@ if __name__ == '__main__':
         velocities.append(world.boat.velocity.copy())
         positions.append(world.boat.position.copy())
 
-        truth, meas = anemo.measure(world.wind, world.boat)
-        anemo_truth.append(truth)
-        anemo_meas.append(meas)
+        # truth, meas = anemo.measure(world.wind, world.boat)
+        # anemo_truth.append(truth)
+        # anemo_meas.append(meas)
 
         times.append(time_elapsed)
 
