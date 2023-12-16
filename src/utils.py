@@ -13,6 +13,9 @@ def compute_angle(vec):
 def compute_magnitude(vec):
     return np.sqrt(vec[0]*vec[0] + vec[1]*vec[1])
 
+def compute_distance(v1, v2):
+    return compute_magnitude(v2 - v1)
+
 def cartesian_to_polar(vec):
     angle = compute_angle(vec)
     mag = compute_magnitude(vec)
