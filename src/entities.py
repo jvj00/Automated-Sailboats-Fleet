@@ -82,4 +82,5 @@ def compute_wind_force(wind: Wind, boat: Boat):
     velocity = wind.velocity - boat.velocity
     wind_force = air_mass * velocity
     wind_heading = boat.wing.get_heading()
-    return np.dot(wind_force, wind_heading) * wind_heading
+    f = np.dot(wind_force, wind_heading) * wind_heading
+    return np.dot(f, boat.heading) * boat.heading

@@ -1,41 +1,68 @@
 import unittest
 import numpy as np
-from actuator import Rudder, Stepper
-
-from entities import Boat, Wind, Wing, compute_wind_force
-from utils import normalize
+from actuator import Stepper
+from entities import Wing, Rudder, Wind, Boat, compute_wind_force
 
 class ToolTest(unittest.TestCase):
-
-    def test_compute_wind_force_1(self):
+    
+    # boat, wind and wing have the same heading, with angle = PI/2
+    def test_compute_wind_force_max_y(self):
         wind = Wind(1.28)
         wind.velocity = np.array([0, 10])
-        boat = Boat(100, Wing(10), Rudder(Stepper(100, 5)))
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
         boat.heading = np.array([0, 1])
-        boat.wing.heading = np.array([0, 1])
-        f = compute_wind_force(wind, boat.wing)
+        boat.wing.stepper.set_angle(np.pi * 0.5)
+        f = compute_wind_force(wind, boat)
         self.assertEqual(f[0], 0)
         self.assertEqual(f[1], 128)
     
-    def test_compute_wind_force_2(self):
+    # boat, wind and wing have the same heading, with angle = 0
+    def test_compute_wind_force_max_x(self):
         wind = Wind(1.28)
         wind.velocity = np.array([10, 0])
-        boat = Boat(100, Wing(10), Rudder(Stepper(100, 5)))
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
         boat.heading = np.array([1, 0])
-        boat.wing.heading = np.array([0, 1])
-        f = compute_wind_force(wind, boat.wing)
+        f = compute_wind_force(wind, boat)
+        self.assertEqual(f[0], 128)
+        self.assertEqual(f[1], 0)
+    
+    # boat, wind have the same heading, with angle = 0
+    # wing has an opposite heading of PI
+    # the result must be the same as above
+    def test_compute_wind_force_max_x_opposite(self):
+        wind = Wind(1.28)
+        wind.velocity = np.array([10, 0])
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
+        boat.heading = np.array([1, 0])
+        boat.wing.stepper.set_angle(np.pi)
+        f = compute_wind_force(wind, boat)
+        self.assertEqual(f[0], 128)
+        self.assertEqual(f[1], 0)
+    
+    # wind and wing have the same heading, with angle = 0
+    # boat has a perpendicular heading with respect to the wind/wing, with angle = PI/2
+    # the produced force must be 0
+    def test_compute_wind_force_min(self):
+        wind = Wind(1.28)
+        wind.velocity = np.array([10, 0])
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
+        boat.heading = np.array([0, 1])
+        f = compute_wind_force(wind, boat)
         self.assertEqual(f[0], 0)
         self.assertEqual(f[1], 0)
     
-    def test_compute_wind_force_3(self):
+    # wind and boat have the same heading, with angle = 0
+    # wing has a perpendicular heading with respect to the wind/boat, with angle = PI/2
+    # the produced force must be 0, as above
+    def test_compute_wind_force_min(self):
         wind = Wind(1.28)
         wind.velocity = np.array([10, 0])
-        boat = Boat(100, Wing(10), Rudder(Stepper(100, 5)))
-        boat.heading = normalize(np.array([0.5, 0.5]))
-        boat.wing.heading = np.array([1, 0])
-        f = compute_wind_force(wind, boat.wing)
-        self.assertAlmostEqual(f[0], 128)
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
+        boat.heading = np.array([1, 0])
+        boat.wing.stepper.set_angle(np.pi * 0.5)
+        f = compute_wind_force(wind, boat)
+        self.assertAlmostEqual(f[0], 0)
         self.assertAlmostEqual(f[1], 0)
-
+    
 if __name__ == '__main__':
     unittest.main()
