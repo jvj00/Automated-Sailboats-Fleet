@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 from actuator import Stepper
 from entities import Wing, Rudder, Wind, Boat, compute_wind_force
+from utils import normalize
 
 class ToolTest(unittest.TestCase):
     
@@ -64,11 +65,21 @@ class ToolTest(unittest.TestCase):
         self.assertAlmostEqual(f[0], 0)
         self.assertAlmostEqual(f[1], 0)
     
-    def test_compute_wind_force_none(self):
+    def test_compute_wind_force_boat_steady_no_wind(self):
         wind = Wind(1.28)
-        wind.velocity = np.array([0, 0])
+        wind.velocity = np.zeros(2)
         boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
         boat.heading = np.array([1, 0])
+        f = compute_wind_force(wind, boat)
+        self.assertAlmostEqual(f[0], 0)
+        self.assertAlmostEqual(f[1], 0)
+    
+    def test_compute_wind_force_boat_moving_no_wind(self):
+        wind = Wind(1.28)
+        wind.velocity = np.zeros(2)
+        boat = Boat(100, Wing(10, Stepper(100, 1)), Rudder(Stepper(100, 1)))
+        boat.heading = np.array([1, 0])
+        boat.velocity = normalize(np.array([5.0, 2.0]))
         f = compute_wind_force(wind, boat)
         self.assertAlmostEqual(f[0], 0)
         self.assertAlmostEqual(f[1], 0)
