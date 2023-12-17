@@ -75,11 +75,14 @@ class Boat:
         self.target = target
     
     def follow_target(self, dt):
-        self.pid.sample_time = dt
-        distance_from_target = compute_distance(self.position, self.target)
-        control = self.pid(distance_from_target)
-        # FIXME must use rudder.set_target instead
+        # self.pid.sample_time = dt
+        _, speed_angle = cartesian_to_polar(self.velocity)
+        angle_from_target = compute_angle(self.target - self.position)
+        delta_angle = speed_angle - angle_from_target
+        Logger.debug(f'Delta angle: {delta_angle}')
+        control = self.pid(delta_angle)
         self.rudder.stepper.set_angle(control)
+        Logger.debug(f'Rudder angle: {self.rudder.stepper.get_angle()}')
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):
