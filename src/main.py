@@ -10,7 +10,7 @@ from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    boat_pid = PID(0.1, 0.1, 0.1, setpoint=0)
+    boat_pid = PID(1, 0.1, 0.1, setpoint=0)
     boat = Boat(100, Wing(15, Stepper(100, 1)), Rudder(Stepper(100, 1)), boat_pid)
     # anemo = Anemometer(0.5)
     world = World(9.81, wind, boat)
@@ -29,22 +29,20 @@ if __name__ == '__main__':
     dt = 0.1
 
     # spawn the boat in the center of the map
-    world.boat.position = np.array([width * 0.5, height * 0.5])
+    world.boat.position = np.array([width * 0.1, height * 0.1])
     # world.boat.heading = np.array([0.0, -1.0])
-    world.wind.velocity = np.array([-10.0, 15.0])
-    world.boat.rudder.stepper.set_angle(np.pi * 0.25)
+    world.wind.velocity = np.array([10.0, -5.0])
+    # world.boat.rudder.stepper.set_angle(np.pi * 0.25)
     # world.boat.wing.set_target(np.pi)
-    world.boat.set_target(np.array([500, 500]))
-
-    wind_speed = -20
+    world.boat.set_target(np.array([width * 0.5, height * 0.5]))
 
     for time_elapsed in np.arange(0, 500, dt):
         # world.wind.velocity = polar_to_cartesian(wind_speed, np.cos(time_elapsed))
         # world.boat.wing.stepper.set_angle(np.cos(time_elapsed))
-        if time_elapsed >= 10:
-            world.wind.velocity = np.zeros(2)
-        else:
-            world.wind.velocity = polar_to_cartesian(wind_speed, np.cos(time_elapsed))
+        # if time_elapsed >= 10:
+            # world.wind.velocity = np.zeros(2)
+        # else:
+            # world.wind.velocity = polar_to_cartesian(wind_speed, np.cos(time_elapsed))
             # wind_speed = -wind_speed
             # world.boat.wing.stepper.set_angle(np.pi * 0.5)
         

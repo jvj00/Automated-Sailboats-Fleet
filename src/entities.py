@@ -51,10 +51,10 @@ class Boat:
         self.position += (self.velocity * dt)
 
     def move(self, dt):
-        # if self.target is not None:
-        #     self.follow_target(dt)
-        # self.rudder.move(dt)
-        # self.wing.move(dt)
+        if self.target is not None:
+            self.follow_target(dt)
+        self.rudder.move(dt)
+        self.wing.move(dt)
         self.rotate(dt)
         self.translate(dt)
 
