@@ -26,6 +26,7 @@ def main():
 def simulate(world: World, dt):
     for time_elapsed in np.arange(0, 100, dt):
         world.update(dt)
+        Logger.debug(f'Boat position: {world.boat.position}')
 
 if __name__ == '__main__':
     main()
