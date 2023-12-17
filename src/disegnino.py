@@ -50,8 +50,7 @@ class Drawer:
         color = color_rgb(150, 150, 150)
         self.draw_rectangle(width, height, boat.position, boat.wing.get_heading(), color)
     
-    def draw_vector(self, start, vec, color):
-        gain = 2
+    def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)
         draw = Line(Point(start[0], start[1]), Point(end[0], end[1]))
         draw.setFill(color)
