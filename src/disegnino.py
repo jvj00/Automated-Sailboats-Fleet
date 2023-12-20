@@ -2,6 +2,7 @@ from graphics import *
 import numpy as np
 
 from entities import Wind, Wing, compute_angle, Boat
+from utils import cartesian_to_polar, polar_to_cartesian
 
 class Drawer:
     def __init__(self, width: int, height: int):
@@ -48,7 +49,10 @@ class Drawer:
         width = 25
         height = 5
         color = color_rgb(150, 150, 150)
-        self.draw_rectangle(width, height, boat.position, boat.wing.get_heading(), color)
+        _, boat_angle = cartesian_to_polar(boat.heading)
+        _, wing_angle = cartesian_to_polar(boat.wing.get_heading())
+        heading = polar_to_cartesian(1, boat_angle + wing_angle)
+        self.draw_rectangle(width, height, boat.position, heading, color)
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)
