@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from actuator import Rudder, Stepper, StepperDirection
+from actuator import Stepper, StepperDirection, StepperController
 
 class StepperTest(unittest.TestCase):
 
@@ -35,38 +35,38 @@ class StepperTest(unittest.TestCase):
         self.assertEqual(stepper.get_steps(), 40)
         self.assertAlmostEqual(stepper.get_angle(), np.pi * 0.8)
 
-class RudderTest(unittest.TestCase):
+class StepperControllerTest(unittest.TestCase):
 
     def test_1(self):
         stepper = Stepper(100, 0.5)
-        rudder = Rudder(stepper)
-        rudder.move(0.1)
-        rudder.move(0.2)
-        rudder.move(0.2)
-        self.assertEqual(rudder.get_angle(), 0)
+        controller = StepperController(stepper)
+        controller.move(0.1)
+        controller.move(0.2)
+        controller.move(0.2)
+        self.assertEqual(controller.get_angle(), 0)
     
     def test_2(self):
         stepper = Stepper(100, 0.5)
-        rudder = Rudder(stepper)
-        rudder.set_target(np.pi * 0.5)
-        rudder.move(0.1)
-        self.assertAlmostEqual(rudder.get_angle(), 0.31415926)
-        rudder.move(0.1)
-        self.assertAlmostEqual(rudder.get_angle(), 0.62831853)
-        rudder.move(0.2)
-        self.assertAlmostEqual(rudder.get_angle(), 1.25663706)
-        rudder.move(0.1)
-        rudder.move(0.1)
-        rudder.move(0.1)
-        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
-        rudder.move(0.1)
-        rudder.move(0.1)
-        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
-        rudder.move(0.1)
-        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
-        rudder.move(0.1)
-        rudder.move(1.2)
-        self.assertAlmostEqual(rudder.get_angle(), np.pi * 0.5)
+        controller = StepperController(stepper)
+        controller.set_target(np.pi * 0.5)
+        controller.move(0.1)
+        self.assertAlmostEqual(controller.get_angle(), 0.31415926)
+        controller.move(0.1)
+        self.assertAlmostEqual(controller.get_angle(), 0.62831853)
+        controller.move(0.2)
+        self.assertAlmostEqual(controller.get_angle(), 1.25663706)
+        controller.move(0.1)
+        controller.move(0.1)
+        controller.move(0.1)
+        self.assertAlmostEqual(controller.get_angle(), np.pi * 0.5)
+        controller.move(0.1)
+        controller.move(0.1)
+        self.assertAlmostEqual(controller.get_angle(), np.pi * 0.5)
+        controller.move(0.1)
+        self.assertAlmostEqual(controller.get_angle(), np.pi * 0.5)
+        controller.move(0.1)
+        controller.move(1.2)
+        self.assertAlmostEqual(controller.get_angle(), np.pi * 0.5)
 
 if __name__ == '__main__':
     unittest.main()
