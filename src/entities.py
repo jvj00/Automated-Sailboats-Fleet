@@ -19,7 +19,7 @@ class Wind:
         self.velocity = np.zeros(2)
 
 class Boat:
-    def __init__(self, mass, wing: Wing, rudder: Rudder, pid: PID):
+    def __init__(self, mass, wing: Wing, rudder: Rudder, rudder_pid: PID, wing_pid: PID):
         self.mass = mass
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
@@ -30,7 +30,8 @@ class Boat:
         self.damping = 0.005
         self.angular_damping = 0.01
         self.target = None
-        self.pid = pid
+        self.rudder_pid = rudder_pid
+        self.wing_pid = wing_pid
 
     def position_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
@@ -50,9 +51,9 @@ class Boat:
         self.velocity += (self.acceleration * dt)
         self.position += (self.velocity * dt)
 
-    def move(self, dt):
+    def move(self, wind, dt):
         if self.target is not None:
-            self.follow_target(dt)
+            self.follow_target(wind)
         self.rudder.move(dt)
         self.wing.move(dt)
         self.rotate(dt)
@@ -62,8 +63,6 @@ class Boat:
     # in order to avoid 
     def apply_wind(self, wind: Wind):
         wind_force = compute_wind_force(wind, self)
-        # scale the wind force along the boat heading
-        wind_force = np.dot(wind_force, self.heading) * self.heading
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
@@ -74,15 +73,24 @@ class Boat:
     def set_target(self, target):
         self.target = target
     
-    def follow_target(self, dt):
-        # self.pid.sample_time = dt
-        _, speed_angle = cartesian_to_polar(self.velocity)
+    def follow_target(self, wind: Wind):
+        _, angle = cartesian_to_polar(self.heading)
         angle_from_target = compute_angle(self.target - self.position)
-        delta_angle = speed_angle - angle_from_target
-        Logger.debug(f'Delta angle: {delta_angle}')
-        control = self.pid(delta_angle)
+        delta_angle = angle - angle_from_target
+        Logger.debug(f'Rudder Delta angle: {delta_angle}')
+        control = self.rudder_pid(delta_angle)
         self.rudder.stepper.set_angle(control)
-        Logger.debug(f'Rudder angle: {self.rudder.stepper.get_angle()}')
+
+        # _, velocity_angle = cartesian_to_polar(self.velocity)
+        # delta_angle = velocity_angle - angle_from_target
+        # # Logger.debug(f'Delta speed: {delta_speed}')
+        # control = self.wing_pid(delta_angle)
+        # self.wing.stepper.set_angle(control)
+
+        # Logger.debug(f'Wing control: {control}')
+
+        # Logger.debug(f'Rudder angle: {self.rudder.stepper.get_angle()}')
+        # Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):
@@ -93,7 +101,7 @@ class World:
     def update(self, dt):
         self.boat.apply_friction(self.gravity_z, dt)
         self.boat.apply_wind(self.wind)
-        self.boat.move(dt)
+        self.boat.move(self.wind, dt)
 
 def compute_acceleration(force, mass):
     return force / mass
@@ -108,7 +116,11 @@ def compute_wind_force(wind: Wind, boat: Boat):
     v_relative_mag = compute_magnitude(v_relative)
     if v_relative_mag == 0:
         return np.zeros(2)
-    Logger.debug(boat.velocity)
     f_drag_mag = 0.5 * drag_coeff * wind.density * boat.wing.area * (v_relative_mag ** 2)
     f_wind = f_drag_mag * (v_relative / v_relative_mag)
+    _, wing_angle_relative = cartesian_to_polar(boat.wing.get_heading())
+    _, boat_angle = cartesian_to_polar(boat.heading)
+    wind_heading_absolute = polar_to_cartesian(1, boat_angle + wing_angle_relative)
+    f_wind = np.dot(f_wind, wind_heading_absolute) * wind_heading_absolute
+    f_wind = np.dot(f_wind, boat.heading) * boat.heading
     return f_wind
