@@ -50,7 +50,8 @@ class StepperController:
     
     def get_heading(self):
         return polar_to_cartesian(1, self.get_angle())
-
+    
+    # FIXME sometimes the stepper rotating because it cannot detect whether its near enought to the epsilon
     def move(self, dt):
         angle_delta = self.target - self.get_angle()
         stepper_resolution_angle = (2 * np.pi) / self.stepper.resolution

@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # spawn the boat in the center of the map
     world.boat.position = np.array([width * 0.1, height * 0.1])
     # world.boat.heading = np.array([0.0, -1.0])
-    world.wind.velocity = np.array([15.0, 0.0])
+    world.wind.velocity = np.array([15.0, 8.0])
     # world.boat.rudder.stepper.set_angle(np.pi * 0.25)
     # world.boat.wing.set_target(np.pi)
     world.boat.set_target(np.array([width * 0.5, height * 0.5]))
