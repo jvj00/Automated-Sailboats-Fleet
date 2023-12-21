@@ -22,6 +22,8 @@ class Stepper:
         revolutions = self.max_speed * self.direction * dt
         self.steps += (revolutions * self.resolution)
         self.steps %= self.resolution
+        if self.steps < 0:
+            self.steps += self.resolution
     
     def get_steps(self) -> int:
         return np.floor(self.steps)
@@ -30,7 +32,10 @@ class Stepper:
         return (self.get_steps() / self.resolution) * 2 * np.pi
     
     def set_angle(self, angle):
-        self.steps = (angle * self.resolution) / (2 * np.pi)
+        self.steps = (angle / (2 * np.pi)) * self.resolution
+        self.steps %= self.resolution
+        if self.steps < 0:
+            self.steps += self.resolution
 
 class StepperController:
     def __init__(self, stepper: Stepper):
@@ -48,7 +53,8 @@ class StepperController:
 
     def move(self, dt):
         angle_delta = self.target - self.get_angle()
-        if angle_delta < 0.05:
+        stepper_resolution_angle = (2 * np.pi) / self.stepper.resolution
+        if np.abs(angle_delta) < stepper_resolution_angle:
             return
         self.stepper.direction = StepperDirection.Clockwise if angle_delta > 0 else StepperDirection.CounterClockwise
         self.stepper.move(dt)
