@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from entities import Wing, Rudder, Stepper, Boat, Wind
+from pid import PID
 from sensor import Anemometer, Speedometer, Compass, UWB, GNSS, RelativeError, AbsoluteError, MixedError
 
 test_repetition = 10000
@@ -11,7 +12,7 @@ class AnemometerTest(unittest.TestCase):
         err_velocity = RelativeError(0.05)
         err_direction = AbsoluteError(np.pi/180)
         sensor = Anemometer(err_velocity=err_velocity, err_direction=err_direction)
-        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         wind = Wind(1.291)
         wind.velocity = np.array([np.random.rand()*20, np.random.rand()*20])
         boat.velocity = np.array([np.random.rand()*20, np.random.rand()*20])
@@ -37,7 +38,7 @@ class SpeedometerTest(unittest.TestCase):
     def test_outliers_high_velocities(self):
         err_velocity = MixedError(0.01, 5)
         sensor = Speedometer(err_velocity=err_velocity)
-        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         x=np.random.rand()*15+4
         y=np.random.rand()*15+4
         boat.velocity = np.array([np.random.rand()*15+5, np.random.rand()*15+5])
@@ -57,7 +58,7 @@ class SpeedometerTest(unittest.TestCase):
     def test_outliers_low_velocities(self):
         err_velocity = MixedError(0.01, 5)
         sensor = Speedometer(err_velocity=err_velocity)
-        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         x=np.random.rand()*5
         y=np.random.rand()*np.sqrt(25-x**2)
         boat.velocity = np.array([x, y])
@@ -79,7 +80,7 @@ class CompassTest:
     def test_outliers(self):
         err_direction = AbsoluteError(3*np.pi/180)
         sensor = Compass(err_direction=err_direction)
-        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+        boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         boat.heading = np.array([np.random.rand(), np.random.rand()])
         list_truth = []
         list_meas = []
@@ -99,8 +100,8 @@ class UWBSensorTest(unittest.TestCase):
     def test_outliers(self):
         err_distance = AbsoluteError(0.2)
         sensor = UWB(err_distance=err_distance)
-        boat_actual = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
-        boat_target = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+        boat_actual = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
+        boat_target = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         boat_actual.position = np.array([np.random.rand()*100, np.random.rand()*100])
         boat_target.position = np.array([np.random.rand()*100, np.random.rand()*100])
         list_truth = []
@@ -122,7 +123,7 @@ class GNSSSensorTest(unittest.TestCase):
             err_position_x = AbsoluteError(1.5)
             err_position_y = AbsoluteError(1.5)
             sensor = GNSS(err_position_x=err_position_x, err_position_y=err_position_y)
-            boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+            boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
             boat.position = np.array([np.random.rand()*100, np.random.rand()*100])
             list_truth = []
             list_meas = []
