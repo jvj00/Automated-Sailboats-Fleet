@@ -4,7 +4,7 @@ from actuator import Stepper, StepperDirection, StepperController
 
 class StepperTest(unittest.TestCase):
 
-    def test_1(self):
+    def test_clockwise(self):
         stepper = Stepper(100, 1)
         stepper.move(1)
         self.assertEqual(stepper.get_steps(), 0)
@@ -16,8 +16,9 @@ class StepperTest(unittest.TestCase):
         self.assertEqual(stepper.get_steps(), 10)
         self.assertAlmostEqual(stepper.get_angle(), np.pi * 0.2)
     
-    def test_2(self):
+    def test_counterclockwise(self):
         stepper = Stepper(20, 5)
+        stepper.direction = StepperDirection.CounterClockwise
         stepper.move(0.2)
         self.assertEqual(stepper.get_steps(), 0)
         self.assertAlmostEqual(stepper.get_angle(), 0)
@@ -25,7 +26,7 @@ class StepperTest(unittest.TestCase):
         self.assertEqual(stepper.get_steps(), 10)
         self.assertAlmostEqual(stepper.get_angle(), np.pi)
 
-    def test_3(self):
+    def test_mixed(self):
         stepper = Stepper(100, 1)
         stepper.move(0.5)
         self.assertEqual(stepper.get_steps(), 50)
@@ -37,7 +38,7 @@ class StepperTest(unittest.TestCase):
 
 class StepperControllerTest(unittest.TestCase):
 
-    def test_1(self):
+    def test_steady(self):
         stepper = Stepper(100, 0.5)
         controller = StepperController(stepper)
         controller.move(0.1)
@@ -45,7 +46,7 @@ class StepperControllerTest(unittest.TestCase):
         controller.move(0.2)
         self.assertEqual(controller.get_angle(), 0)
     
-    def test_2(self):
+    def test_moving(self):
         stepper = Stepper(100, 0.5)
         controller = StepperController(stepper)
         controller.set_target(np.pi * 0.5)
