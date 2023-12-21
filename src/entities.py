@@ -54,6 +54,8 @@ class Boat:
     def move(self, wind, dt):
         if self.target is not None:
             self.follow_target(wind, dt)
+        # self.rudder.move(dt)
+        # self.wing.move(dt)
         self.rotate(dt)
         self.translate(dt)
 
@@ -79,6 +81,7 @@ class Boat:
         # use the pid control as angle of the rudder 
         boat_angle = compute_angle(self.heading)
         control = self.rudder_pid.compute(boat_angle, dt)
+        # self.rudder.set_target(control)
         self.rudder.stepper.set_angle(control)
 
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
@@ -87,12 +90,7 @@ class Boat:
         boat_velocity_w = 0.7
         wind_velocity_w = 1 - boat_velocity_w
         avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
-        # wing_angle_abs = boat_angle - self.wing.get_angle()
-        # avg_angle_relative = avg_angle_absolute - wing_angle_abs
-        # Logger.debug(f'Avg angle rel: {avg_angle_relative}')
-        # self.wing_pid.set_target(avg_angle)
-        # wing_angle = self.wing.get_angle()
-        # control = self.wing_pid.compute(wing_angle, dt)
+        # self.wing.set_target(avg_angle - boat_angle)
         self.wing.stepper.set_angle(avg_angle - boat_angle)
         Logger.debug(f'Wind angle: {wind_angle}')
         Logger.debug(f'Boat angle: {boat_angle}')

@@ -35,26 +35,10 @@ if __name__ == '__main__':
     world.wind.velocity = np.array([15.0, 0.0])
     # world.boat.rudder.stepper.set_angle(np.pi * 0.25)
     # world.boat.wing.set_target(np.pi)
-    world.boat.set_target(np.array([width * 0.1, height * 0.7]))
-
-    # world.boat.wing.stepper.set_angle(np.pi * 0.5)
+    world.boat.set_target(np.array([width * 0.5, height * 0.5]))
 
     for time_elapsed in np.arange(0, 500, dt):
-        # world.wind.velocity = polar_to_cartesian(wind_speed, np.cos(time_elapsed))
-        # world.boat.wing.stepper.set_angle(np.cos(time_elapsed))
-        # if time_elapsed >= 10:
-            # world.wind.velocity = np.zeros(2)
-        # else:
-            # world.wind.velocity = polar_to_cartesian(wind_speed, np.cos(time_elapsed))
-            # wind_speed = -wind_speed
-            # world.boat.wing.stepper.set_angle(np.pi * 0.5)
-        
-            # world.boat.rudder.set_target(0)
-        # if time_elapsed == 20:
-            # world.wind.velocity = np.zeros(2)
-        # if time_elapsed == 10:
-        #     world.boat.rudder.set_target(np.pi)
-        
+
         velocities.append(world.boat.velocity.copy())
         wind_velocities.append(world.wind.velocity.copy())
         # positions.append(world.boat.position.copy())
