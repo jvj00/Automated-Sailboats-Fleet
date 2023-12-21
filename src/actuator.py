@@ -20,7 +20,7 @@ class Stepper:
     
     def move(self, dt):
         revolutions = self.max_speed * self.direction * dt
-        self.steps += (revolutions * self.resolution)
+        self.steps += np.floor((revolutions * self.resolution))
         self.steps %= self.resolution
         if self.steps < 0:
             self.steps += self.resolution
@@ -32,7 +32,7 @@ class Stepper:
         return (self.get_steps() / self.resolution) * 2 * np.pi
     
     def set_angle(self, angle):
-        self.steps = (angle / (2 * np.pi)) * self.resolution
+        self.steps = np.floor((angle / (2 * np.pi)) * self.resolution)
         self.steps %= self.resolution
         if self.steps < 0:
             self.steps += self.resolution

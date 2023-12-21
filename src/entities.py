@@ -2,7 +2,7 @@ from actuator import Stepper, StepperController
 from logger import Logger
 import numpy as np
 from utils import *
-from simple_pid import PID
+from pid import PID
 
 class Wing(StepperController):
     def __init__(self, area: float, stepper: Stepper):
@@ -53,9 +53,7 @@ class Boat:
 
     def move(self, wind, dt):
         if self.target is not None:
-            self.follow_target(wind)
-        self.rudder.move(dt)
-        self.wing.move(dt)
+            self.follow_target(wind, dt)
         self.rotate(dt)
         self.translate(dt)
 
@@ -73,24 +71,32 @@ class Boat:
     def set_target(self, target):
         self.target = target
     
-    def follow_target(self, wind: Wind):
-        _, angle = cartesian_to_polar(self.heading)
+    def follow_target(self, wind: Wind, dt):
+        # use the angle from target as setpoint for the rudder pid
         angle_from_target = compute_angle(self.target - self.position)
-        delta_angle = angle - angle_from_target
-        Logger.debug(f'Rudder Delta angle: {delta_angle}')
-        control = self.rudder_pid(delta_angle)
+        self.rudder_pid.set_target(angle_from_target)
+        
+        # use the pid control as angle of the rudder 
+        boat_angle = compute_angle(self.heading)
+        control = self.rudder_pid.compute(boat_angle, dt)
         self.rudder.stepper.set_angle(control)
 
-        # _, velocity_angle = cartesian_to_polar(self.velocity)
-        # delta_angle = velocity_angle - angle_from_target
-        # # Logger.debug(f'Delta speed: {delta_speed}')
-        # control = self.wing_pid(delta_angle)
-        # self.wing.stepper.set_angle(control)
-
-        # Logger.debug(f'Wing control: {control}')
-
-        # Logger.debug(f'Rudder angle: {self.rudder.stepper.get_angle()}')
-        # Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
+        # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
+        # for the wing pid
+        wind_angle = compute_angle(wind.velocity)
+        boat_velocity_w = 0.7
+        wind_velocity_w = 1 - boat_velocity_w
+        avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
+        # wing_angle_abs = boat_angle - self.wing.get_angle()
+        # avg_angle_relative = avg_angle_absolute - wing_angle_abs
+        # Logger.debug(f'Avg angle rel: {avg_angle_relative}')
+        # self.wing_pid.set_target(avg_angle)
+        # wing_angle = self.wing.get_angle()
+        # control = self.wing_pid.compute(wing_angle, dt)
+        self.wing.stepper.set_angle(avg_angle - boat_angle)
+        Logger.debug(f'Wind angle: {wind_angle}')
+        Logger.debug(f'Boat angle: {boat_angle}')
+        Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):

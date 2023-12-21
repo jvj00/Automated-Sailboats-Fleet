@@ -4,14 +4,14 @@ from actuator import Stepper
 from disegnino import Drawer
 from entities import Boat, Wind, Wing, Rudder, World
 from sensor import Anemometer
-from simple_pid import PID
+from pid import PID
 from logger import Logger
 from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    rudder_pid = PID(1, 0.1, 0.1, setpoint = 0, sample_time = None, output_limits=(-np.pi * 0.25, np.pi * 0.25))
-    wing_pid = PID(1, 0.1, 0.1, setpoint = 0, sample_time = None, output_limits=(0, np.pi * 2))
+    rudder_pid = PID(1, 0.1, 0.1, limits=(-np.pi * 0.25, np.pi * 0.25))
+    wing_pid = PID(1, 0.1, 0.1, limits=(0, np.pi * 2))
     boat = Boat(100, Wing(15, Stepper(100, 1)), Rudder(Stepper(100, 1)), rudder_pid, wing_pid)
     # anemo = Anemometer(0.5)
     world = World(9.81, wind, boat)
