@@ -12,47 +12,50 @@ class Drawer:
         for item in self.win.items:
             item.undraw()
         self.win.update()
+    
+    def draw_polygon(self, vertices, pivot, angle, color):
+        vertices = rotate_polygon(vertices, angle, pivot)
+        draw = Polygon(vertices)
+        draw.setFill(color)
+        draw.setOutline(color)
+        draw.draw(self.win)
+    
+    def draw_triangle(self, width: int, height: int, center, pivot, angle, color):
+        top = Point(center[0], center[1] + (height * 0.5))
+        lb = Point(center[0] - width * 0.5, center[1] - (height * 0.5))
+        rb = Point(center[0] + width * 0.5, center[1] - (height * 0.5))
+        vertices = [top, rb, lb]
+        self.draw_polygon(vertices, pivot, angle, color)
 
-    def draw_wind(self, wind: Wind, position):
+    def draw_rectangle(self, width: int, height: int, center, pivot, angle, color):
+        ul = Point(center[0] - (width * 0.5), center[1] + (height * 0.5))
+        ur = Point(center[0] + (width * 0.5), center[1] + (height * 0.5))
+        dr = Point(center[0] + (width * 0.5), center[1] - (height * 0.5))
+        dl = Point(center[0] - (width * 0.5), center[1] - (height * 0.5))
+        vertices = [ul, ur, dr, dl]
+        self.draw_polygon(vertices, pivot, angle, color)
+    
+    def draw_wind(self, wind: Wind, center):
         width = 15
         height = 30
         color = color_rgb(15,15,15)
-        top = Point(position[0], position[1] + (height * 0.5))
-        lb = Point(position[0] - width * 0.5, position[1] - (height * 0.5))
-        rb = Point(position[0] + width * 0.5, position[1] - (height * 0.5))
         angle = compute_angle(wind.velocity) - (np.pi * 0.5)
-        vertices = rotate_polygon([top, lb, rb], angle)
-        draw = Polygon(vertices)
-        draw.setFill(color)
-        draw.setOutline(color)
-        draw.draw(self.win)
-
-    def draw_rectangle(self, width: int, height: int, position, heading, color):
-        ul = Point(position[0] - (width * 0.5), position[1] + (height * 0.5))
-        ur = Point(position[0] + (width * 0.5), position[1] + (height * 0.5))
-        dr = Point(position[0] + (width * 0.5), position[1] - (height * 0.5))
-        dl = Point(position[0] - (width * 0.5), position[1] - (height * 0.5))
-        angle = compute_angle(heading) - (np.pi * 0.5)
-        vertices = rotate_polygon([ul, ur, dr, dl], angle)
-        draw = Polygon(vertices)
-        draw.setFill(color)
-        draw.setOutline(color)
-        draw.draw(self.win)
+        self.draw_triangle(width, height, center, center, angle, color)
         
     def draw_boat(self, boat: Boat):
         # draw boat
-        width = 30
-        height = 60
+        width = 60
+        height = 30
         color = color_rgb(255,168,168)
-        self.draw_rectangle(width, height, boat.position, boat.heading, color)
+        boat_angle = compute_angle(boat.heading)
+        self.draw_rectangle(width, height, boat.position, boat.position, boat_angle, color)
 
-        width = 25
-        height = 5
+        width = 5
+        height = 25
         color = color_rgb(150, 150, 150)
-        _, boat_angle = cartesian_to_polar(boat.heading)
-        _, wing_angle = cartesian_to_polar(boat.wing.get_heading())
-        heading = polar_to_cartesian(1, boat_angle + wing_angle)
-        self.draw_rectangle(width, height, boat.position, heading, color)
+        wing_angle_rel = compute_angle(boat.wing.get_heading())
+        wing_angle_abs = wing_angle_rel + boat_angle
+        self.draw_rectangle(width, height, boat.position, boat.position, wing_angle_abs, color)
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)
@@ -61,11 +64,7 @@ class Drawer:
         draw.setOutline(color)
         draw.draw(self.win)
 
-def rotate_polygon(vertices: list[Point], angle: float):
-    # Calculate the center of the polygon
-    cx = sum(p.x for p in vertices) / len(vertices)
-    cy = sum(p.y for p in vertices) / len(vertices)
-
+def rotate_polygon(vertices: list[Point], angle: float, pivot):
     # Create the rotation matrix
     cos_theta = np.cos(angle)
     sin_theta = np.sin(angle)
@@ -73,8 +72,8 @@ def rotate_polygon(vertices: list[Point], angle: float):
     # Rotate each vertex around the center
     rotated_vertices = [
         Point(
-            cx + (p.x - cx) * cos_theta - (p.y - cy) * sin_theta,
-            cy + (p.x - cx) * sin_theta + (p.y - cy) * cos_theta
+            pivot[0] + (p.x - pivot[0]) * cos_theta - (p.y - pivot[1]) * sin_theta,
+            pivot[1] + (p.x - pivot[0]) * sin_theta + (p.y - pivot[1]) * cos_theta
         )
         for p in vertices
     ]
