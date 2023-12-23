@@ -92,9 +92,9 @@ class Boat:
         avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
         # self.wing.set_target(avg_angle - boat_angle)
         self.wing.stepper.set_angle(avg_angle - boat_angle)
-        Logger.debug(f'Wind angle: {wind_angle}')
-        Logger.debug(f'Boat angle: {boat_angle}')
-        Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
+        # Logger.debug(f'Wind angle: {wind_angle}')
+        # Logger.debug(f'Boat angle: {boat_angle}')
+        # Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):
