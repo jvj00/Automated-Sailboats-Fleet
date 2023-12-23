@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from logger import Logger
+from pid import PID
 from utils import value_from_gaussian
 from entities import Boat, Wind
 from utils import *
@@ -96,7 +97,13 @@ if __name__ == "__main__":
     err_velocity = RelativeError(0.05)
     err_direction = AbsoluteError(np.pi/180)
     sensor = Anemometer(err_velocity=err_velocity, err_direction=err_direction)
-    boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)))
+    boat = Boat(
+        100,
+        Wing(15, Stepper(100, 0.05)),
+        Rudder(Stepper(100, 0.2)),
+        PID(1, 0.1, 0.1),
+        PID(1, 0.1, 0.1)
+    )
     wind = Wind(1.291)
     anemo_truth = []
     anemo_meas = []
