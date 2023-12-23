@@ -4,10 +4,23 @@ import numpy as np
 from entities import Wind, Wing, compute_angle, Boat
 from utils import cartesian_to_polar, polar_to_cartesian
 
+def scale(from_, to_, value):
+    return (to_/from_) * value
+
+def array_to_point(point):
+    return Point(point[0], point[1])
+
 class Drawer:
-    def __init__(self, width: int, height: int):
-        self.win = GraphWin("roadmap", width, height)
+    def __init__(self, canvas_width: int, canvas_height: int):
+        self.win = GraphWin("roadmap", canvas_width, canvas_height)
+        # self.world_width = world_width
+        # self.world_height = world_height
         self.debug = False
+    
+    def to_canvas(self, position):
+        x = position[0] + (0.5 * self.win.width)
+        y = -position[1] + (0.5 * self.win.height)
+        return np.array([x, y])
     
     def clear(self):
         for item in self.win.items:
@@ -16,23 +29,24 @@ class Drawer:
     
     def draw_polygon(self, vertices, pivot, angle, color):
         vertices = rotate_polygon(vertices, angle, pivot)
-        draw = Polygon(vertices)
+        vertices_canvas = [array_to_point(p) for p in map(lambda p: self.to_canvas(p), vertices)]
+        draw = Polygon(vertices_canvas)
         draw.setFill(color)
         draw.setOutline(color)
         draw.draw(self.win)
     
     def draw_triangle(self, width: int, height: int, center, pivot, angle, color):
-        top = Point(center[0], center[1] + (height * 0.5))
-        lb = Point(center[0] - width * 0.5, center[1] - (height * 0.5))
-        rb = Point(center[0] + width * 0.5, center[1] - (height * 0.5))
+        top = np.array([center[0], center[1] + (height * 0.5)])
+        lb = np.array([center[0] - width * 0.5, center[1] - (height * 0.5)])
+        rb = np.array([center[0] + width * 0.5, center[1] - (height * 0.5)])
         vertices = [top, rb, lb]
         self.draw_polygon(vertices, pivot, angle, color)
 
     def draw_rectangle(self, width: int, height: int, center, pivot, angle, color):
-        ul = Point(center[0] - (width * 0.5), center[1] + (height * 0.5))
-        ur = Point(center[0] + (width * 0.5), center[1] + (height * 0.5))
-        dr = Point(center[0] + (width * 0.5), center[1] - (height * 0.5))
-        dl = Point(center[0] - (width * 0.5), center[1] - (height * 0.5))
+        ul = np.array([center[0] - (width * 0.5), center[1] + (height * 0.5)])
+        ur = np.array([center[0] + (width * 0.5), center[1] + (height * 0.5)])
+        dr = np.array([center[0] + (width * 0.5), center[1] - (height * 0.5)])
+        dl = np.array([center[0] - (width * 0.5), center[1] - (height * 0.5)])
         vertices = [ul, ur, dr, dl]
         self.draw_polygon(vertices, pivot, angle, color)
     
@@ -68,22 +82,24 @@ class Drawer:
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)
-        draw = Line(Point(start[0], start[1]), Point(end[0], end[1]))
+        start_canvas = self.to_canvas(start)
+        end_canvas = self.to_canvas(end)
+        draw = Line(array_to_point(start_canvas), array_to_point(end_canvas))
         draw.setFill(color)
         draw.setOutline(color)
         draw.draw(self.win)
 
-def rotate_polygon(vertices: list[Point], angle: float, pivot):
+def rotate_polygon(vertices, angle, pivot):
     # Create the rotation matrix
     cos_theta = np.cos(angle)
     sin_theta = np.sin(angle)
 
     # Rotate each vertex around the center
     rotated_vertices = [
-        Point(
-            pivot[0] + (p.x - pivot[0]) * cos_theta - (p.y - pivot[1]) * sin_theta,
-            pivot[1] + (p.x - pivot[0]) * sin_theta + (p.y - pivot[1]) * cos_theta
-        )
+        np.array([
+            pivot[0] + (p[0] - pivot[0]) * cos_theta - (p[1] - pivot[1]) * sin_theta,
+            pivot[1] + (p[0] - pivot[0]) * sin_theta + (p[1] - pivot[1]) * cos_theta
+        ])
         for p in vertices
     ]
 
