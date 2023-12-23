@@ -19,6 +19,7 @@ if __name__ == '__main__':
     width = 900
     height = 500
     drawer = Drawer(width, height)
+    drawer.debug = True
 
     velocities = []
     wind_velocities = []
@@ -54,9 +55,6 @@ if __name__ == '__main__':
         drawer.clear()
         drawer.draw_boat(world.boat)
         drawer.draw_wind(world.wind, [width * 0.9, height * 0.1])
-        drawer.draw_vector(world.boat.position, world.wind.velocity, 'blue', 2)
-        drawer.draw_vector(world.boat.position, world.boat.velocity, 'green', 2)
-        drawer.draw_vector(world.boat.position, world.boat.heading, 'purple', 10)
 
         #Plot anemometer measurements
         plt.figure(1)

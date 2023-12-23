@@ -7,6 +7,7 @@ from utils import cartesian_to_polar, polar_to_cartesian
 class Drawer:
     def __init__(self, width: int, height: int):
         self.win = GraphWin("roadmap", width, height)
+        self.debug = False
     
     def clear(self):
         for item in self.win.items:
@@ -44,18 +45,26 @@ class Drawer:
         
     def draw_boat(self, boat: Boat):
         # draw boat
-        width = 60
-        height = 30
-        color = color_rgb(255,168,168)
+        boat_width = 60
+        boat_height = 30
+        boat_color = color_rgb(255,168,168)
         boat_angle = compute_angle(boat.heading)
-        self.draw_rectangle(width, height, boat.position, boat.position, boat_angle, color)
+        self.draw_rectangle(boat_width, boat_height, boat.position, boat.position, boat_angle, boat_color)
 
-        width = 5
-        height = 25
-        color = color_rgb(150, 150, 150)
-        wing_angle_rel = compute_angle(boat.wing.get_heading())
-        wing_angle_abs = wing_angle_rel + boat_angle
-        self.draw_rectangle(width, height, boat.position, boat.position, wing_angle_abs, color)
+        wing_width = 5
+        wing_height = 25
+        wing_color = color_rgb(150, 150, 150)
+        wing_angle = boat.wing.get_angle() + boat_angle
+        self.draw_rectangle(wing_width, wing_height, boat.position, boat.position, wing_angle, wing_color)
+
+        if self.debug:
+            self.draw_vector(boat.position, boat.velocity, 'green', 2)
+            # self.draw_vector(boat.position, boat.heading, 'purple', 10)
+            rudder_angle_rel = compute_angle(boat.rudder.get_heading())
+            rudder_angle_abs = rudder_angle_rel + boat_angle
+            rudder_angle_abs += np.pi
+            rudder_heading = polar_to_cartesian(1, rudder_angle_abs) 
+            self.draw_vector(boat.position, rudder_heading, 'blue', 10)
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)

@@ -44,8 +44,7 @@ class Boat:
     def rotate(self, dt):
         rotation_rate = self.rudder.get_angle() * self.angular_damping
         rotation_angle = rotation_rate * compute_magnitude(self.velocity) * dt
-        _, current_angle = cartesian_to_polar(self.heading)
-        current_angle += rotation_angle
+        current_angle = compute_angle(self.heading) + rotation_angle
         self.heading = polar_to_cartesian(1, current_angle)
     
     def translate(self, dt):
