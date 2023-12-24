@@ -16,9 +16,12 @@ if __name__ == '__main__':
     # anemo = Anemometer(0.5)
     world = World(9.81, wind, boat)
 
-    width = 900
-    height = 500
-    drawer = Drawer(width, height)
+    win_width = 900
+    win_height = 500
+
+    world_width = 450
+    world_height = 250
+    drawer = Drawer(win_width, win_height, world_width, world_height)
     drawer.debug = True
 
     velocities = []
@@ -30,13 +33,9 @@ if __name__ == '__main__':
 
     dt = 0.05
 
-    # spawn the boat in the center of the map
-    world.boat.position = np.array([width * 0.1, height * 0.1])
-    # world.boat.heading = np.array([0.0, -1.0])
+    world.boat.position = np.array([0.0, 0.0])
     world.wind.velocity = np.array([-15.0, 8.0])
-    # world.boat.rudder.stepper.set_angle(np.pi * 0.25)
-    # world.boat.wing.set_target(np.pi)
-    world.boat.set_target(np.array([-width * 0.5, height * 0.5]))
+    world.boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
 
     for time_elapsed in np.arange(0, 500, dt):
 
@@ -52,9 +51,14 @@ if __name__ == '__main__':
 
         world.update(dt)
 
+        # Logger.debug(world.boat.position)
+        Logger.debug(world.boat.target)
+
         drawer.clear()
         drawer.draw_boat(world.boat)
-        drawer.draw_wind(world.wind, [width * 0.3, height * 0.3])
+        drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
+        drawer.draw_target(world.boat.target)
+        drawer.draw_axis()
 
         #Plot anemometer measurements
         plt.figure(1)
