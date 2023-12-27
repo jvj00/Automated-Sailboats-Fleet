@@ -7,3 +7,5 @@ DINAMICA:
 ARCHITETTURA:
 - Batteria per sostenere i sensori / attuatori / controllori necessari, adeguatamente isolata per evitare cortocircuiti dovuti all'acqua
 - I sensori UWB possono condividere i dati ogni volta che effettuano un ranging con le altre barche
+- I sensori vengono calibrati affinchè la media dell'errore sia zero
+- La barca all'inizio conosce la sua posizione come se l'avesse presa dal GNSS (con relative imprecisioni)
