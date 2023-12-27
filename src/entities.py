@@ -3,6 +3,8 @@ from logger import Logger
 import numpy as np
 from utils import *
 from pid import PID
+from sensor import GNSS, Compass, Anemometer, Speedometer, UWB
+from typing import Optional
 
 class Wing(StepperController):
     def __init__(self, area: float, stepper: Stepper):
@@ -19,7 +21,7 @@ class Wind:
         self.velocity = np.zeros(2)
 
 class Boat:
-    def __init__(self, mass, wing: Wing, rudder: Rudder, rudder_pid: PID, wing_pid: PID):
+    def __init__(self, mass, wing: Wing, rudder: Rudder, rudder_pid: PID, wing_pid: PID, gnss: Optional[GNSS] = None, compass: Optional[Compass] = None, anemometer: Optional[Anemometer] = None, speedometer: Optional[Speedometer] = None, uwb: Optional[UWB] = None):
         self.mass = mass
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
@@ -33,6 +35,22 @@ class Boat:
         self.target = None
         self.rudder_pid = rudder_pid
         self.wing_pid = wing_pid
+
+        if gnss is None:
+            Logger.warning('No GNSS sensor provided')
+        if compass is None:
+            Logger.warning('No compass sensor provided')
+        if anemometer is None:
+            Logger.warning('No anemometer sensor provided')
+        if speedometer is None:
+            Logger.warning('No speedometer sensor provided')
+        if uwb is None:
+            Logger.warning('No UWB sensor provided')
+        self.gnss = gnss
+        self.compass = compass
+        self.anemometer = anemometer
+        self.speedometer = speedometer
+        self.uwb = uwb
 
     def position_matrix(self):
         return np.array([*self.position, compute_angle(self.heading)])
@@ -95,6 +113,17 @@ class Boat:
         # Logger.debug(f'Wind angle: {wind_angle}')
         # Logger.debug(f'Boat angle: {boat_angle}')
         # Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
+    
+    def measure_anemometer(self, wind):
+            return self.anemometer.measure(wind.velocity, self.velocity)
+    def measure_speedometer(self):
+        return self.speedometer.measure(self.velocity)
+    def measure_compass(self):
+        return self.compass.measure(self.heading)
+    def measure_gnss(self):
+        return self.gnss.measure(self.position)
+    def measure_uwb(self, target):
+        return self.uwb.measure(self.position, target.position)
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):
