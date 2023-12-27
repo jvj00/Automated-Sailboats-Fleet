@@ -22,7 +22,7 @@ class AnemometerTest(unittest.TestCase):
         outliers_velocity = 0
         
         for i in range(test_repetition):
-            truth, meas = sensor.measure(wind, boat)
+            truth, meas = sensor.measure_with_truth(wind.velocity, boat.velocity)
             if np.abs(meas[0] - truth[0]) > np.abs(err_velocity.error * truth[0]):
                 outliers_velocity += 1
             if np.abs(meas[1] - truth[1]) > err_direction.error:
@@ -47,7 +47,7 @@ class SpeedometerTest(unittest.TestCase):
         outliers_velocity = 0
 
         for i in range(test_repetition):
-            truth, meas = sensor.measure(boat)
+            truth, meas = sensor.measure_with_truth(boat.velocity)
             if np.abs(meas - truth) > np.abs(err_velocity.error * truth):
                 outliers_velocity += 1
             list_truth.append(truth)
@@ -67,7 +67,7 @@ class SpeedometerTest(unittest.TestCase):
         outliers_velocity = 0
 
         for i in range(test_repetition):
-            truth, meas = sensor.measure(boat)
+            truth, meas = sensor.measure_with_truth(boat.velocity)
             if np.abs(meas - truth) > np.abs(err_velocity.error * err_velocity.threshold):
                 outliers_velocity += 1
             list_truth.append(truth)
@@ -87,7 +87,7 @@ class CompassTest:
         outliers_direction = 0
         
         for i in range(test_repetition):
-            truth, meas = sensor.measure(boat)
+            truth, meas = sensor.measure_with_truth(boat.heading)
             if np.abs(meas - truth) > err_direction.error:
                 outliers_direction += 1
             list_truth.append(truth)
@@ -109,7 +109,7 @@ class UWBSensorTest(unittest.TestCase):
         outliers_distance = 0
         
         for i in range(test_repetition):
-            truth, meas = sensor.measure(boat_actual, boat_target)
+            truth, meas = sensor.measure_with_truth(boat_actual.position, boat_target.position)
             if np.abs(meas - truth) > err_distance.error:
                 outliers_distance += 1
             list_truth.append(truth)
@@ -131,7 +131,7 @@ class GNSSSensorTest(unittest.TestCase):
             outliers_position_y = 0
             
             for i in range(test_repetition):
-                truth, meas = sensor.measure(boat)
+                truth, meas = sensor.measure_with_truth(boat.position)
                 if np.abs(meas[0] - truth[0]) > err_position_x.error:
                     outliers_position_x += 1
                 if np.abs(meas[1] - truth[1]) > err_position_y.error:
