@@ -17,7 +17,7 @@ class EKF:
         # Measurement matrix
         H = np.array([[1, 0, 0],
                       [0, 1, 0]])
-        # Map from speedometer, anemometer to velocity, acceleration (A)
+        # Map from speedometer, anemometer to distance due to velocity, acceleration (A)
         drag_coeff = 0.5
         k_acc = 0.5 * drag_coeff * self.world.wind.density * self.world.boat.wing.area / self.world.boat.mass
         A = np.array([[self.dt, 0],
