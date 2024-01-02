@@ -8,8 +8,8 @@ from logger import Logger
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
-    wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), limits = (-np.pi * 0.25, np.pi * 0.25))
+    wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
     boat = Boat(100, Wing(15, wing_controller), Rudder(rudder_controller))
     world = World(9.81, wind, boat)
 
@@ -48,6 +48,10 @@ if __name__ == '__main__':
         drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
         drawer.draw_target(world.boat.target)
         drawer.draw_axis()
+
+        # Logger.debug(f'Wind velocity: {world.wind.velocity}')
+        # Logger.debug(f'Boat velocity: {world.boat.velocity}')
+        # Logger.debug(f'Boat heading: {world.boat.heading}')
 
         #Plot anemometer measurements
         plt.figure(1)

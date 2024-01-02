@@ -86,13 +86,15 @@ class Boat:
 
     def set_target(self, target):
         self.target = target
+        self.rudder.controller.set_target(0)
+        self.wing.controller.set_target(0)
     
     def follow_target(self, wind: Wind, dt):
         boat_angle = compute_angle(self.heading)
         # use the angle from target as setpoint for the rudder pid
         angle_from_target = compute_angle(self.target - self.position)
-        rudder_target = angle_from_target - boat_angle
-        self.rudder.controller.set_target(rudder_target)
+        delta_rudder_angle = angle_from_target - boat_angle
+        self.rudder.controller.move(delta_rudder_angle, dt) 
         
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
@@ -100,17 +102,14 @@ class Boat:
         boat_velocity_w = 0.7
         wind_velocity_w = 1 - boat_velocity_w
         avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
-        wing_target = avg_angle - boat_angle
-        self.wing.controller.set_target(wing_target)
+        delta_wing_angle = avg_angle - boat_angle
+        # self.wing.controller.move(delta_wing_angle, dt)
 
-        self.rudder.controller.move(dt)
-        self.wing.controller.move(dt)
         # Logger.debug(f'Wind angle: {wind_angle}')
-        Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
-        Logger.debug(f'Rudder angle: {self.wing.controller.get_angle()}')
-        Logger.debug(f'Wing speed: {self.wing.controller.get_angle()}')
-        Logger.debug(f'Rudder speed: {self.wing.controller.get_angle()}')
-    
+        # Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
+        # Logger.debug(f'Rudder angle: {self.rudder.controller.get_angle()}')
+        # Logger.debug(f'Angle from destination: {angle_from_target}')
+
     def measure_anemometer(self, wind):
             return self.anemometer.measure(wind.velocity, self.velocity)
     def measure_speedometer(self):

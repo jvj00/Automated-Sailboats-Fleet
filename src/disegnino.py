@@ -2,7 +2,7 @@ from graphics import *
 import numpy as np
 
 from entities import Wind, Wing, compute_angle, Boat
-from utils import cartesian_to_polar, polar_to_cartesian
+from utils import cartesian_to_polar, compute_magnitude, polar_to_cartesian
 
 def scale(from_, to_, value):
     return (to_/from_) * value
@@ -53,20 +53,21 @@ class Drawer:
         self.draw_polygon(vertices, pivot, angle, color)
     
     def draw_wind(self, wind: Wind, center):
-        width = 2
-        height = 30
+        width = 5
+        height = 15
         color = color_rgb(15,15,15)
         angle = compute_angle(wind.velocity) - (np.pi * 0.5)
         self.draw_triangle(width, height, center, center, angle, color)
         
     def draw_boat(self, boat: Boat):
         # draw boat
-        boat_width = 15
-        boat_height = 5
+        boat_width = 30
+        boat_height = 10
         boat_color = color_rgb(255,168,168)
         boat_angle = compute_angle(boat.heading)
         self.draw_rectangle(boat_width, boat_height, boat.position, boat.position, boat_angle, boat_color)
 
+        # draw wing
         wing_width = 2
         wing_height = 10
         wing_color = color_rgb(150, 150, 150)
@@ -74,13 +75,16 @@ class Drawer:
         self.draw_rectangle(wing_width, wing_height, boat.position, boat.position, wing_angle, wing_color)
 
         if self.debug:
+            # draw velocity
             self.draw_vector(boat.position, boat.velocity, 'green', 2)
-            # self.draw_vector(boat.position, boat.heading, 'purple', 10)
+            # draw heading
+            self.draw_vector(boat.position, boat.heading, 'red', 10)
+            # draw rudder
             rudder_angle_rel = boat.rudder.controller.get_angle()
             rudder_angle_abs = rudder_angle_rel + boat_angle
             rudder_angle_abs += np.pi
             rudder_heading = polar_to_cartesian(1, rudder_angle_abs) 
-            self.draw_vector(boat.position, rudder_heading, 'blue', 10)
+            self.draw_vector(boat.position, rudder_heading, 'purple', 10)
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)
