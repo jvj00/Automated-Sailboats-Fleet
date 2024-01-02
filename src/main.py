@@ -1,17 +1,16 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from actuator import Stepper
+from actuator import Stepper, StepperController
 from disegnino import Drawer
 from entities import Boat, Wind, Wing, Rudder, World
 from pid import PID
 from logger import Logger
-from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    rudder_pid = PID(1, 0.1, 0.1, limits=(-np.pi * 0.25, np.pi * 0.25))
-    wing_pid = PID(1, 0.1, 0.1, limits=(0, np.pi * 2))
-    boat = Boat(100, Wing(15, Stepper(100, 1)), Rudder(Stepper(100, 1)), rudder_pid, wing_pid)
+    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    boat = Boat(100, Wing(15, wing_controller), Rudder(rudder_controller))
     world = World(9.81, wind, boat)
 
     win_width = 900
@@ -43,8 +42,6 @@ if __name__ == '__main__':
         times.append(time_elapsed)
 
         world.update(dt)
-
-        Logger.debug(world.boat.target)
 
         drawer.clear()
         drawer.draw_boat(world.boat)

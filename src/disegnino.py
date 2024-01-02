@@ -42,7 +42,6 @@ class Drawer:
         lb = np.array([center[0] - width * 0.5, center[1] - (height * 0.5)])
         rb = np.array([center[0] + width * 0.5, center[1] - (height * 0.5)])
         vertices = [top, rb, lb]
-        print(center)
         self.draw_polygon(vertices, pivot, angle, color)
 
     def draw_rectangle(self, width: int, height: int, center, pivot, angle, color):
@@ -71,13 +70,13 @@ class Drawer:
         wing_width = 2
         wing_height = 10
         wing_color = color_rgb(150, 150, 150)
-        wing_angle = boat.wing.get_angle() + boat_angle
+        wing_angle = boat.wing.controller.get_angle() + boat_angle
         self.draw_rectangle(wing_width, wing_height, boat.position, boat.position, wing_angle, wing_color)
 
         if self.debug:
             self.draw_vector(boat.position, boat.velocity, 'green', 2)
             # self.draw_vector(boat.position, boat.heading, 'purple', 10)
-            rudder_angle_rel = compute_angle(boat.rudder.get_heading())
+            rudder_angle_rel = boat.rudder.controller.get_angle()
             rudder_angle_abs = rudder_angle_rel + boat_angle
             rudder_angle_abs += np.pi
             rudder_heading = polar_to_cartesian(1, rudder_angle_abs) 
@@ -124,7 +123,6 @@ class Drawer:
     
     def draw_target(self, position):
         position_canvas = self.to_canvas(position)
-        print(position_canvas)
         draw = Circle(Point(position_canvas[0], position_canvas[1]), 10)
         draw.draw(self.win)
     

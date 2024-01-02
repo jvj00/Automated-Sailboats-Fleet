@@ -1,11 +1,11 @@
 import numpy as np
 
 class PID:
-    def __init__(self, Kp, Ki, Kd, setpoint = 0, limits = (-np.inf, np.inf)):
+    def __init__(self, Kp, Ki, Kd, setpoint = 0.0, limits = (-np.inf, np.inf)):
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
-        self.setpoint = 0.0
+        self.setpoint = setpoint
         self.prev_error = 0.0
         self.integral = 0.0
         self.limits = limits

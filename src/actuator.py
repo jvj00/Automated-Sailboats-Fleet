@@ -1,6 +1,5 @@
 import numpy as np
-from logger import Logger
-from utils import polar_to_cartesian
+from pid import PID
 
 class StepperDirection:
     Clockwise = 1
@@ -10,52 +9,37 @@ class StepperDirection:
 # higher resolution comes with a smaller angle
 # reference angles match with a normal clock
 class Stepper:
-    def __init__(self, resolution: int, max_speed):
+    def __init__(self, resolution: int, max_speed: float):
         # [step/revolution]
         self.resolution = resolution
         # [revolution/s]
         self.max_speed = max_speed
-        self.direction = StepperDirection.Clockwise
-        self.steps = 0
     
-    def move(self, dt):
-        revolutions = self.max_speed * self.direction * dt
-        self.steps += np.floor((revolutions * self.resolution))
-        self.steps %= self.resolution
-        if self.steps < 0:
-            self.steps += self.resolution
-    
-    def get_steps(self) -> int:
-        return np.floor(self.steps)
-    
-    def get_angle(self):
-        return (self.get_steps() / self.resolution) * 2 * np.pi
-    
-    def set_angle(self, angle):
-        self.steps = np.floor((angle / (2 * np.pi)) * self.resolution)
-        self.steps %= self.resolution
-        if self.steps < 0:
-            self.steps += self.resolution
+    def get_error(self):
+        return (2 * np.pi) / self.resolution
 
+# controls the movement of a stepper
+# the PID takes the current angle of the stepper as input, and return a speed
+# for the stepper to reach the target angle
 class StepperController:
-    def __init__(self, stepper: Stepper):
+    def __init__(self, stepper: Stepper, pid: PID):
         self.stepper = stepper
-        self.target = stepper.get_angle()
-    
-    def set_target(self, angle: float):
-        self.target = angle
+        # [revolution/s]
+        self.speed = 0
+        self.steps = 0
+        self.direction = StepperDirection.Clockwise
+        self.pid = pid
+        self.pid.limits = (0, stepper.max_speed)
+
+    def move(self, dt):
+        self.speed = self.pid.compute(self.get_angle(), dt)
+        self.steps += np.floor(self.speed * self.stepper.resolution * self.direction * dt)
+        self.steps %= self.stepper.resolution
+        if self.steps < 0:
+            self.steps += self.stepper.resolution
     
     def get_angle(self):
-        return self.stepper.get_angle()
-    
-    def get_heading(self):
-        return polar_to_cartesian(1, self.get_angle())
-    
-    # FIXME sometimes the stepper rotating because it cannot detect whether its near enought to the epsilon
-    def move(self, dt):
-        angle_delta = self.target - self.get_angle()
-        stepper_resolution_angle = (2 * np.pi) / self.stepper.resolution
-        if np.abs(angle_delta) < stepper_resolution_angle:
-            return
-        self.stepper.direction = StepperDirection.Clockwise if angle_delta > 0 else StepperDirection.CounterClockwise
-        self.stepper.move(dt)
+        return (self.steps / self.stepper.resolution) * (2 * np.pi)
+
+    def set_target(self, angle: float):
+        self.pid.set_target(angle)

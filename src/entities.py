@@ -6,14 +6,14 @@ from pid import PID
 from sensor import GNSS, Compass, Anemometer, Speedometer, UWB
 from typing import Optional
 
-class Wing(StepperController):
-    def __init__(self, area: float, stepper: Stepper):
-        super().__init__(stepper)
+class Wing:
+    def __init__(self, area: float, controller: StepperController):
         self.area = area
+        self.controller = controller
 
-class Rudder(StepperController):
-    def __init__(self, stepper: Stepper):
-        super().__init__(stepper)
+class Rudder:
+    def __init__(self, controller: StepperController):
+        self.controller = controller
 
 class Wind:
     def __init__(self, density: float):
@@ -21,7 +21,7 @@ class Wind:
         self.velocity = np.zeros(2)
 
 class Boat:
-    def __init__(self, mass, wing: Wing, rudder: Rudder, rudder_pid: PID, wing_pid: PID, gnss: Optional[GNSS] = None, compass: Optional[Compass] = None, anemometer: Optional[Anemometer] = None, speedometer: Optional[Speedometer] = None, uwb: Optional[UWB] = None):
+    def __init__(self, mass, wing: Wing, rudder: Rudder, gnss: Optional[GNSS] = None, compass: Optional[Compass] = None, anemometer: Optional[Anemometer] = None, speedometer: Optional[Speedometer] = None, uwb: Optional[UWB] = None):
         self.mass = mass
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
@@ -33,8 +33,6 @@ class Boat:
         self.angular_damping = 0.01
         self.drag_coeff = 0.5
         self.target = None
-        self.rudder_pid = rudder_pid
-        self.wing_pid = wing_pid
 
         if gnss is None:
             Logger.warning('No GNSS sensor provided')
@@ -60,7 +58,7 @@ class Boat:
     # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
     # the result is scaled is using an angular damping
     def rotate(self, dt):
-        rotation_rate = self.rudder.get_angle() * self.angular_damping
+        rotation_rate = self.rudder.controller.get_angle() * self.angular_damping
         rotation_angle = rotation_rate * compute_magnitude(self.velocity) * dt
         current_angle = compute_angle(self.heading) + rotation_angle
         self.heading = polar_to_cartesian(1, current_angle)
@@ -72,15 +70,13 @@ class Boat:
     def move(self, wind, dt):
         if self.target is not None:
             self.follow_target(wind, dt)
-        # self.rudder.move(dt)
-        # self.wing.move(dt)
         self.rotate(dt)
         self.translate(dt)
 
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
     def apply_wind(self, wind: Wind):
-        wind_force = compute_wind_force(wind.velocity, wind.density, self.velocity, self.heading, self.wing.get_heading(), self.wing.area, 0.5)
+        wind_force = compute_wind_force(wind.velocity, wind.density, self.velocity, self.heading, polar_to_cartesian(1, self.wing.controller.get_angle()), self.wing.area, 0.5)
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
@@ -92,27 +88,28 @@ class Boat:
         self.target = target
     
     def follow_target(self, wind: Wind, dt):
+        boat_angle = compute_angle(self.heading)
         # use the angle from target as setpoint for the rudder pid
         angle_from_target = compute_angle(self.target - self.position)
-        self.rudder_pid.set_target(angle_from_target)
+        rudder_target = angle_from_target - boat_angle
+        self.rudder.controller.set_target(rudder_target)
         
-        # use the pid control as angle of the rudder 
-        boat_angle = compute_angle(self.heading)
-        control = self.rudder_pid.compute(boat_angle, dt)
-        # self.rudder.set_target(control)
-        self.rudder.stepper.set_angle(control)
-
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
         wind_angle = compute_angle(wind.velocity)
         boat_velocity_w = 0.7
         wind_velocity_w = 1 - boat_velocity_w
         avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
-        # self.wing.set_target(avg_angle - boat_angle)
-        self.wing.stepper.set_angle(avg_angle - boat_angle)
+        wing_target = avg_angle - boat_angle
+        self.wing.controller.set_target(wing_target)
+
+        self.rudder.controller.move(dt)
+        self.wing.controller.move(dt)
         # Logger.debug(f'Wind angle: {wind_angle}')
-        # Logger.debug(f'Boat angle: {boat_angle}')
-        # Logger.debug(f'Wing angle: {self.wing.stepper.get_angle()}')
+        Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
+        Logger.debug(f'Rudder angle: {self.wing.controller.get_angle()}')
+        Logger.debug(f'Wing speed: {self.wing.controller.get_angle()}')
+        Logger.debug(f'Rudder speed: {self.wing.controller.get_angle()}')
     
     def measure_anemometer(self, wind):
             return self.anemometer.measure(wind.velocity, self.velocity)
