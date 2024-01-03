@@ -76,7 +76,7 @@ class Boat:
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
     def apply_wind(self, wind: Wind):
-        wind_force = compute_wind_force(wind.velocity, wind.density, self.velocity, self.heading, polar_to_cartesian(1, self.wing.controller.get_angle()), self.wing.area, 0.5)
+        wind_force = compute_wind_force(wind.velocity, wind.density, self.velocity, self.heading, polar_to_cartesian(1, self.wing.controller.get_angle()), self.wing.area, self.drag_coeff)
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
@@ -120,6 +120,8 @@ class Boat:
         return self.gnss.measure(self.position)
     def measure_uwb(self, target):
         return self.uwb.measure(self.position, target.position)
+    def measure_rudder(self):
+        return self.rudder.controller.measure_angle()
 
 class World:
     def __init__(self, gravity, wind: Wind, boat: Boat):

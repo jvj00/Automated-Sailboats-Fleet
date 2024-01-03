@@ -1,7 +1,7 @@
 import numpy as np
 from logger import Logger
 from pid import PID
-from utils import mod2pi
+from utils import *
 
 class StepperDirection:
     Clockwise = 1
@@ -19,6 +19,9 @@ class Stepper:
     
     def get_error(self):
         return (2 * np.pi) / self.resolution
+    
+    def get_sigma(self): # consider 3 sigma rule: encapsulate 99.7% of the values in 3 sigma
+        return self.get_error() / 3.0
 
 # controls the movement of a stepper
 # the PID takes the current angle of the stepper as input, and return a speed
@@ -58,6 +61,9 @@ class StepperController:
     
     def get_angle(self):
         return angle_from_steps(self.steps, self.stepper.resolution)
+    
+    def measure_angle(self):
+        return value_from_gaussian(self.get_angle(), self.stepper.get_sigma())
 
     def set_target(self, angle: float):
         self.pid.set_target(angle)
