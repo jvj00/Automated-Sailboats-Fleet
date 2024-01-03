@@ -45,19 +45,18 @@ class EKF:
         anemometer_var = self.world.boat.anemometer.err_velocity.get_sigma(wind_vel)**2
         anemometerdir_var = self.world.boat.anemometer.err_direction.get_sigma(wind_dir)**2
         rudder_var = self.world.boat.rudder.controller.stepper.get_sigma()**2
-        Q = np.diag([speedometer_var, anemometer_var, rudder_var])
-        #Q = np.diag([speedometer_var, 4*(wind_vel**2)*(np.cos(wind_dir)**2)*((np.cos(wind_dir)**2)*anemometer_var+(wind_vel**2)*(np.sin(wind_dir)**2)*anemometerdir_var), (boat_vel**2) * rudder_var + (rudder_dir**2) * speedometer_var])
+        #Q = np.diag([speedometer_var, anemometer_var, rudder_var])
+        Q = np.diag([speedometer_var, 4*(wind_vel**2)*(np.cos(wind_dir)**2)*((np.cos(wind_dir)**2)*anemometer_var-(wind_vel**2)*(np.sin(wind_dir)**2)*anemometerdir_var), (boat_vel**2) * rudder_var + (rudder_dir**2) * speedometer_var])
 
 
         # Jacobian of partial derivatives of the state transition matrix
         Ad = np.array([[1, 0, -np.sin(self.x[2])*(u_dt[0]+u_dt[1])],
                        [0, 1, np.cos(self.x[2])*(u_dt[0]+u_dt[1])],
                        [0, 0, 1]])
-        
 
         ## PREDICTION STEP
         x_pred = self.x + F_q @ u_dt
-        P_pred = Ad @ self.P @ Ad.T + F_q @ Q @ F_q.T
+        P_pred = Ad @ self.P @ Ad.T + F_q @ (A @ Q @ A.T) @ F_q.T
 
 
         ## UPDATE STEP
@@ -67,7 +66,7 @@ class EKF:
             ## EXTEROCEPTIVE MEASUREMENTS
 
             # Measurement vector
-            z = np.concatenate([self.world.boat.measure_gnss(), [self.world.boat.measure_compass()]])
+            z = np.append(self.world.boat.measure_gnss(), self.world.boat.measure_compass())
             # Measurement noise covariance matrix
             R = np.diag([self.world.boat.gnss.err_position_x.get_sigma(z[0])**2, self.world.boat.gnss.err_position_y.get_sigma(z[1])**2, self.world.boat.compass.err_direction.get_sigma(z[2])**2])
 
@@ -87,7 +86,8 @@ def test_ekf(probability_of_update=1.0):
     from pid import PID
     import logger
     ## SENSORS INITIALIZATION
-    dt = 1 # time step in seconds
+    dt = 0.5 # time step in seconds
+    total_time = 1000 # total time in seconds
     err_velocity = RelativeError(0.05)
     err_direction = AbsoluteError(np.pi/180)
     anemometer = Anemometer(err_velocity=err_velocity, err_direction=err_direction)
@@ -107,23 +107,53 @@ def test_ekf(probability_of_update=1.0):
     world = World(9.81, wind, boat)
     world.boat.position = np.array([0.0, 0.0])
     world.boat.velocity = np.array([0.0, 0.0])
-    world.boat.heading = polar_to_cartesian(1, np.pi)
-    world.wind.velocity = np.array([-15.0, 8.0])
+    world.boat.heading = polar_to_cartesian(1, -np.pi/4)
+    world.wind.velocity = np.array([10.0, -10.0])
 
     ekf = EKF(world, dt)
 
+    # PLOT VARS
+    err_x = []
+    err_y = []
+    err_theta = []
+    cov_x = []
+    cov_y = []
+    cov_theta = []
+    time = []
+
     np.set_printoptions(suppress=True)
-    for i in range(100):
+    for i in range(int(total_time/dt)):
         world.update(dt)
         update=np.random.rand() < probability_of_update
         x, P = ekf.get_filtered_state(update)
-        x = np.around(x, 2)
-        t = np.around(boat.position, 2)
-        ang = np.around(compute_angle(boat.heading), 2)
+        t = boat.position
+        t = np.append(t, compute_angle(boat.heading))
+        err_x.append(x[0] - t[0])
+        err_y.append(x[1] - t[1])
+        err_theta.append(x[2] - t[2])
+        cov_x.append(P[0,0])
+        cov_y.append(P[1,1])
+        cov_theta.append(P[2,2])
+        time.append(i*dt)
         if update:
             print(logger.colors.OKGREEN, "Estimated:", x[0], "(", P.diagonal(), ")", " - Truth:", t[0], logger.colors.ENDC)
         else:
             print(logger.colors.ORANGE, "Estimated:", x[0], "(", P.diagonal(), ")", " - Truth:", t[0], logger.colors.ENDC)
 
+    import matplotlib.pyplot as plt
+    plt.figure(1)
+    plt.title('Errors')
+    plt.plot(time, err_x, label='Error X')
+    plt.plot(time, err_y, label='Error Y')
+    plt.plot(time, err_theta, label='Error Theta')
+    plt.legend()
+    plt.figure(2)
+    plt.title('Variance')
+    plt.plot(time, cov_x, label='Variance X')
+    plt.plot(time, cov_y, label='Variance Y')
+    plt.plot(time, cov_theta, label='Variance Theta')
+    plt.legend()
+    plt.show()
+
 if __name__ == '__main__':
-    test_ekf(0.05)
+    test_ekf(0.01)
