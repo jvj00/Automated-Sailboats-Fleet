@@ -28,7 +28,7 @@ class EKF:
         wind = self.world.wind
 
         # apply friction
-        boat_velocity = boat.velocity - compute_friction(boat.velocity, self.world.gravity_z, boat.damping)
+        boat_velocity = boat.velocity - compute_friction(boat.velocity, self.world.gravity_z, boat.damping, boat.mass)
         # apply wind force
         applied_force = compute_wind_force(
             wind.velocity,

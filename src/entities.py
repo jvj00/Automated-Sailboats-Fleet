@@ -99,7 +99,7 @@ class Boat:
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
-        friction_stop = compute_friction(self.velocity, gravity, self.damping) * dt
+        friction_stop = compute_friction(self.velocity, gravity, self.mass, self.damping) * dt
         self.velocity -= friction_stop
     
     def set_target(self, target):
@@ -175,5 +175,5 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
 def compute_rotation_rate(rudder_angle, boat_speed, boat_mass, damping):
     return rudder_angle * boat_speed * boat_mass * damping
 
-def compute_friction(boat_velocity, gravity, damping):
-    return boat_velocity * damping * gravity
+def compute_friction(boat_velocity, gravity, boat_mass, damping):
+    return boat_velocity * boat_mass * gravity * damping
