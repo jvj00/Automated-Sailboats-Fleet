@@ -45,7 +45,7 @@ class Anemometer:
     #     measured = np.array([value_from_gaussian(wind_vel_anemo, self.err_velocity.get_sigma(wind_vel_anemo)), value_from_gaussian(wind_dir_anemo, self.err_direction.get_sigma(wind_dir_anemo))])
     #     return truth, measured
 
-    def measure(self, wind_velocity, boat_velocity):
+    def measure(self, wind_velocity, boat_velocity) -> tuple[float, float]:
         _, measured = self.measure_with_truth(wind_velocity, boat_velocity)
         return measured
 
@@ -76,7 +76,7 @@ class Speedometer:
         measured = value_from_gaussian(boat_speed, self.err_speed.get_sigma(boat_speed))
         return truth, measured
 
-    def measure(self, boat_velocity):
+    def measure(self, boat_velocity) -> float:
         return self.measure_with_truth(boat_velocity)[1]
 
 # HSC100 (set direction error ABSOLUTE to 3*pi/180 rad)
@@ -89,7 +89,7 @@ class Compass:
         measured = value_from_gaussian(truth, self.err_angle.get_sigma(truth))
         return truth, measured
 
-    def measure(self, boat_heading):
+    def measure(self, boat_heading) -> float:
         return self.measure_with_truth(boat_heading)[1]
 
 # DW3000 (set distance error ABSOLUTE to 0.2m) (TWR)
@@ -102,7 +102,7 @@ class UWB:
         measured = value_from_gaussian(truth, self.err_distance.get_sigma(truth))
         return truth, measured
     
-    def measure(self, b_actual_position, b_target_position):
+    def measure(self, b_actual_position, b_target_position) -> float:
         return self.measure_with_truth(b_actual_position, b_target_position)[1]
 
 # SAM-M10Q (set position error ABSOLUTE to 1.5m for both x and y)
