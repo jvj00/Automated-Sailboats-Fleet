@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     world.boat.position = np.array([0.0, 0.0])
     world.wind.velocity = np.array([-15.0, 8.0])
-    world.boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
+    # world.boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
 
     for time_elapsed in np.arange(0, 100, dt):
         if time_elapsed == 10:
@@ -48,7 +48,8 @@ if __name__ == '__main__':
         drawer.clear()
         drawer.draw_boat(world.boat)
         drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
-        drawer.draw_target(world.boat.target)
+        if world.boat.target is not None:
+            drawer.draw_target(world.boat.target)
         drawer.draw_axis()
 
         # Logger.debug(f'Wind velocity: {world.wind.velocity}')
