@@ -34,7 +34,9 @@ if __name__ == '__main__':
     world.wind.velocity = np.array([-15.0, 8.0])
     world.boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
 
-    for time_elapsed in np.arange(0, 500, dt):
+    for time_elapsed in np.arange(0, 100, dt):
+        if time_elapsed == 10:
+            world.wind.velocity = np.zeros(2)
 
         velocities.append(world.boat.velocity.copy())
         wind_velocities.append(world.wind.velocity.copy())

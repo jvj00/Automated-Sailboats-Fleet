@@ -1,5 +1,5 @@
 import numpy as np
-from entities import World, Boat, Wind
+from entities import World, Boat, Wind, compute_acceleration, compute_friction, compute_rotation_rate, compute_wind_force
 from sensor import Anemometer, Speedometer, Compass, GNSS, AbsoluteError, RelativeError, MixedError
 from utils import *
 
@@ -19,17 +19,44 @@ class EKF:
     def get_filtered_state(self, update=True):
         
         ## INIT MATRICES
-        
-        # Measurement matrix
-        H = np.eye(3)
-        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and new angle (A)
-        k_acc = 0.5 * self.world.boat.drag_coeff * self.world.wind.density * self.world.boat.wing.area / self.world.boat.mass
-        k_dir = self.world.boat.angular_damping
-        A = np.array([[self.dt, 0, 0],
-                    [0, k_acc*0.5*(self.dt**2), 0],
-                    [0, 0, k_dir*self.dt]])
-        
 
+
+        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and new angle (A)
+        
+        # compute the delta displacement (position)
+        boat = self.world.boat
+        wind = self.world.wind
+
+        # apply friction
+        boat_velocity = boat.velocity - compute_friction(boat.velocity, self.world.gravity_z, boat.damping)
+        # apply wind force
+        applied_force = compute_wind_force(
+            wind.velocity,
+            wind.density,
+            boat_velocity,
+            boat.heading,
+            polar_to_cartesian(1, boat.wing.controller.get_angle()),
+            boat.wing.area,
+            boat.drag_coeff
+        )
+        # compute acceleration produced by the wind to the boat
+        acceleration = compute_acceleration(applied_force, boat.mass)
+        # compute delta position of the boat
+        dp = compute_magnitude(acceleration * (self.dt ** 2))
+
+        # compute the rotation rate of the boat
+        rotation_rate = compute_rotation_rate(boat.rudder.controller.get_angle(), compute_magnitude(boat.velocity), boat.mass, boat.angular_damping)
+        # compute the delta rotation (angle) of the boat
+        da = rotation_rate * self.dt
+
+        A = np.array(
+            [
+                [self.dt, 0, 0],
+                [0, dp, 0],
+                [0, 0, da]
+            ]
+        )
+        
         ## PROPRIOCEPTIVE MEASUREMENTS
 
         # Get proprioceptive measurements and compute dynamics (u_dt)
@@ -50,8 +77,13 @@ class EKF:
         anemometerdir_var = self.world.boat.anemometer.err_angle.get_sigma(wind_angle)**2
         rudder_var = self.world.boat.rudder.controller.stepper.get_sigma()**2
         #Q = np.diag([speedometer_var, anemometer_var, rudder_var])
-        Q = np.diag([speedometer_var, 4*(wind_speed**2)*(np.cos(wind_angle)**2)*((np.cos(wind_angle)**2)*anemometer_var-(wind_speed**2)*(np.sin(wind_angle)**2)*anemometerdir_var), (boat_speed**2) * rudder_var + (rudder_angle**2) * speedometer_var])
-
+        Q = np.diag(
+            [
+                speedometer_var,
+                4*(wind_speed**2)*(np.cos(wind_angle)**2)*((np.cos(wind_angle)**2)*anemometer_var-(wind_speed**2)*(np.sin(wind_angle)**2)*anemometerdir_var),
+                (boat_speed**2) * rudder_var + (rudder_angle**2) * speedometer_var
+            ]
+        )
 
         # Jacobian of partial derivatives of the state transition matrix
         Ad = np.array([[1, 0, -np.sin(self.x[2])*(u_dt[0]+u_dt[1])],
@@ -62,6 +94,8 @@ class EKF:
         x_pred = self.x + F_q @ u_dt
         P_pred = Ad @ self.P @ Ad.T + F_q @ (A @ Q @ A.T) @ F_q.T
 
+        # Measurement matrix
+        H = np.eye(3)
 
         ## UPDATE STEP
 
@@ -72,8 +106,13 @@ class EKF:
             # Measurement vector
             z = np.append(self.world.boat.measure_gnss(), self.world.boat.measure_compass())
             # Measurement noise covariance matrix
-            R = np.diag([self.world.boat.gnss.err_position_x.get_sigma(z[0])**2, self.world.boat.gnss.err_position_y.get_sigma(z[1])**2, self.world.boat.compass.err_angle.get_sigma(z[2])**2])
-
+            R = np.diag(
+                [
+                    self.world.boat.gnss.err_position_x.get_sigma(z[0])**2,
+                    self.world.boat.gnss.err_position_y.get_sigma(z[1])**2,
+                    self.world.boat.compass.err_angle.get_sigma(z[2])**2
+                ]
+            )
             z_pred = x_pred.T
             K = P_pred @ H.T @ np.linalg.inv(H @ P_pred @ H.T + R)
             self.x = x_pred + K @ (z - z_pred)
