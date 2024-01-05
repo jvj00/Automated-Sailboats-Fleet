@@ -21,7 +21,17 @@ class Wind:
         self.velocity = np.zeros(2)
 
 class Boat:
-    def __init__(self, mass, wing: Wing, rudder: Rudder, gnss: Optional[GNSS] = None, compass: Optional[Compass] = None, anemometer: Optional[Anemometer] = None, speedometer: Optional[Speedometer] = None, uwb: Optional[UWB] = None):
+    def __init__(
+            self,
+            mass,
+            wing: Wing,
+            rudder: Rudder,
+            gnss: Optional[GNSS] = None,
+            compass: Optional[Compass] = None,
+            anemometer: Optional[Anemometer] = None,
+            speedometer: Optional[Speedometer] = None,
+            uwb: Optional[UWB] = None):
+        
         self.mass = mass
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
@@ -76,7 +86,15 @@ class Boat:
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
     def apply_wind(self, wind: Wind):
-        wind_force = compute_wind_force(wind.velocity, wind.density, self.velocity, self.heading, polar_to_cartesian(1, self.wing.controller.get_angle()), self.wing.area, self.drag_coeff)
+        wind_force = compute_wind_force(
+            wind.velocity,
+            wind.density,
+            self.velocity,
+            self.heading,
+            polar_to_cartesian(1, self.wing.controller.get_angle()),
+            self.wing.area,
+            self.drag_coeff
+        )
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
