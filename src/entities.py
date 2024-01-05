@@ -39,7 +39,7 @@ class Boat:
         self.heading = polar_to_cartesian(1, 0)
         self.wing = wing
         self.rudder = rudder
-        self.damping = 0.005
+        self.damping = 0.0001
         self.angular_damping = 0.0001
         self.drag_coeff = 0.5
         self.target = None
@@ -77,9 +77,7 @@ class Boat:
         self.velocity += (self.acceleration * dt)
         self.position += (self.velocity * dt)
 
-    def move(self, wind, dt):
-        if self.target is not None:
-            self.follow_target(wind, dt)
+    def move(self, dt):
         self.rotate(dt)
         self.translate(dt)
 
@@ -108,20 +106,24 @@ class Boat:
         self.wing.controller.set_target(0)
     
     def follow_target(self, wind: Wind, dt):
-        boat_angle = compute_angle(self.heading)
+        if self.target is None:
+            return
+
+        boat_angle = self.measure_compass()
+        boat_position = self.measure_gnss()
         # use the angle from target as setpoint for the rudder pid
-        angle_from_target = compute_angle(self.target - self.position)
+        angle_from_target = compute_angle(self.target - boat_position)
         delta_rudder_angle = angle_from_target - boat_angle
-        self.rudder.controller.move(delta_rudder_angle, dt) 
+        self.rudder.controller.move(delta_rudder_angle, dt)
         
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
-        wind_angle = compute_angle(wind.velocity)
+        _, wind_angle = self.measure_anemometer(wind)
         boat_velocity_w = 0.7
         wind_velocity_w = 1 - boat_velocity_w
         avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
         delta_wing_angle = avg_angle - boat_angle
-        # self.wing.controller.move(delta_wing_angle, dt)
+        self.wing.controller.move(delta_wing_angle, dt)
 
         # Logger.debug(f'Wind angle: {wind_angle}')
         # Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
@@ -150,7 +152,8 @@ class World:
     def update(self, dt):
         self.boat.apply_friction(self.gravity_z, dt)
         self.boat.apply_wind(self.wind)
-        self.boat.move(self.wind, dt)
+        self.boat.follow_target(self.wind, dt)
+        self.boat.move(dt)
 
 def compute_acceleration(force, mass):
     return force / mass
