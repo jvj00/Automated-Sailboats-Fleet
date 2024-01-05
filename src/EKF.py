@@ -1,5 +1,5 @@
 import numpy as np
-from entities import World, Boat, Wind, compute_acceleration, compute_friction, compute_rotation_rate, compute_wind_force
+from entities import World, Boat, Wind, compute_acceleration, compute_drag_coeff, compute_friction_coeff, compute_rotation_rate_coeff
 from sensor import Anemometer, Speedometer, Compass, GNSS, AbsoluteError, RelativeError, MixedError
 from utils import *
 
@@ -7,7 +7,7 @@ class EKF:
     def __init__(self, world: World, dt):
         self.world = world
         self.dt = dt
-        self.x = np.array([*world.boat.position, compute_angle(world.boat.heading)]).T
+        self.x = np.array([*world.boat.measure_gnss(), world.boat.measure_compass()]).T
         self.P = np.diag(
             [
                 world.boat.gnss.err_position_x.get_sigma(self.x[0])**2,
@@ -20,43 +20,25 @@ class EKF:
         
         ## INIT MATRICES
 
-
-        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and new angle (A)
-        
-        # compute the delta displacement (position)
         boat = self.world.boat
         wind = self.world.wind
 
-        # apply friction
-        boat_velocity = boat.velocity - compute_friction(boat.velocity, self.world.gravity_z, boat.mass, boat.damping)
-        # apply wind force
-        applied_force = compute_wind_force(
-            wind.velocity,
-            wind.density,
-            boat_velocity,
-            boat.heading,
-            polar_to_cartesian(1, boat.wing.controller.get_angle()),
-            boat.wing.area,
-            boat.drag_coeff
-        )
-        # compute acceleration produced by the wind to the boat
-        acceleration = compute_acceleration(applied_force, boat.mass)
-        # compute delta position of the boat
-        dp = compute_magnitude(acceleration * (self.dt ** 2))
-
-        # compute the rotation rate of the boat
-        rotation_rate = compute_rotation_rate(boat.rudder.controller.get_angle(), compute_magnitude(boat.velocity), boat.mass, boat.angular_damping)
-        # compute the delta rotation (angle) of the boat
-        da = rotation_rate * self.dt
-
+        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and new angle (A)
+        k_acc = compute_acceleration(compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area, boat.mass), boat.mass)
+        k_friction = compute_friction_coeff(self.world.gravity_z, boat.mass, boat.damping)
+        k_rot = compute_rotation_rate_coeff(boat.mass, boat.angular_damping)
+        # delta displacement (position)
+        ds = (k_acc + (k_friction / self.dt)) * (self.dt ** 2)
+        # delta rotation (angle)
+        da = k_rot * self.dt
         A = np.array(
             [
                 [self.dt, 0, 0],
-                [0, dp, 0],
+                [0, ds, 0],
                 [0, 0, da]
             ]
         )
-        
+
         ## PROPRIOCEPTIVE MEASUREMENTS
 
         # Get proprioceptive measurements and compute dynamics (u_dt)
@@ -114,9 +96,12 @@ class EKF:
                 ]
             )
             z_pred = x_pred.T
-            K = P_pred @ H.T @ np.linalg.inv(H @ P_pred @ H.T + R)
-            self.x = x_pred + K @ (z - z_pred)
-            self.P = (np.eye(3) - K @ H) @ P_pred
+            # covariance of residuals
+            S = H @ P_pred @ H.T + R
+            # gain matrix
+            W = P_pred @ H.T @ np.linalg.inv(S)
+            self.x = x_pred + W @ (z - z_pred)
+            self.P = (np.eye(3) - W @ H) @ P_pred
         else:
             self.x = x_pred
             self.P = P_pred

@@ -41,7 +41,7 @@ class Boat:
         self.rudder = rudder
         self.damping = 0.0001
         self.angular_damping = 0.0001
-        self.drag_coeff = 0.5
+        self.drag_damping = 10
         self.target = None
 
         if gnss is None:
@@ -68,8 +68,8 @@ class Boat:
     # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
     # the result is scaled is using an angular damping
     def rotate(self, dt):
-        rotation_rate = compute_rotation_rate(self.rudder.controller.get_angle(), compute_magnitude(self.velocity), self.mass, self.angular_damping)
-        rotation_angle = rotation_rate * dt
+        rotation_rate_coeff = compute_rotation_rate_coeff(self.mass, self.angular_damping)
+        rotation_angle = rotation_rate_coeff * self.rudder.controller.get_angle() * compute_magnitude(self.velocity) * dt
         current_angle = compute_angle(self.heading) + rotation_angle
         self.heading = polar_to_cartesian(1, current_angle)
     
@@ -89,15 +89,17 @@ class Boat:
             wind.density,
             self.velocity,
             self.heading,
+            self.mass,
             polar_to_cartesian(1, self.wing.controller.get_angle()),
             self.wing.area,
-            self.drag_coeff
+            self.drag_damping
         )
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
-        friction_stop = compute_friction(self.velocity, gravity, self.mass, self.damping) * dt
+        friction_coeff = compute_friction_coeff(gravity, self.mass, self.damping)
+        friction_stop = friction_coeff * self.velocity * dt
         self.velocity -= friction_stop
     
     def set_target(self, target):
@@ -108,9 +110,8 @@ class Boat:
     def follow_target(self, wind: Wind, dt):
         if self.target is None:
             return
-
-        boat_angle = self.measure_compass()
-        boat_position = self.measure_gnss()
+        boat_angle = compute_angle(self.heading)
+        boat_position = self.position
         # use the angle from target as setpoint for the rudder pid
         angle_from_target = compute_angle(self.target - boat_position)
         delta_rudder_angle = angle_from_target - boat_angle
@@ -118,7 +119,7 @@ class Boat:
         
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
-        _, wind_angle = self.measure_anemometer(wind)
+        wind_angle = compute_angle(wind.velocity)
         boat_velocity_w = 0.7
         wind_velocity_w = 1 - boat_velocity_w
         avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
@@ -161,13 +162,13 @@ def compute_acceleration(force, mass):
 # source: ChatGPT
 # F drag​ = 0.5 × CD × ρ × A × (∣Vrelative∣**2)
 # F wind = f_drag * (Vrelative / |Vrelative|)
-def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading, wing_heading, wing_area, drag_coeff: float):
+def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading, boat_mass, wing_heading, wing_area, drag_damping: float):
     v_relative = wind_velocity - boat_velocity
     v_relative_mag = compute_magnitude(v_relative)
     if v_relative_mag == 0:
         return np.zeros(2)
-    f_drag_mag = 0.5 * drag_coeff * wind_density * wing_area * (v_relative_mag ** 2)
-    f_wind = f_drag_mag * (v_relative / v_relative_mag)
+    f_drag_coeff = compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass)
+    f_wind = f_drag_coeff * v_relative_mag * v_relative
     wing_angle_relative = compute_angle(wing_heading)
     boat_angle = compute_angle(boat_heading)
     wing_heading_absolute = polar_to_cartesian(1, boat_angle + wing_angle_relative)
@@ -175,8 +176,11 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
     f_wind = np.dot(f_wind, boat_heading) * boat_heading
     return f_wind
 
-def compute_rotation_rate(rudder_angle, boat_speed, boat_mass, damping):
-    return rudder_angle * boat_speed * boat_mass * damping
+def compute_rotation_rate_coeff(boat_mass, damping):
+    return boat_mass * damping
 
-def compute_friction(boat_velocity, gravity, boat_mass, damping):
-    return boat_velocity * boat_mass * gravity * damping
+def compute_friction_coeff(gravity, boat_mass, damping):
+    return boat_mass * gravity * damping
+
+def compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass):
+    return (0.5 * drag_damping * wind_density * wing_area) / boat_mass
