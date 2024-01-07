@@ -6,6 +6,38 @@ from pid import PID
 from sensor import GNSS, Compass, Anemometer, Speedometer, UWB
 from typing import Optional
 
+class RigidBody:
+    def __init__(self, mass):
+        self.mass = mass
+        self.position = np.zeros(2)
+        self.velocity = np.zeros(2)
+        self.acceleration = np.zeros(2)
+
+        self.angular_acceleration = 0
+        self.angular_speed = 0
+
+        self.heading = polar_to_cartesian(1, 0)
+
+        self.damping = 0.0001
+        self.angular_damping = 0.0001
+        self.drag_damping = 10
+    
+    def rotate(self, dt):
+        _, curr_angle = cartesian_to_polar(self.heading)
+        prev_angular_speed = self.angular_speed
+        self.angular_speed = prev_angular_speed + (self.angular_acceleration * dt)
+        curr_angle += 0.5 * self.angular_acceleration * (dt ** 2) + prev_angular_speed * dt
+        self.heading = polar_to_cartesian(1, curr_angle)
+    
+    def translate(self, dt):
+        prev_velocity = self.velocity.copy()
+        self.velocity = prev_velocity + (self.acceleration * dt)
+        self.position += 0.5 * self.acceleration * (dt ** 2) + prev_velocity * dt
+    
+    def move(self, dt):
+        self.rotate(dt)
+        self.translate(dt)
+    
 class Wing:
     def __init__(self, area: float, controller: StepperController):
         self.area = area
