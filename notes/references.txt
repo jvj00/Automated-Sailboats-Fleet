@@ -1,2 +1,3 @@
 [reference a formula conversione da vento a forza per la barca]
-[reference damping factor]
+[reference damping factor e friction]
+[reference angular damping]
