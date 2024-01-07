@@ -85,6 +85,68 @@ class TestRigidBody(unittest.TestCase):
         self.assertEqual(e.velocity[1], 0.0)
         self.assertEqual(e.angular_speed, np.pi)
         self.assertEqual(curr_angle, np.pi)
+    
+    def test_apply_friction_steady_still(self):
+        e = RigidBody(10)
+        e.friction_mu = 1
+        gravity = 10
+        dt = 1
+        e.apply_friction(gravity, dt)
+        e.translate(dt)
+        self.assertEqual(e.position[0], 0.0)
+        self.assertEqual(e.position[1], 0.0)
+        self.assertEqual(e.velocity[0], 0.0)
+        self.assertEqual(e.velocity[1], 0.0)
+    
+    def test_apply_friction_constant_velocity_1(self):
+        e = RigidBody(10)
+        e.friction_mu = 1
+        e.velocity = np.array([1.0, -1.0])
+        gravity = 10
+        dt = 1
+        e.apply_friction(gravity, dt)
+        e.translate(dt)
+        self.assertEqual(e.position[0], 0.0)
+        self.assertEqual(e.position[1], 0.0)
+        self.assertEqual(e.velocity[0], 0.0)
+        self.assertEqual(e.velocity[1], 0.0)
+    
+    def test_apply_friction_constant_velocity_2(self):
+        e = RigidBody(10)
+        e.friction_mu = 0.001
+        e.velocity = np.array([1.0, -1.0])
+        gravity = 10
+        dt = 1
+        e.apply_friction(gravity, dt)
+        e.translate(dt)
+        self.assertEqual(e.position[0], 0.9)
+        self.assertEqual(e.position[1], -0.9)
+        self.assertEqual(e.velocity[0], 0.9)
+        self.assertEqual(e.velocity[1], -0.9)
+
+class TestBoat(unittest.TestCase):
+
+    def test_rotate_aligned_rudder(self):
+        wing = Wing(10, StepperController(Stepper(100, 1), PID()))
+        rudder = Rudder(StepperController(Stepper(100, 1), PID()))
+        b = Boat(10, 10, wing, rudder)
+        b.velocity = np.array([2.0, 2.0])
+        b.rotate(1)
+        self.assertEqual(b.angular_speed, 0)
+    
+    def test_rotate_1(self):
+        wing = Wing(10, StepperController(Stepper(100, 1), PID()))
+        rudder = Rudder(StepperController(Stepper(100, 1), PID()))
+        b = Boat(10, 10, wing, rudder)
+        b.rudder.controller.set_angle(np.pi * 0.25)
+        b.velocity = np.array([2.0, 2.0])
+        b.rotate(1)
+        self.assertAlmostEqual(b.rudder.controller.get_angle(), 0.753982236)
+        self.assertAlmostEqual(b.angular_speed, 0.265606986)
+        b.rudder.controller.set_angle(-np.pi * 0.25)
+        b.rotate(1)
+        self.assertAlmostEqual(b.rudder.controller.get_angle(), 5.4663712)
+        self.assertAlmostEqual(b.angular_speed, -0.3011968966)
 
 # class EntitiesTest(unittest.TestCase):
 #     wind_velocity = np.zeros(2)

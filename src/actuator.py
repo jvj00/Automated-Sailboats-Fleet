@@ -59,8 +59,11 @@ class StepperController:
             self.speed = speed
             self.direction = StepperDirection.Clockwise
     
+    def set_angle(self, angle):
+        self.steps = steps_from_angle(angle, self.stepper.resolution)
+    
     def get_angle(self):
-        return angle_from_steps(self.steps, self.stepper.resolution)
+        return mod2pi(angle_from_steps(self.steps, self.stepper.resolution))
     
     def measure_angle(self):
         return value_from_gaussian(self.get_angle(), self.stepper.get_sigma())
@@ -72,7 +75,7 @@ def angle_from_steps(steps, resolution):
     return (steps / resolution) * (2 * np.pi)
 
 def steps_from_angle(angle, resolution):
-    return (angle / (2 * np.pi)) * resolution
+    return np.floor((angle / (2 * np.pi)) * resolution)
 
 def is_bounded_2pi(angle, min, max):
         angle = mod2pi(angle)

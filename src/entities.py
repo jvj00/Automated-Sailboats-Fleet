@@ -18,10 +18,8 @@ class RigidBody:
 
         self.heading = polar_to_cartesian(1, 0)
 
-        self.damping = 0.0001
-        self.angular_damping = 0.0001
-        self.drag_damping = 10
-    
+        self.friction_mu = 0.01
+
     def rotate(self, dt):
         _, curr_angle = cartesian_to_polar(self.heading)
         prev_angular_speed = self.angular_speed
@@ -32,11 +30,17 @@ class RigidBody:
     def translate(self, dt):
         prev_velocity = self.velocity.copy()
         self.velocity = prev_velocity + (self.acceleration * dt)
-        self.position += 0.5 * self.acceleration * (dt ** 2) + prev_velocity * dt
+        self.position += (0.5 * self.acceleration * (dt ** 2) + prev_velocity * dt)
     
-    def move(self, dt):
-        self.rotate(dt)
-        self.translate(dt)
+    # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
+    def apply_friction(self, gravity: float, dt):
+        friction_force = compute_force(self.mass, gravity) * self.friction_mu
+        velocity_decrease = -(friction_force * self.velocity * dt)
+        # the velocity decrease must be always less than the current velocity
+        if compute_magnitude(velocity_decrease) > compute_magnitude(self.velocity):
+            self.velocity = np.zeros(2)
+        else:
+            self.velocity += velocity_decrease
     
 class Wing:
     def __init__(self, area: float, controller: StepperController):
@@ -52,10 +56,11 @@ class Wind:
         self.density = density
         self.velocity = np.zeros(2)
 
-class Boat:
+class Boat(RigidBody):
     def __init__(
             self,
             mass,
+            length,
             wing: Wing,
             rudder: Rudder,
             gnss: Optional[GNSS] = None,
@@ -63,16 +68,11 @@ class Boat:
             anemometer: Optional[Anemometer] = None,
             speedometer: Optional[Speedometer] = None,
             uwb: Optional[UWB] = None):
-        
-        self.mass = mass
-        self.position = np.zeros(2)
-        self.velocity = np.zeros(2)
-        self.acceleration = np.zeros(2)
-        self.heading = polar_to_cartesian(1, 0)
+
+        super().__init__(mass)
+        self.length = length
         self.wing = wing
         self.rudder = rudder
-        self.damping = 0.0001
-        self.angular_damping = 0.0001
         self.drag_damping = 10
         self.target = None
 
@@ -100,20 +100,17 @@ class Boat:
     # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
     # the result is scaled is using an angular damping
     def rotate(self, dt):
-        rotation_rate_coeff = compute_rotation_rate_coeff(self.mass, self.angular_damping)
-        rotation_angle = rotation_rate_coeff * self.rudder.controller.get_angle() * compute_magnitude(self.velocity) * dt
-        current_angle = compute_angle(self.heading) + rotation_angle
-        self.heading = polar_to_cartesian(1, current_angle)
+        turning_radius = compute_turning_radius(self.length, self.rudder.controller.get_angle())
+        self.angular_speed = 0 if turning_radius == 0 else compute_magnitude(self.velocity) / turning_radius
+        super().rotate(dt)
     
     def translate(self, dt):
-        print(compute_magnitude((self.acceleration * (dt ** 2)) / 2))
-        self.position += self.velocity * dt + (self.acceleration * (dt ** 2)) / 2
-        self.velocity += self.acceleration * dt
-
+        super().translate(dt)
+    
     def move(self, dt):
-        self.rotate(dt)
         self.translate(dt)
-
+        self.rotate(dt)
+    
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
     def apply_wind(self, wind: Wind):
@@ -129,12 +126,6 @@ class Boat:
         )
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
-    # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
-    def apply_friction(self, gravity: float, dt):
-        friction_coeff = compute_friction_coeff(gravity, self.mass, self.damping)
-        friction_stop = friction_coeff * self.velocity * dt
-        self.velocity -= friction_stop
-    
     def set_target(self, target):
         self.target = target
         self.rudder.controller.set_target(0)
@@ -184,8 +175,8 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        #self.boat.apply_friction(self.gravity_z, dt)
         self.boat.apply_wind(self.wind)
+        self.boat.apply_friction(self.gravity_z, dt)
         self.boat.follow_target(self.wind, dt)
         self.boat.move(dt)
 
@@ -217,3 +208,16 @@ def compute_friction_coeff(gravity, boat_mass, damping):
 
 def compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass):
     return (0.5 * drag_damping * wind_density * wing_area) / boat_mass     # DIVIDO PER LA MASSA SIA QUA SIA POI SU COMPUTE ACCELERATION
+
+def compute_force(mass, acceleration):
+    return mass * acceleration
+
+# Angular Speed(ω)= Velocity / Turning Radius
+# Turning radius = L / tan(th)
+# where L is the lenght of the boat and th is the angle of the rudder
+
+def compute_turning_radius(lenght, rudder_angle):
+    d = np.tan(rudder_angle)
+    if d == 0:
+        return 0
+    return lenght / np.tan(rudder_angle)
