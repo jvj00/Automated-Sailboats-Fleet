@@ -18,7 +18,7 @@ class RigidBody:
 
         self.heading = polar_to_cartesian(1, 0)
 
-        self.friction_mu = 0.01
+        self.friction_mu = 0.001
 
     def rotate(self, dt):
         _, curr_angle = cartesian_to_polar(self.heading)
@@ -73,7 +73,7 @@ class Boat(RigidBody):
         self.length = length
         self.wing = wing
         self.rudder = rudder
-        self.drag_damping = 10
+        self.drag_damping = 0.2
         self.target = None
 
         if gnss is None:
@@ -119,7 +119,6 @@ class Boat(RigidBody):
             wind.density,
             self.velocity,
             self.heading,
-            self.mass,
             polar_to_cartesian(1, self.wing.controller.get_angle()),
             self.wing.area,
             self.drag_damping
@@ -175,8 +174,8 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        self.boat.apply_wind(self.wind)
         self.boat.apply_friction(self.gravity_z, dt)
+        self.boat.apply_wind(self.wind)
         self.boat.follow_target(self.wind, dt)
         self.boat.move(dt)
 
@@ -184,19 +183,25 @@ def compute_acceleration(force, mass):
     return force / mass
 
 # source: ChatGPT
+# see drag equation
 # F drag​ = 0.5 × CD × ρ × A × (∣Vrelative∣**2)
 # F wind = f_drag * (Vrelative / |Vrelative|)
-def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading, boat_mass, wing_heading, wing_area, drag_damping: float):
-    v_relative = wind_velocity - boat_velocity
-    v_relative_mag = compute_magnitude(v_relative)
-    if v_relative_mag == 0:
+# wind velocity is absolute (referenced to the ground)
+# streamlined airfoils low: 0.02 - 0.05
+# streamlined airfoils high: 0.2 - 0.5 - 1.0
+def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading, wing_heading, wing_area, drag_damping: float):
+    # if there's no wind, there's no force
+    if compute_magnitude(wind_velocity) == 0:
         return np.zeros(2)
-    f_drag_coeff = compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass)
-    f_wind = f_drag_coeff * normalize(v_relative)
+    v_relative = wind_velocity - boat_velocity
+    f_wind = compute_drag_coeff(drag_damping, wind_density, wing_area) * (compute_magnitude(v_relative) ** 2) * normalize(v_relative)
+    # compute the absolute wing angle
     wing_angle_relative = compute_angle(wing_heading)
     boat_angle = compute_angle(boat_heading)
     wing_heading_absolute = polar_to_cartesian(1, boat_angle + wing_angle_relative)
+    # project the force of the wind along the wing direction
     f_wind = np.dot(f_wind, wing_heading_absolute) * wing_heading_absolute
+    # project the projected force along the boat direction
     f_wind = np.dot(f_wind, boat_heading) * boat_heading
     return f_wind
 
@@ -206,8 +211,8 @@ def compute_rotation_rate_coeff(boat_mass, damping):
 def compute_friction_coeff(gravity, boat_mass, damping):
     return boat_mass * gravity * damping
 
-def compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass):
-    return (0.5 * drag_damping * wind_density * wing_area) / boat_mass     # DIVIDO PER LA MASSA SIA QUA SIA POI SU COMPUTE ACCELERATION
+def compute_drag_coeff(drag_damping, wind_density, wing_area):
+    return 0.5 * drag_damping * wind_density * wing_area
 
 def compute_force(mass, acceleration):
     return mass * acceleration
@@ -215,7 +220,6 @@ def compute_force(mass, acceleration):
 # Angular Speed(ω)= Velocity / Turning Radius
 # Turning radius = L / tan(th)
 # where L is the lenght of the boat and th is the angle of the rudder
-
 def compute_turning_radius(lenght, rudder_angle):
     d = np.tan(rudder_angle)
     if d == 0:
