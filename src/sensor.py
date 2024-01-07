@@ -35,15 +35,6 @@ class Anemometer:
     def __init__(self, err_speed: Error, err_angle: Error):
         self.err_speed = err_speed
         self.err_angle = err_angle
-    
-    # def measure_with_truth(self, wind_velocity, boat_velocity):
-    #     wind_mag, wind_angle = cartesian_to_polar(wind_velocity)
-    #     boat_mag, boat_angle = cartesian_to_polar(boat_velocity)
-    #     wind_vel_anemo = wind_mag - boat_mag * np.cos(mod2pi(wind_angle - boat_angle))
-    #     wind_dir_anemo = mod2pi(wind_angle - boat_angle)
-    #     truth = np.array([wind_vel_anemo, wind_dir_anemo])
-    #     measured = np.array([value_from_gaussian(wind_vel_anemo, self.err_velocity.get_sigma(wind_vel_anemo)), value_from_gaussian(wind_dir_anemo, self.err_direction.get_sigma(wind_dir_anemo))])
-    #     return truth, measured
 
     def measure(self, wind_velocity, boat_velocity) -> tuple[float, float]:
         _, measured = self.measure_with_truth(wind_velocity, boat_velocity)

@@ -23,12 +23,12 @@ class EKF:
         boat = self.world.boat
         wind = self.world.wind
 
-        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and new angle (A)
+        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and angular velocity (A)
         k_acc = compute_acceleration(compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area, boat.mass), boat.mass)
         k_friction = compute_friction_coeff(self.world.gravity_z, boat.mass, boat.damping)
         k_rot = compute_rotation_rate_coeff(boat.mass, boat.angular_damping)
         # delta displacement (position)
-        ds = (k_acc + (k_friction / self.dt)) * (self.dt ** 2)
+        ds = (k_acc) * (0.5 * self.dt ** 2)
         # delta rotation (angle)
         da = k_rot * self.dt
         A = np.array(
@@ -45,6 +45,11 @@ class EKF:
         boat_speed = self.world.boat.measure_speedometer()
         wind_speed, wind_angle = self.world.boat.measure_anemometer(self.world.wind)
         rudder_angle = self.world.boat.measure_rudder()
+
+        # boat_speed = compute_magnitude(boat.velocity)
+        # wind_speed, wind_angle = cartesian_to_polar(wind.velocity + boat.velocity)
+        # rudder_angle = boat.rudder.controller.get_angle()
+
         sensor_meas = np.array([boat_speed, (wind_speed*np.cos(wind_angle))**2, rudder_angle * boat_speed]).T
         u_dt = A @ sensor_meas
 
@@ -58,7 +63,6 @@ class EKF:
         anemometer_var = self.world.boat.anemometer.err_speed.get_sigma(wind_speed)**2
         anemometerdir_var = self.world.boat.anemometer.err_angle.get_sigma(wind_angle)**2
         rudder_var = self.world.boat.rudder.controller.stepper.get_sigma()**2
-        #Q = np.diag([speedometer_var, anemometer_var, rudder_var])
         Q = np.diag(
             [
                 speedometer_var,

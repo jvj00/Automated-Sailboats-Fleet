@@ -74,8 +74,9 @@ class Boat:
         self.heading = polar_to_cartesian(1, current_angle)
     
     def translate(self, dt):
-        self.velocity += (self.acceleration * dt)
-        self.position += (self.velocity * dt)
+        print(compute_magnitude((self.acceleration * (dt ** 2)) / 2))
+        self.position += self.velocity * dt + (self.acceleration * (dt ** 2)) / 2
+        self.velocity += self.acceleration * dt
 
     def move(self, dt):
         self.rotate(dt)
@@ -151,7 +152,7 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        self.boat.apply_friction(self.gravity_z, dt)
+        #self.boat.apply_friction(self.gravity_z, dt)
         self.boat.apply_wind(self.wind)
         self.boat.follow_target(self.wind, dt)
         self.boat.move(dt)
@@ -168,7 +169,7 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
     if v_relative_mag == 0:
         return np.zeros(2)
     f_drag_coeff = compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass)
-    f_wind = f_drag_coeff * v_relative_mag * v_relative
+    f_wind = f_drag_coeff * normalize(v_relative)
     wing_angle_relative = compute_angle(wing_heading)
     boat_angle = compute_angle(boat_heading)
     wing_heading_absolute = polar_to_cartesian(1, boat_angle + wing_angle_relative)
@@ -183,4 +184,4 @@ def compute_friction_coeff(gravity, boat_mass, damping):
     return boat_mass * gravity * damping
 
 def compute_drag_coeff(drag_damping, wind_density, wing_area, boat_mass):
-    return (0.5 * drag_damping * wind_density * wing_area) / boat_mass
+    return (0.5 * drag_damping * wind_density * wing_area) / boat_mass     # DIVIDO PER LA MASSA SIA QUA SIA POI SU COMPUTE ACCELERATION
