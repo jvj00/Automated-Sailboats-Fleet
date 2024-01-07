@@ -32,48 +32,64 @@ class MixedError(Error):
 
 # JRC WS-12 (set velocity error RELATIVE to 5% and direction error ABSOLUTE to 1*pi/180 rad)
 class Anemometer:
-    def __init__(self, err_velocity: Error, err_direction: Error):
-        self.err_velocity = err_velocity
-        self.err_direction = err_direction
+    def __init__(self, err_speed: Error, err_angle: Error):
+        self.err_speed = err_speed
+        self.err_angle = err_angle
     
+    # def measure_with_truth(self, wind_velocity, boat_velocity):
+    #     wind_mag, wind_angle = cartesian_to_polar(wind_velocity)
+    #     boat_mag, boat_angle = cartesian_to_polar(boat_velocity)
+    #     wind_vel_anemo = wind_mag - boat_mag * np.cos(mod2pi(wind_angle - boat_angle))
+    #     wind_dir_anemo = mod2pi(wind_angle - boat_angle)
+    #     truth = np.array([wind_vel_anemo, wind_dir_anemo])
+    #     measured = np.array([value_from_gaussian(wind_vel_anemo, self.err_velocity.get_sigma(wind_vel_anemo)), value_from_gaussian(wind_dir_anemo, self.err_direction.get_sigma(wind_dir_anemo))])
+    #     return truth, measured
 
-    def measure_with_truth(self, wind_velocity, boat_velocity):
-        wind_mag, wind_angle = cartesian_to_polar(wind_velocity)
-        boat_mag, boat_angle = cartesian_to_polar(boat_velocity)
-        wind_vel_anemo = wind_mag - boat_mag * np.cos(mod2pi(wind_angle - boat_angle))
-        wind_dir_anemo = mod2pi(wind_angle - boat_angle)
-        truth = np.array([wind_vel_anemo, wind_dir_anemo])
-        measured = np.array([value_from_gaussian(wind_vel_anemo, self.err_velocity.get_sigma(wind_vel_anemo)), value_from_gaussian(wind_dir_anemo, self.err_direction.get_sigma(wind_dir_anemo))])
-        return truth, measured
+    def measure(self, wind_velocity, boat_velocity) -> tuple[float, float]:
+        _, measured = self.measure_with_truth(wind_velocity, boat_velocity)
+        return measured
 
-    def measure(self, wind_velocity, boat_velocity):
-        return self.measure_with_truth(wind_velocity, boat_velocity)[1]
+    # use the correct value of the wind velocity to compute its apparent velocity, then add the error to it
+    def measure_with_truth(self, true_wind_velocity, boat_velocity):
+        apparent_wind_velocity = true_wind_velocity + boat_velocity
+        apparent_wind_speed_truth, apparent_wind_angle_truth = cartesian_to_polar(apparent_wind_velocity)
+        
+        apparent_wind_speed_measured = value_from_gaussian(
+            apparent_wind_speed_truth,
+            self.err_speed.get_sigma(apparent_wind_speed_truth)
+        )
+        apparent_wind_angle_measured = value_from_gaussian(
+            apparent_wind_angle_truth,
+            self.err_angle.get_sigma(apparent_wind_angle_truth)
+        )
+
+        return (apparent_wind_speed_truth, apparent_wind_angle_truth), (apparent_wind_speed_measured, apparent_wind_angle_measured)
 
 # DX900+ (set velocity error MIXED with threshold of 5m/s and 1% of error)
 class Speedometer:
-    def __init__(self, err_velocity: Error):
-        self.err_velocity = err_velocity
+    def __init__(self, err_speed: Error):
+        self.err_speed = err_speed
     
     def measure_with_truth(self, boat_velocity):
-        boat_mag, boat_angle = cartesian_to_polar(boat_velocity)
-        truth = boat_mag
-        measured = value_from_gaussian(boat_mag, self.err_velocity.get_sigma(boat_mag))
+        boat_speed = compute_magnitude(boat_velocity)
+        truth = boat_speed
+        measured = value_from_gaussian(boat_speed, self.err_speed.get_sigma(boat_speed))
         return truth, measured
 
-    def measure(self, boat_velocity):
+    def measure(self, boat_velocity) -> float:
         return self.measure_with_truth(boat_velocity)[1]
 
 # HSC100 (set direction error ABSOLUTE to 3*pi/180 rad)
 class Compass:
-    def __init__(self, err_direction: Error):
-        self.err_direction = err_direction
+    def __init__(self, err_angle: Error):
+        self.err_angle = err_angle
     
     def measure_with_truth(self, boat_heading):
         truth = compute_angle(boat_heading)
-        measured = value_from_gaussian(truth, self.err_direction.get_sigma(truth))
+        measured = value_from_gaussian(truth, self.err_angle.get_sigma(truth))
         return truth, measured
 
-    def measure(self, boat_heading):
+    def measure(self, boat_heading) -> float:
         return self.measure_with_truth(boat_heading)[1]
 
 # DW3000 (set distance error ABSOLUTE to 0.2m) (TWR)
@@ -86,7 +102,7 @@ class UWB:
         measured = value_from_gaussian(truth, self.err_distance.get_sigma(truth))
         return truth, measured
     
-    def measure(self, b_actual_position, b_target_position):
+    def measure(self, b_actual_position, b_target_position) -> float:
         return self.measure_with_truth(b_actual_position, b_target_position)[1]
 
 # SAM-M10Q (set position error ABSOLUTE to 1.5m for both x and y)
@@ -104,14 +120,13 @@ class GNSS:
     
     def measure(self, boat_position):
         return self.measure_with_truth(boat_position)[1]
-    
 
 def test_sensor():
     from entities import Wing, Rudder, Stepper, Boat, Wind
     test_repetition = 20
-    err_velocity = RelativeError(0.05)
-    err_direction = AbsoluteError(np.pi/180)
-    sensor = Anemometer(err_velocity=err_velocity, err_direction=err_direction)
+    err_speed = RelativeError(0.05)
+    err_angle = AbsoluteError(np.pi/180)
+    sensor = Anemometer(err_speed, err_angle)
     boat = Boat(
         100,
         Wing(15, Stepper(100, 0.05)),
@@ -128,10 +143,10 @@ def test_sensor():
     for i in range(test_repetition):
         wind.velocity = np.array([20.0, 0.0])
         boat.velocity = np.array([5.0, 5.0])
-        truth, meas = sensor.measure(wind.velocity, boat.velocity)
-        if np.abs(meas[0] - truth[0]) > err_velocity.error * truth[0]:
+        truth, meas = sensor.measure_with_truth(wind.velocity, boat.velocity)
+        if np.abs(meas[0] - truth[0]) > err_speed.error * truth[0]:
             outliers_velocity += 1
-        if np.abs(meas[1] - truth[1]) > err_direction.error:
+        if np.abs(meas[1] - truth[1]) > err_angle.error:
             outliers_direction += 1
         anemo_truth.append(truth)
         anemo_meas.append(meas)

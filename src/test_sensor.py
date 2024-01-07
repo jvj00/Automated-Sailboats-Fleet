@@ -9,9 +9,9 @@ test_repetition = 10000
 class AnemometerTest(unittest.TestCase):
 
     def test_outliers(self):
-        err_velocity = RelativeError(0.05)
-        err_direction = AbsoluteError(np.pi/180)
-        sensor = Anemometer(err_velocity=err_velocity, err_direction=err_direction)
+        err_speed = RelativeError(0.05)
+        err_angle = AbsoluteError(np.pi/180)
+        sensor = Anemometer(err_speed, err_angle)
         boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         wind = Wind(1.291)
         wind.velocity = np.array([np.random.rand()*20, np.random.rand()*20])
@@ -23,9 +23,9 @@ class AnemometerTest(unittest.TestCase):
         
         for i in range(test_repetition):
             truth, meas = sensor.measure_with_truth(wind.velocity, boat.velocity)
-            if np.abs(meas[0] - truth[0]) > np.abs(err_velocity.error * truth[0]):
+            if np.abs(meas[0] - truth[0]) > np.abs(err_speed.error * truth[0]):
                 outliers_velocity += 1
-            if np.abs(meas[1] - truth[1]) > err_direction.error:
+            if np.abs(meas[1] - truth[1]) > err_angle.error:
                 outliers_direction += 1
             list_truth.append(truth)
             list_meas.append(meas)
@@ -36,8 +36,8 @@ class AnemometerTest(unittest.TestCase):
 class SpeedometerTest(unittest.TestCase):
 
     def test_outliers_high_velocities(self):
-        err_velocity = MixedError(0.01, 5)
-        sensor = Speedometer(err_velocity=err_velocity)
+        err_speed = MixedError(0.01, 5)
+        sensor = Speedometer(err_speed)
         boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         x=np.random.rand()*15+4
         y=np.random.rand()*15+4
@@ -48,7 +48,7 @@ class SpeedometerTest(unittest.TestCase):
 
         for i in range(test_repetition):
             truth, meas = sensor.measure_with_truth(boat.velocity)
-            if np.abs(meas - truth) > np.abs(err_velocity.error * truth):
+            if np.abs(meas - truth) > np.abs(err_speed.error * truth):
                 outliers_velocity += 1
             list_truth.append(truth)
             list_meas.append(meas)
@@ -56,8 +56,8 @@ class SpeedometerTest(unittest.TestCase):
         self.assertLess(outliers_velocity/test_repetition, 0.004)
 
     def test_outliers_low_velocities(self):
-        err_velocity = MixedError(0.01, 5)
-        sensor = Speedometer(err_velocity=err_velocity)
+        err_speed = MixedError(0.01, 5)
+        sensor = Speedometer(err_speed)
         boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         x=np.random.rand()*5
         y=np.random.rand()*np.sqrt(25-x**2)
@@ -68,7 +68,7 @@ class SpeedometerTest(unittest.TestCase):
 
         for i in range(test_repetition):
             truth, meas = sensor.measure_with_truth(boat.velocity)
-            if np.abs(meas - truth) > np.abs(err_velocity.error * err_velocity.threshold):
+            if np.abs(meas - truth) > np.abs(err_speed.error * err_speed.threshold):
                 outliers_velocity += 1
             list_truth.append(truth)
             list_meas.append(meas)
@@ -78,8 +78,8 @@ class SpeedometerTest(unittest.TestCase):
 class CompassTest:
     
     def test_outliers(self):
-        err_direction = AbsoluteError(3*np.pi/180)
-        sensor = Compass(err_direction=err_direction)
+        err_angle = AbsoluteError(3*np.pi/180)
+        sensor = Compass(err_angle)
         boat = Boat(100, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), PID(1, 0.1, 0.1, 0.1), PID(1, 0.1, 0.1, 0.1))
         boat.heading = np.array([np.random.rand(), np.random.rand()])
         list_truth = []
@@ -88,7 +88,7 @@ class CompassTest:
         
         for i in range(test_repetition):
             truth, meas = sensor.measure_with_truth(boat.heading)
-            if np.abs(meas - truth) > err_direction.error:
+            if np.abs(meas - truth) > err_angle.error:
                 outliers_direction += 1
             list_truth.append(truth)
             list_meas.append(meas)
