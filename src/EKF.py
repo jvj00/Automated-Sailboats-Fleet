@@ -55,9 +55,9 @@ class EKF:
         # rudder_angle = boat.rudder.controller.get_angle()
 
         wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
-        angular_vel_c = 0 if np.tan(rudder_angle) == 0 else boat_speed / np.tan(rudder_angle)
+        angular_speed_c = 0 if np.tan(rudder_angle) == 0 else boat_speed / np.tan(rudder_angle)
 
-        sensor_meas = np.array([boat_speed, compute_magnitude(wind_velocity) ** 2, angular_vel_c]).T
+        sensor_meas = np.array([boat_speed, compute_magnitude(wind_velocity) ** 2, angular_speed_c]).T
         
         # u_dt[0] = delta_position first order (from boat speed)
         # u_dt[1] = delta_position second order (from boat acceleration given by the wind)
