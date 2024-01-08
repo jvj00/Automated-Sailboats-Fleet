@@ -5,12 +5,13 @@ from disegnino import Drawer
 from entities import Boat, Wind, Wing, Rudder, World
 from pid import PID
 from logger import Logger
+from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), limits = (-np.pi * 0.25, np.pi * 0.25))
+    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1))
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
-    boat = Boat(100, Wing(15, wing_controller), Rudder(rudder_controller))
+    boat = Boat(10, 10, Wing(15, wing_controller), Rudder(rudder_controller))
     world = World(9.81, wind, boat)
 
     win_width = 900
@@ -28,13 +29,18 @@ if __name__ == '__main__':
     anemo_truth = []
     times = []
 
-    dt = 0.05
+    dt = 0.1
 
     world.boat.position = np.array([0.0, 0.0])
-    world.wind.velocity = np.array([-15.0, 8.0])
+    world.wind.velocity = np.array([15.0, 8.0])
+    world.boat.heading = polar_to_cartesian(1, np.pi * 0.25)
+    world.boat.rudder.controller.set_angle(np.pi * 0.10)
     # world.boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
 
     for time_elapsed in np.arange(0, 100, dt):
+        if time_elapsed == 5:
+            world.wind.velocity = -world.wind.velocity
+
         if time_elapsed == 10:
             world.wind.velocity = np.zeros(2)
 

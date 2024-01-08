@@ -1,5 +1,5 @@
 import numpy as np
-from entities import World, Boat, Wind, compute_acceleration, compute_drag_coeff, compute_friction_coeff, compute_rotation_rate_coeff
+from entities import World, Boat, Wind, compute_acceleration, compute_drag_coeff, compute_friction_force
 from sensor import Anemometer, Speedometer, Compass, GNSS, AbsoluteError, RelativeError, MixedError
 from utils import *
 
@@ -23,14 +23,18 @@ class EKF:
         boat = self.world.boat
         wind = self.world.wind
 
-        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and angular velocity (A)
-        k_acc = compute_acceleration(compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area, boat.mass), boat.mass)
-        k_friction = compute_friction_coeff(self.world.gravity_z, boat.mass, boat.damping)
-        k_rot = compute_rotation_rate_coeff(boat.mass, boat.angular_damping)
+        k_acc = compute_acceleration(compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area), boat.mass)
         # delta displacement (position)
-        ds = (k_acc) * (0.5 * self.dt ** 2)
+        ds = k_acc * (0.5 * self.dt ** 2) - (compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu) * (self.dt ** 2))
+        
+        # k_friction = compute_friction_coeff(self.world.gravity_z, boat.mass, boat.damping)
+        
         # delta rotation (angle)
+        # angular_velocity = (boat_speed * boat_length) / tan(rudder_angle)
+        k_rot = boat.length
         da = k_rot * self.dt
+
+        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and angular velocity (A)
         A = np.array(
             [
                 [self.dt, 0, 0],
@@ -50,7 +54,14 @@ class EKF:
         # wind_speed, wind_angle = cartesian_to_polar(wind.velocity + boat.velocity)
         # rudder_angle = boat.rudder.controller.get_angle()
 
-        sensor_meas = np.array([boat_speed, (wind_speed*np.cos(wind_angle))**2, rudder_angle * boat_speed]).T
+        wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
+        angular_vel_c = 0 if np.tan(rudder_angle) == 0 else boat_speed / np.tan(rudder_angle)
+
+        sensor_meas = np.array([boat_speed, compute_magnitude(wind_velocity) ** 2, angular_vel_c]).T
+        
+        # u_dt[0] = delta_position first order (from boat speed)
+        # u_dt[1] = delta_position second order (from boat acceleration given by the wind)
+        # u_dt[2] = delta_angle first order (from rudder angle)
         u_dt = A @ sensor_meas
 
         # State transition matrix
@@ -135,7 +146,7 @@ def test_ekf(probability_of_update=1.0):
     wind = Wind(1.291)
     rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), limits = (-np.pi * 0.25, np.pi * 0.25))
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
-    boat = Boat(100, Wing(15, wing_controller), Rudder(rudder_controller), gnss, compass, anemometer, speedometer)
+    boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), gnss, compass, anemometer, speedometer)
     world = World(9.81, wind, boat)
     world.boat.position = np.array([0.0, 0.0])
     world.boat.velocity = np.array([0.0, 0.0])

@@ -34,7 +34,7 @@ class RigidBody:
     
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
-        friction_force = compute_force(self.mass, gravity) * self.friction_mu
+        friction_force = compute_friction_force(self.mass, gravity, self.friction_mu)
         velocity_decrease = -(friction_force * self.velocity * dt)
         # the velocity decrease must be always less than the current velocity
         if compute_magnitude(velocity_decrease) > compute_magnitude(self.velocity):
@@ -99,6 +99,7 @@ class Boat(RigidBody):
     # the rotation rate is directly proportional to the rudder angle and the boat velocity.
     # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
     # the result is scaled is using an angular damping
+    # angular_speed = boat_speed / (np.tan(rudder_angle) / boat_length) = (boat_speed * boat_length) / np.tan(rudder_angle)
     def rotate(self, dt):
         turning_radius = compute_turning_radius(self.length, self.rudder.controller.get_angle())
         self.angular_speed = 0 if turning_radius == 0 else compute_magnitude(self.velocity) / turning_radius
@@ -205,17 +206,14 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
     f_wind = np.dot(f_wind, boat_heading) * boat_heading
     return f_wind
 
-def compute_rotation_rate_coeff(boat_mass, damping):
-    return boat_mass * damping
-
-def compute_friction_coeff(gravity, boat_mass, damping):
-    return boat_mass * gravity * damping
-
 def compute_drag_coeff(drag_damping, wind_density, wing_area):
     return 0.5 * drag_damping * wind_density * wing_area
 
 def compute_force(mass, acceleration):
     return mass * acceleration
+
+def compute_friction_force(gravity, boat_mass, damping):
+    return compute_force(boat_mass, gravity) * damping
 
 # Angular Speed(ω)= Velocity / Turning Radius
 # Turning radius = L / tan(th)
