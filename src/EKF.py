@@ -24,7 +24,11 @@ class EKF:
         boat = self.world.boat
         wind = self.world.wind
 
-        speed_k1 = self.dt
+        k_friction = 1-compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu)*self.dt
+        if k_friction < 0:
+            speed_k1 = 0
+        else:
+            speed_k1 = k_friction * self.dt
 
         acceleration_k1 = (compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area) / boat.mass)
         # ds -= (compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu) * (self.dt ** 2))
@@ -69,6 +73,7 @@ class EKF:
         # u_dt[2] = delta_angle first order (from rudder angle)
         u_dt = A @ sensor_meas
 
+
         # State transition matrix
         F_q = np.array([[np.cos(self.x[2]), np.cos(self.x[2]), 0],
                         [np.sin(self.x[2]), np.sin(self.x[2]), 0],
@@ -83,7 +88,7 @@ class EKF:
             [
                 speedometer_var,
                 4*(wind_speed**2)*(np.cos(wind_angle)**2)*((np.cos(wind_angle)**2)*anemometer_var-(wind_speed**2)*(np.sin(wind_angle)**2)*anemometerdir_var),
-                (boat_speed**2) * rudder_var + (rudder_angle**2) * speedometer_var
+                (boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var
             ]
         )
 
@@ -96,17 +101,16 @@ class EKF:
         x_pred = self.x + F_q @ u_dt
         P_pred = Ad @ self.P @ Ad.T + F_q @ (A @ Q @ A.T) @ F_q.T
 
-        # Measurement matrix
-        H = np.eye(3)
-
         ## UPDATE STEP
 
         if update:
 
             ## EXTEROCEPTIVE MEASUREMENTS
 
+            # Measurement matrix
+            H = np.eye(3)
             # Measurement vector
-            z = np.append(self.world.boat.measure_gnss(), self.world.boat.measure_compass())
+            z = H @ np.append(self.world.boat.measure_gnss(), self.world.boat.measure_compass()).T
             # Measurement noise covariance matrix
             R = np.diag(
                 [
@@ -115,12 +119,11 @@ class EKF:
                     self.world.boat.compass.err_angle.get_sigma(z[2])**2
                 ]
             )
-            z_pred = x_pred.T
             # covariance of residuals
             S = H @ P_pred @ H.T + R
             # gain matrix
             W = P_pred @ H.T @ np.linalg.inv(S)
-            self.x = x_pred + W @ (z - z_pred)
+            self.x = x_pred + W @ (z - H @ x_pred)
             self.P = (np.eye(3) - W @ H) @ P_pred
         else:
             self.x = x_pred
@@ -206,4 +209,4 @@ def test_ekf(probability_of_update=1.0):
     plt.show()
 
 if __name__ == '__main__':
-    test_ekf(0.01)
+    test_ekf(0.05)

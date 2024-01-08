@@ -177,7 +177,7 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        # self.boat.apply_friction(self.gravity_z, dt)
+        self.boat.apply_friction(self.gravity_z, dt)
         self.boat.follow_target(self.wind, dt)
         self.boat.apply_wind(self.wind)
         self.boat.move(dt)
