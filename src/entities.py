@@ -35,12 +35,12 @@ class RigidBody:
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
         friction_force = compute_friction_force(self.mass, gravity, self.friction_mu)
-        velocity_decrease = -(friction_force * self.velocity * dt)
+        velocity_decrease = friction_force * self.velocity * dt
         # the velocity decrease must be always less than the current velocity
         if compute_magnitude(velocity_decrease) > compute_magnitude(self.velocity):
             self.velocity = np.zeros(2)
         else:
-            self.velocity += velocity_decrease
+            self.velocity -= velocity_decrease
     
 class Wing:
     def __init__(self, area: float, controller: StepperController):
@@ -156,7 +156,7 @@ class Boat(RigidBody):
         # Logger.debug(f'Angle from destination: {angle_from_target}')
 
     def measure_anemometer(self, wind):
-            return self.anemometer.measure(wind.velocity, self.velocity)
+        return self.anemometer.measure(wind.velocity, self.velocity)
     def measure_speedometer(self):
         return self.speedometer.measure(self.velocity)
     def measure_compass(self):
@@ -194,16 +194,11 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
     # if there's no wind, there's no force
     if compute_magnitude(wind_velocity) == 0:
         return np.zeros(2)
-    v_relative = wind_velocity - boat_velocity
-    f_wind = compute_drag_coeff(drag_damping, wind_density, wing_area) * (compute_magnitude(v_relative) ** 2) * normalize(v_relative)
-    # compute the absolute wing angle
-    wing_angle_relative = compute_angle(wing_heading)
-    boat_angle = compute_angle(boat_heading)
-    wing_heading_absolute = polar_to_cartesian(1, boat_angle + wing_angle_relative)
-    # project the force of the wind along the wing direction
-    f_wind = np.dot(f_wind, wing_heading_absolute) * wing_heading_absolute
-    # project the projected force along the boat direction
-    f_wind = np.dot(f_wind, boat_heading) * boat_heading
+    wind_relative = wind_velocity - boat_velocity
+    dir_wind_relative = mod2pi(compute_angle(wind_velocity) - compute_angle(boat_velocity))
+    vel_wind_relative = compute_magnitude(wind_velocity) * np.cos(dir_wind_relative) - compute_magnitude(boat_velocity)
+    f_wind = compute_drag_coeff(drag_damping, wind_density, wing_area) * (vel_wind_relative ** 2)
+    f_wind = f_wind * np.cos(compute_angle(wing_heading))
     return f_wind
 
 def compute_drag_coeff(drag_damping, wind_density, wing_area):

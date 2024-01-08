@@ -23,11 +23,17 @@ class EKF:
         boat = self.world.boat
         wind = self.world.wind
 
+        # K_Velocity
+        k_friction = 1-compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu)*self.dt
+        if k_friction < 0:
+            k_v = 0
+        else:
+            k_v = k_friction * self.dt
+
+        # K_Acceleration
         k_acc = compute_acceleration(compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area), boat.mass)
-        # delta displacement (position)
-        ds = k_acc * (0.5 * self.dt ** 2) - (compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu) * (self.dt ** 2))
+        ds = k_acc * (0.5 * self.dt ** 2)
         
-        # k_friction = compute_friction_coeff(self.world.gravity_z, boat.mass, boat.damping)
         
         # delta rotation (angle)
         # angular_velocity = (boat_speed * boat_length) / tan(rudder_angle)
@@ -37,7 +43,7 @@ class EKF:
         # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and angular velocity (A)
         A = np.array(
             [
-                [self.dt, 0, 0],
+                [k_v, 0, 0],
                 [0, ds, 0],
                 [0, 0, da]
             ]
@@ -54,15 +60,15 @@ class EKF:
         # wind_speed, wind_angle = cartesian_to_polar(wind.velocity + boat.velocity)
         # rudder_angle = boat.rudder.controller.get_angle()
 
-        wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
         angular_speed_c = 0 if np.tan(rudder_angle) == 0 else boat_speed / np.tan(rudder_angle)
 
-        sensor_meas = np.array([boat_speed, compute_magnitude(wind_velocity) ** 2, angular_speed_c]).T
+        sensor_meas = np.array([boat_speed, (wind_speed*np.cos(wind_angle)) ** 2, angular_speed_c]).T
         
         # u_dt[0] = delta_position first order (from boat speed)
         # u_dt[1] = delta_position second order (from boat acceleration given by the wind)
         # u_dt[2] = delta_angle first order (from rudder angle)
         u_dt = A @ sensor_meas
+        print(u_dt[1]/self.dt)
 
         # State transition matrix
         F_q = np.array([[np.cos(self.x[2]), np.cos(self.x[2]), 0],
