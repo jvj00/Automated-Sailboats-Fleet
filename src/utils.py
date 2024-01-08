@@ -26,6 +26,65 @@ def polar_to_cartesian(mag, angle):
     y = mag * np.sin(angle)
     return np.array([x, y])
 
+# converts the given local direction to an absolute direction (relative to the world system)
+# s_direction: system direction (rotation vector)
+# direction: direction to convert, relative to the system
+def direction_local_to_world(s_direction, direction):
+    angle_relative = compute_angle(direction)
+    system_angle = compute_angle(s_direction)
+    return polar_to_cartesian(1, system_angle + angle_relative)
+
+def velocity_local_to_world(s_velocity, velocity):
+    return velocity + s_velocity
+
+def velocity_world_to_local(s_velocity, velocity):
+    return velocity - s_velocity
+
+# Angular Speed(ω)= Velocity / Turning Radius
+# Turning radius = L / tan(th)
+# where L is the lenght of the boat and th is the angle of the rudder
+def compute_turning_radius(lenght, rudder_angle):
+    d = np.tan(rudder_angle)
+    if d == 0:
+        return 0
+    return lenght / np.tan(rudder_angle)
+
+def compute_acceleration(force, mass):
+    return force / mass
+
+# source: ChatGPT
+# see drag equation
+# F drag​ = 0.5 × CD × ρ × A × (∣Vrelative∣**2)
+# F wind = f_drag * (Vrelative / |Vrelative|)
+# wind velocity is absolute (referenced to the ground)
+# streamlined airfoils low: 0.02 - 0.05
+# streamlined airfoils high: 0.2 - 0.5 - 1.0
+def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading, wing_heading, wing_area, drag_damping: float):
+    # if there's no wind, there's no force
+    if compute_magnitude(wind_velocity) == 0:
+        return np.zeros(2)
+    wind_velocity_local = velocity_world_to_local(boat_velocity, wind_velocity)
+    f_wind_local = compute_drag_coeff(drag_damping, wind_density, wing_area) * (compute_magnitude(wind_velocity_local) ** 2) * normalize(wind_velocity_local)
+    # compute the absolute wing angle
+    wing_heading_world = direction_local_to_world(boat_heading, wing_heading)
+    # project the force of the wind along the wing direction
+    f_wind_local = project_wind_to_boat(f_wind_local, wing_heading_world, boat_heading)
+    return f_wind_local
+
+def compute_drag_coeff(drag_damping, wind_density, wing_area):
+    return 0.5 * drag_damping * wind_density * wing_area
+
+def compute_force(mass, acceleration):
+    return mass * acceleration
+
+def compute_friction_force(gravity, boat_mass, damping):
+    return compute_force(boat_mass, gravity) * damping
+
+def project_wind_to_boat(wind, wing_heading, boat_heading):
+    wind = np.dot(wind, wing_heading) * wing_heading
+    # project the projected force along the boat direction
+    return np.dot(wind, boat_heading) * boat_heading
+
 ## RANDOM
 def value_from_gaussian(mu, sigma):
     return gauss(mu, sigma)

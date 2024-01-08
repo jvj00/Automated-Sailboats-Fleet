@@ -1,5 +1,6 @@
 import numpy as np
-from entities import World, Boat, Wind, compute_acceleration, compute_drag_coeff, compute_friction_force
+from entities import World, Boat, Wind, compute_acceleration, compute_drag_coeff, compute_friction_force, direction_local_to_world, project_wind_to_boat
+from logger import Logger, colors, custom_print
 from sensor import Anemometer, Speedometer, Compass, GNSS, AbsoluteError, RelativeError, MixedError
 from utils import *
 
@@ -23,23 +24,21 @@ class EKF:
         boat = self.world.boat
         wind = self.world.wind
 
-        k_acc = compute_acceleration(compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area), boat.mass)
-        # delta displacement (position)
-        ds = k_acc * (0.5 * self.dt ** 2) - (compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu) * (self.dt ** 2))
-        
-        # k_friction = compute_friction_coeff(self.world.gravity_z, boat.mass, boat.damping)
+        speed_k1 = self.dt
+
+        acceleration_k1 = (compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area) / boat.mass)
+        # ds -= (compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu) * (self.dt ** 2))
         
         # delta rotation (angle)
-        # angular_velocity = (boat_speed * boat_length) / tan(rudder_angle)
-        k_rot = boat.length
-        da = k_rot * self.dt
+        # angular_speed = boat_speed / (boat_length / np.tan(rudder_angle)) = (boat_speed * np.tan(rudder_angle)) / boat_length
+        angular_speed_k1 = self.dt / boat.length
 
         # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and angular velocity (A)
         A = np.array(
             [
-                [self.dt, 0, 0],
-                [0, ds, 0],
-                [0, 0, da]
+                [speed_k1, 0, 0],
+                [0, acceleration_k1, 0],
+                [0, 0, angular_speed_k1]
             ]
         )
 
@@ -49,15 +48,21 @@ class EKF:
         boat_speed = self.world.boat.measure_speedometer()
         wind_speed, wind_angle = self.world.boat.measure_anemometer(self.world.wind)
         rudder_angle = self.world.boat.measure_rudder()
+        wing_angle = self.world.boat.measure_wing()
+        
+        speed_k2 = boat_speed
 
-        # boat_speed = compute_magnitude(boat.velocity)
-        # wind_speed, wind_angle = cartesian_to_polar(wind.velocity + boat.velocity)
-        # rudder_angle = boat.rudder.controller.get_angle()
-
+        # compute acceleration coeff 2
         wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
-        angular_speed_c = 0 if np.tan(rudder_angle) == 0 else boat_speed / np.tan(rudder_angle)
+        wind_velocity = (wind_speed ** 2) * normalize(wind_velocity)
+        wing_heading = polar_to_cartesian(1, wing_angle)
+        boat_heading = polar_to_cartesian(1, self.x[2])
+        wing_heading = direction_local_to_world(boat_heading, wing_heading)
+        acceleration_k2 = compute_magnitude(project_wind_to_boat(wind_velocity, wing_heading, boat_heading))
 
-        sensor_meas = np.array([boat_speed, compute_magnitude(wind_velocity) ** 2, angular_speed_c]).T
+        angular_speed_k2 = boat_speed * np.tan(rudder_angle)
+
+        sensor_meas = np.array([speed_k2, acceleration_k2 , angular_speed_k2]).T
         
         # u_dt[0] = delta_position first order (from boat speed)
         # u_dt[1] = delta_position second order (from boat acceleration given by the wind)
@@ -167,10 +172,9 @@ def test_ekf(probability_of_update=1.0):
     np.set_printoptions(suppress=True)
     for i in range(int(total_time/dt)):
         world.update(dt)
-        update=np.random.rand() < probability_of_update
+        update = np.random.rand() < probability_of_update
         x, P = ekf.get_filtered_state(update)
-        t = boat.position
-        t = np.append(t, compute_angle(boat.heading))
+        t = np.array([*boat.position, compute_angle(boat.heading)])
         err_x.append(x[0] - t[0])
         err_y.append(x[1] - t[1])
         err_theta.append(x[2] - t[2])
@@ -178,10 +182,13 @@ def test_ekf(probability_of_update=1.0):
         cov_y.append(P[1,1])
         cov_theta.append(P[2,2])
         time.append(i*dt)
+        color = colors.ORANGE
+        prefix = 'PROCESS'
         if update:
-            print(logger.colors.OKGREEN, "Estimated:", x[0], "(", P.diagonal(), ")", " - Truth:", t[0], logger.colors.ENDC)
-        else:
-            print(logger.colors.ORANGE, "Estimated:", x[0], "(", P.diagonal(), ")", " - Truth:", t[0], logger.colors.ENDC)
+            color = colors.OKGREEN
+            prefix = 'UPDATE'    
+
+        custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
 
     import matplotlib.pyplot as plt
     plt.figure(1)

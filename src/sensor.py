@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from utils import velocity_world_to_local
 from logger import Logger
 from pid import PID
 from utils import value_from_gaussian
@@ -42,7 +43,7 @@ class Anemometer:
 
     # use the correct value of the wind velocity to compute its apparent velocity, then add the error to it
     def measure_with_truth(self, true_wind_velocity, boat_velocity):
-        apparent_wind_velocity = true_wind_velocity + boat_velocity
+        apparent_wind_velocity = velocity_world_to_local(boat_velocity, true_wind_velocity)
         apparent_wind_speed_truth, apparent_wind_angle_truth = cartesian_to_polar(apparent_wind_velocity)
         
         apparent_wind_speed_measured = value_from_gaussian(
