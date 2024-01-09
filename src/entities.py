@@ -28,9 +28,8 @@ class RigidBody:
         self.heading = polar_to_cartesian(1, curr_angle)
     
     def translate(self, dt):
-        prev_velocity = self.velocity.copy()
-        self.velocity = prev_velocity + (self.acceleration * dt)
-        self.position += (0.5 * self.acceleration * (dt ** 2) + prev_velocity * dt)
+        self.position += (0.5 * self.acceleration * (dt ** 2) + self.velocity * dt)
+        self.velocity += (self.acceleration * dt)
     
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
@@ -156,7 +155,7 @@ class Boat(RigidBody):
         # Logger.debug(f'Angle from destination: {angle_from_target}')
 
     def measure_anemometer(self, wind):
-            return self.anemometer.measure(wind.velocity, self.velocity)
+        return self.anemometer.measure(wind.velocity, self.velocity)
     def measure_speedometer(self):
         return self.speedometer.measure(self.velocity)
     def measure_compass(self):
@@ -177,7 +176,7 @@ class World:
         self.boat = boat
     
     def update(self, dt):
-        self.boat.apply_friction(self.gravity_z, dt)
         self.boat.follow_target(self.wind, dt)
         self.boat.apply_wind(self.wind)
+        self.boat.apply_friction(self.gravity_z, dt)
         self.boat.move(dt)

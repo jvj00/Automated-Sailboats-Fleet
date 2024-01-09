@@ -22,14 +22,14 @@ class RelativeError(Error):
     def __init__(self, error):
         self.error = error
     def get_sigma(self, value):
-        return (self.error*value) /3.0
+        return (self.error*np.abs(value)) /3.0
 
 class MixedError(Error):
     def __init__(self, error, threshold):
         self.error = error
         self.threshold = threshold
     def get_sigma(self, value):
-        return self.error * (self.threshold if value < self.threshold else value) /3.0
+        return self.error * (self.threshold if np.abs(value) < self.threshold else np.abs(value)) /3.0
 
 # JRC WS-12 (set velocity error RELATIVE to 5% and direction error ABSOLUTE to 1*pi/180 rad)
 class Anemometer:
