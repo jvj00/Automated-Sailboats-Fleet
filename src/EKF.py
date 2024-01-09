@@ -24,25 +24,22 @@ class EKF:
         boat = self.world.boat
         wind = self.world.wind
 
+        # Coefficient for speedometer, anemometer and rudder steps (Matrix A)
         k_friction = 1-compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu)*self.dt
         if k_friction < 0:
-            speed_k1 = 0
+            k_speed = 0
         else:
-            speed_k1 = k_friction * self.dt
+            k_speed = k_friction * self.dt
 
-        acceleration_k1 = (compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area) / boat.mass)
-        # ds -= (compute_friction_force(self.world.gravity_z, boat.mass, boat.friction_mu) * (self.dt ** 2))
+        k_acc = compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area) / boat.mass
         
-        # delta rotation (angle)
-        # angular_speed = boat_speed / (boat_length / np.tan(rudder_angle)) = (boat_speed * np.tan(rudder_angle)) / boat_length
-        angular_speed_k1 = self.dt / boat.length
+        k_angspeed = self.dt / boat.length
 
-        # Map from speedometer, anemometer and rudder steps to distance due to velocity, acceleration and angular velocity (A)
         A = np.array(
             [
-                [speed_k1, 0, 0],
-                [0, acceleration_k1, 0],
-                [0, 0, angular_speed_k1]
+                [k_speed, 0, 0],
+                [0, k_acc, 0],
+                [0, 0, k_angspeed]
             ]
         )
 
@@ -53,41 +50,33 @@ class EKF:
         wind_speed, wind_angle = self.world.boat.measure_anemometer(self.world.wind)
         rudder_angle = self.world.boat.measure_rudder()
         wing_angle = self.world.boat.measure_wing()
+
+        sensor_meas = np.array(
+            [
+                boat_speed,
+                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wind_angle),
+                boat_speed * np.tan(rudder_angle)
+            ]
+        ).T
         
-        speed_k2 = boat_speed
-
-        # compute acceleration coeff 2
-        wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
-        wind_velocity = (wind_speed ** 2) * normalize(wind_velocity)
-        wing_heading = polar_to_cartesian(1, wing_angle)
-        boat_heading = polar_to_cartesian(1, self.x[2])
-        wing_heading = direction_local_to_world(boat_heading, wing_heading)
-        acceleration_k2 = compute_magnitude(project_wind_to_boat(wind_velocity, wing_heading, boat_heading))
-
-        angular_speed_k2 = boat_speed * np.tan(rudder_angle)
-
-        sensor_meas = np.array([speed_k2, acceleration_k2 , angular_speed_k2]).T
-        
-        # u_dt[0] = delta_position first order (from boat speed)
-        # u_dt[1] = delta_position second order (from boat acceleration given by the wind)
-        # u_dt[2] = delta_angle first order (from rudder angle)
         u_dt = A @ sensor_meas
 
 
-        # State transition matrix
+        # State transition matrix (F_q)
         F_q = np.array([[np.cos(self.x[2]), np.cos(self.x[2]), 0],
                         [np.sin(self.x[2]), np.sin(self.x[2]), 0],
                         [0, 0, 1]])
         
-        # Process noise covariance matrix (velocity, acceleration, rudder steps) (It varies for each measurement!)
+        # Process noise covariance matrix (velocity, acceleration, angular velocity) (It varies for each measurement!) (Matrix Q)
         speedometer_var = self.world.boat.speedometer.err_speed.get_sigma(boat_speed)**2
         anemometer_var = self.world.boat.anemometer.err_speed.get_sigma(wind_speed)**2
         anemometerdir_var = self.world.boat.anemometer.err_angle.get_sigma(wind_angle)**2
         rudder_var = self.world.boat.rudder.controller.stepper.get_sigma()**2
+        wing_var = self.world.boat.wing.controller.stepper.get_sigma()**2
         Q = np.diag(
             [
                 speedometer_var,
-                4*(wind_speed**2)*(np.cos(wind_angle)**2)*((np.cos(wind_angle)**2)*anemometer_var-(wind_speed**2)*(np.sin(wind_angle)**2)*anemometerdir_var),
+                (2*wind_speed*np.cos(wing_angle-wind_angle)*np.cos(wing_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wing_angle)*np.cos(wing_angle-wind_angle)+np.cos(wing_angle)*np.sin(wing_angle-wind_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wing_angle)*np.sin(wing_angle-wind_angle))**2 * anemometerdir_var,
                 (boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var
             ]
         )
@@ -98,8 +87,9 @@ class EKF:
                        [0, 0, 1]])
 
         ## PREDICTION STEP
+        gain = 10
         x_pred = self.x + F_q @ u_dt
-        P_pred = Ad @ self.P @ Ad.T + F_q @ (A @ Q @ A.T) @ F_q.T
+        P_pred = Ad @ self.P @ Ad.T + gain * (F_q @ (A @ Q @ A.T) @ F_q.T)
 
         ## UPDATE STEP
 
