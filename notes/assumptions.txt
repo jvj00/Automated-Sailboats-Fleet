@@ -1,0 +1,11 @@
+DINAMICA:
+- Forza perpendicolare del vento non genera spostamenti laterali
+- La velocità della barca dovuta alla forza del vento diminuisce nel tempo secondo un damping factor
+- il vento "consumato" da una barca non viene considerato attenuato da quelle successive (la forza del vento viene considerata omogenea all'interno del sistema)
+- mare piatto, no correnti
+
+
+ARCHITETTURA:
+- Batteria per sostenere i sensori / attuatori / controllori necessari, adeguatamente isolata per evitare cortocircuiti dovuti all'acqua
+- I sensori vengono calibrati affinchè la media dell'errore sia zero
+- La barca all'inizio conosce la sua posizione come se l'avesse presa dal GNSS (con relative imprecisioni)

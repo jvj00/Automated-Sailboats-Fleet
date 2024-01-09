@@ -1,0 +1,19 @@
+- Le barche devono seguire un percorso designato
+- Possono usare solo la forza del vento e un timone per girare: la forza del vento può essere più o meno sfruttata grazie al ruolo che svolge la vela che può generare più o meno forza motrice sulla barca
+
+
+
+SENSORI:
+ - GNSS SAM-M10Q (1.5 m)
+ - UWB DW3000 (20 cm)
+ - Anemometro JRC WS-12 (±5% velocity; ±1° direction)
+ - Sensore di velocità DX900+ (±0.1 knt <= 10 knots, ±1% > 10 knots)
+ - Bussola HSC100 (±3°)
+
+ACTUATORS:
+ - Timone (Stepper)
+ - Vela (Stepper)
+
+MICROCONTROLLORE:
+ - Atmega 2560
+
