@@ -63,6 +63,7 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
     k = compute_drag_coeff(drag_damping, wind_density, wing_area)
     relative_wind_velocity = velocity_world_to_local(boat_velocity, wind_velocity)
     relative_wind_speed, relative_wind_angle = cartesian_to_polar(relative_wind_velocity)
+    relative_wind_angle = compute_angle(boat_heading) - relative_wind_angle
     f_wind_local = k * (relative_wind_speed**2) * np.cos(compute_angle(wing_heading) - relative_wind_angle) * np.cos(relative_wind_angle)
     f_wind_local = polar_to_cartesian(f_wind_local, compute_angle(boat_heading))
     return f_wind_local

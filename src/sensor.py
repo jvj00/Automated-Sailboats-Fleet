@@ -37,14 +37,15 @@ class Anemometer:
         self.err_speed = err_speed
         self.err_angle = err_angle
 
-    def measure(self, wind_velocity, boat_velocity) -> tuple[float, float]:
-        _, measured = self.measure_with_truth(wind_velocity, boat_velocity)
+    def measure(self, wind_velocity, boat_velocity, boat_heading) -> tuple[float, float]:
+        _, measured = self.measure_with_truth(wind_velocity, boat_velocity, boat_heading)
         return measured
 
     # use the correct value of the wind velocity to compute its apparent velocity, then add the error to it
-    def measure_with_truth(self, true_wind_velocity, boat_velocity):
+    def measure_with_truth(self, true_wind_velocity, boat_velocity, boat_heading):
         apparent_wind_velocity = velocity_world_to_local(boat_velocity, true_wind_velocity)
         apparent_wind_speed_truth, apparent_wind_angle_truth = cartesian_to_polar(apparent_wind_velocity)
+        apparent_wind_angle_truth = compute_angle(boat_heading) - apparent_wind_angle_truth
         
         apparent_wind_speed_measured = value_from_gaussian(
             apparent_wind_speed_truth,

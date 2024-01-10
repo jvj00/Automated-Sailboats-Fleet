@@ -155,7 +155,7 @@ class Boat(RigidBody):
         # Logger.debug(f'Angle from destination: {angle_from_target}')
 
     def measure_anemometer(self, wind):
-        return self.anemometer.measure(wind.velocity, self.velocity)
+        return self.anemometer.measure(wind.velocity, self.velocity, self.heading)
     def measure_speedometer(self):
         return self.speedometer.measure(self.velocity)
     def measure_compass(self):
