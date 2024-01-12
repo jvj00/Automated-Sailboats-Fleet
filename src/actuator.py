@@ -27,14 +27,14 @@ class Stepper:
 # the PID takes the current angle of the stepper as input, and return a speed
 # for the stepper to reach the target angle
 class StepperController:
-    def __init__(self, stepper: Stepper, pid: PID, limits = (0, np.pi * 2)):
+    def __init__(self, stepper: Stepper, pid: PID, max_angle = np.pi * 0.2):
         self.stepper = stepper
         # [revolution/s]
         self.speed = 0
         self.steps = 0
         self.direction = StepperDirection.Clockwise
         self.pid = pid
-        self.limits = (mod2pi(limits[0]), mod2pi(limits[1]))
+        self.max_angle = max_angle
         self.pid.limits = (-stepper.max_speed, stepper.max_speed)
 
     def move(self, dt):
@@ -42,10 +42,15 @@ class StepperController:
         self.set_speed(speed)
         steps_new = self.steps + np.floor(self.speed * self.stepper.resolution * self.direction * dt)
         steps_new %= self.stepper.resolution
+        angle_new = angle_from_steps(steps_new, self.stepper.resolution)
         if steps_new < 0:
             steps_new += self.stepper.resolution
-        # if is_bounded_2pi(angle_from_steps(steps_new, self.stepper.resolution), self.limits[0], self.limits[1]):
-            # self.steps = steps_new
+        
+        if self.max_angle < angle_new <= np.pi:
+            steps_new = steps_from_angle(self.max_angle, self.stepper.resolution)
+        elif np.pi < angle_new < self.max_angle + np.pi:
+            steps_new = steps_from_angle(self.max_angle + np.pi, self.stepper.resolution)
+        
         self.steps = steps_new
         # Logger.debug(f'Steps: {self.steps}')
         # Logger.debug(f'Angle: {new_angle}')
