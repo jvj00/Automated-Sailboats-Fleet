@@ -11,7 +11,6 @@ class PID:
         self.limits = limits
     
     def set_target(self, target):
-        self.reset()
         self.setpoint = target
 
     def compute(self, current_value, dt):
