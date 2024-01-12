@@ -81,7 +81,7 @@ class Drawer:
             self.draw_vector(boat.position, boat.heading, 'red', 10)
             # draw rudder
             rudder_angle_rel = boat.rudder.controller.get_angle()
-            rudder_angle_abs = rudder_angle_rel + boat_angle
+            rudder_angle_abs = -rudder_angle_rel + boat_angle
             rudder_angle_abs += np.pi
             rudder_heading = polar_to_cartesian(1, rudder_angle_abs) 
             self.draw_vector(boat.position, rudder_heading, 'purple', 10)
