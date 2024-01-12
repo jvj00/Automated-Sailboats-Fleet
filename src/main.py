@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
         times.append(time_elapsed)
 
-        x, P = ekf.get_filtered_state(update_gnss, update_compass)
+        x, P = ekf.get_filtered_state(dt, update_gnss, update_compass)
         boats[0].set_filtered_state(x)
 
         world.update(boats, dt)
