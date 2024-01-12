@@ -11,7 +11,7 @@ from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    wind.velocity = np.array([15.0, 8.0])
+    wind.velocity = np.array([15.0, 0.0])
 
     rudder_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
@@ -19,9 +19,9 @@ if __name__ == '__main__':
     boats: list[Boat] = []
 
     boat = Boat(10, 10, Wing(15, wing_controller), Rudder(rudder_controller))
-    boat.position = np.array([0.0, 0.0])
-    boat.heading = polar_to_cartesian(1, np.pi * 0.25)
-    boat.rudder.controller.set_angle(np.pi * 0.10)
+    boat.position = np.array([5.0, 5.0])
+    boat.heading = polar_to_cartesian(1, 0)
+    # boat.rudder.controller.set_angle(np.pi * 0.10)
     boat.anemometer = Anemometer(RelativeError(0.05), AbsoluteError(3 * np.pi / 180))
     boat.speedometer = Speedometer(MixedError(0.01, 5))
     boat.compass = Compass(AbsoluteError(3*np.pi/180))

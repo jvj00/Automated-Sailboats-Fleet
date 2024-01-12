@@ -157,16 +157,21 @@ class Boat(RigidBody):
         angle_from_target = compute_angle_between(self.target, filtered_heading)
         self.rudder.controller.set_target(angle_from_target)
  
-        # # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
-        # # for the wing pid
-        # boat_angle_world = compute_angle(self.heading)
-        # boat_velocity_w = 0.7
-        # avg_angle = angle_between_boat_wind * boat_velocity_w
-        # self.wing.controller.set_target(avg_angle)
+        # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
+        # for the wing pid
+        _, wind_angle_local = self.measure_anemometer(wind)
+        wind_angle_world = mod2pi(wind_angle_local + filtered_state[2])
+        wind_direction_world = polar_to_cartesian(1, wind_angle_world)
+        wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
+        if wind_boat_angle > np.pi:
+            wind_boat_angle -= np.pi
+        boat_w = 0.5
+        wing_angle = mod2pi(-wind_boat_angle * boat_w)
+        self.wing.controller.set_target(wing_angle)
         # self.wing.controller.set_target(np.pi * 0.2)
 
-        self.rudder.controller.move(dt)
-        # self.wing.controller.move(dt)
+        # self.rudder.controller.move(dt)
+        self.wing.controller.move(dt)
        
         # Logger.debug(f'Wind angle: {wind_angle}')
         # Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
