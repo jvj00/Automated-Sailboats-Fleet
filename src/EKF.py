@@ -5,51 +5,30 @@ from sensor import Anemometer, Speedometer, Compass, GNSS, AbsoluteError, Relati
 from utils import *
 
 class EKF:
-    def __init__(self, world: World, dt):
-        self.world = world
-        self.dt = dt
-        self.x = np.array([*world.boat.measure_gnss(), world.boat.measure_compass()]).T
-        self.P = np.diag(
-            [
-                world.boat.gnss.err_position_x.get_sigma(self.x[0])**2,
-                world.boat.gnss.err_position_y.get_sigma(self.x[1])**2,
-                world.boat.compass.err_angle.get_sigma(self.x[2])**2
-            ]
+    def __init__(self, boat: Boat, world: World):
+        self.boat = boat
+        self.wind = world.wind
+        self.gravity = world.gravity_z
+        self.x = self.boat.get_state()
+        self.P = self.boat.get_state_variance()
+
+    def get_filtered_state(self, dt, update_gnss=True, update_compass=True):
+        a_dt = compute_a(
+            self.gravity,
+            self.boat.mass,
+            self.boat.friction_mu,
+            self.boat.drag_damping,
+            self.boat.length,
+            self.boat.wing.area,
+            self.wind.density,
+            dt
         )
-
-    def get_filtered_state(self, update_gnss=True, update_compass=True):
         
-        ## INIT MATRICES
-        world = self.world
-        boat = world.boat
-        wind = world.wind
-
-        # Coefficient for speedometer, anemometer and rudder steps (Matrix A)
-        k_friction = 1-compute_friction_force(world.gravity_z, boat.mass, boat.friction_mu)*self.dt
-        if k_friction < 0:
-            k_speed = 0
-        else:
-            k_speed = k_friction * self.dt
-
-        k_acc = compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area) * (0.5*self.dt**2) / boat.mass
-        
-        k_angspeed = self.dt / boat.length
-
-        A = np.array(
-            [
-                [k_speed, 0, 0],
-                [0, k_acc, 0],
-                [0, 0, k_angspeed]
-            ]
-        )
-
         ## PROPRIOCEPTIVE MEASUREMENTS
-
-        # Get proprioceptive measurements and compute dynamics (u_dt)
-        boat_speed = boat.measure_speedometer()
-        wind_speed, wind_angle = boat.measure_anemometer(wind)
-        rudder_angle = boat.measure_rudder()
-        wing_angle = boat.wing.controller.get_angle()#boat.measure_wing()
+        boat_speed = self.boat.measure_speedometer()
+        wind_speed, wind_angle = self.boat.measure_anemometer(self.wind)
+        rudder_angle = self.boat.measure_rudder()
+        wing_angle = self.boat.wing.controller.get_angle()
 
         sensor_meas = np.array(
             [
@@ -58,7 +37,8 @@ class EKF:
                 boat_speed * np.tan(rudder_angle)
             ]
         ).T
-        u_dt = A @ sensor_meas
+        
+        u_dt = a_dt @ sensor_meas
 
         # State transition matrix (F_q)
         F_q = np.array([[np.cos(self.x[2]), np.cos(self.x[2]), 0],
@@ -66,11 +46,12 @@ class EKF:
                         [0, 0, 1]])
         
         # Process noise covariance matrix (velocity, acceleration, angular velocity) (It varies for each measurement!) (Matrix Q)
-        speedometer_var = boat.speedometer.err_speed.get_sigma(boat_speed)**2
-        anemometer_var = boat.anemometer.err_speed.get_sigma(wind_speed)**2
-        anemometerdir_var = boat.anemometer.err_angle.get_sigma(wind_angle)**2
-        rudder_var = boat.rudder.controller.stepper.get_sigma()**2
-        wing_var = boat.wing.controller.stepper.get_sigma()**2
+        speedometer_var = self.boat.speedometer.err_speed.get_sigma(boat_speed)**2
+        anemometer_var = self.boat.anemometer.err_speed.get_sigma(wind_speed)**2
+        anemometerdir_var = self.boat.anemometer.err_angle.get_sigma(wind_angle)**2
+        rudder_var = self.boat.rudder.controller.stepper.get_sigma()**2
+        wing_var = self.boat.wing.controller.stepper.get_sigma()**2
+        
         Q = np.diag(
             [
                 speedometer_var,
@@ -86,7 +67,7 @@ class EKF:
 
         ## PREDICTION STEP
         x_pred = self.x + F_q @ u_dt
-        P_pred = Ad @ self.P @ Ad.T + (F_q @ (A @ Q @ A.T) @ F_q.T)
+        P_pred = Ad @ self.P @ Ad.T + (F_q @ (a_dt @ Q @ a_dt.T) @ F_q.T)
 
         ## UPDATE STEP
 
@@ -107,15 +88,15 @@ class EKF:
                               [0, 0, 1]])
             # Measurement vector
             z = H @ np.append(
-                boat.measure_gnss(), 
-                boat.measure_compass()
+                self.boat.measure_gnss(),
+                self.boat.measure_compass()
             ).T
             # Measurement noise covariance matrix
             R = np.diag(
                 [
-                    boat.gnss.err_position_x.get_sigma(z[0])**2,
-                    boat.gnss.err_position_y.get_sigma(z[1])**2,
-                    boat.compass.err_angle.get_sigma(z[2])**2
+                    self.boat.gnss.err_position_x.get_sigma(z[0])**2,
+                    self.boat.gnss.err_position_y.get_sigma(z[1])**2,
+                    self.boat.compass.err_angle.get_sigma(z[2])**2
                 ]
             )
             # covariance of residuals
@@ -151,16 +132,19 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     ## BOAT WORLD INITIALIZATION
     wind = Wind(1.291)
+    wind.velocity = np.array([10.0, -10.0])
     rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), limits = (-np.pi * 0.25, np.pi * 0.25))
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
     boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), gnss, compass, anemometer, speedometer)
-    world = World(9.81, wind, boat)
-    world.boat.position = np.array([0.0, 0.0])
-    world.boat.velocity = np.array([0.0, 0.0])
-    world.boat.heading = polar_to_cartesian(1, -np.pi/4)
-    world.wind.velocity = np.array([10.0, -10.0])
+    boat.position = np.array([0.0, 0.0])
+    boat.velocity = np.array([0.0, 0.0])
+    boat.heading = polar_to_cartesian(1, -np.pi/4)
+    
+    world = World(9.81, wind)
 
-    ekf = EKF(world, dt)
+    world.add_boat(boat)
+    
+    ekf = EKF(world.boats[0], world)
 
     # PLOT VARS
     err_x = []
@@ -176,7 +160,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         world.update(dt)
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
-        x, P = ekf.get_filtered_state(update_gnss, update_compass)
+        x, P = ekf.get_filtered_state(dt, update_gnss, update_compass)
         t = np.array([*boat.position, compute_angle(boat.heading)])
         err_x.append(x[0] - t[0])
         err_y.append(x[1] - t[1])

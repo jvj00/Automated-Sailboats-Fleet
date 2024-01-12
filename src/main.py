@@ -1,5 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from EKF import EKF
 from actuator import Stepper, StepperController
 from disegnino import Drawer
 from entities import Boat, Wind, Wing, Rudder, World
@@ -9,10 +10,21 @@ from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     wind = Wind(1.291)
-    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1))
-    wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
+    wind.velocity = np.array([15.0, 8.0])
+
+    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+
     boat = Boat(10, 10, Wing(15, wing_controller), Rudder(rudder_controller))
-    world = World(9.81, wind, boat)
+    boat.position = np.array([0.0, 0.0])
+    boat.heading = polar_to_cartesian(1, np.pi * 0.25)
+    boat.rudder.controller.set_angle(np.pi * 0.10)
+
+    world = World(9.81, wind)
+
+    world.add_boat(boat)
+
+    ekf = EKF(world.boats[0], world)
 
     win_width = 900
     win_height = 500
@@ -30,19 +42,22 @@ if __name__ == '__main__':
     times = []
 
     dt = 0.1
+    
+    # boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
 
-    world.boat.position = np.array([0.0, 0.0])
-    world.wind.velocity = np.array([15.0, 8.0])
-    world.boat.heading = polar_to_cartesian(1, np.pi * 0.25)
-    world.boat.rudder.controller.set_angle(np.pi * 0.10)
-    # world.boat.set_target(np.array([world_width * 0.2, world_width * 0.2]))
+    update_gnss = False
+    update_compass = False
 
     for time_elapsed in np.arange(0, 100, dt):
-        if time_elapsed == 5:
-            world.wind.velocity = -world.wind.velocity
+        # if time_elapsed == 5:
+        #     world.wind.velocity = -world.wind.velocity
 
-        if time_elapsed == 10:
-            world.wind.velocity = np.zeros(2)
+        if time_elapsed % 10 == 0:
+            update_gnss = True
+            update_compass = True
+        else:
+            update_gnss = False
+            update_compass = False
 
         velocities.append(world.boat.velocity.copy())
         wind_velocities.append(world.wind.velocity.copy())
@@ -57,6 +72,8 @@ if __name__ == '__main__':
         if world.boat.target is not None:
             drawer.draw_target(world.boat.target)
         drawer.draw_axis()
+
+        x, P = ekf.get_filtered_state(update_gnss, update_compass)
 
         # Logger.debug(f'Wind velocity: {world.wind.velocity}')
         # Logger.debug(f'Boat velocity: {world.boat.velocity}')
