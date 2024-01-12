@@ -20,7 +20,6 @@ class EKF:
             self.boat.mass,
             self.boat.friction_mu,
             self.boat.drag_damping,
-            self.boat.length,
             self.boat.wing.area,
             self.wind.density,
             dt
