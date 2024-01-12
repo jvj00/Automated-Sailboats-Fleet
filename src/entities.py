@@ -168,9 +168,8 @@ class Boat(RigidBody):
         boat_w = 0.5
         wing_angle = mod2pi(-wind_boat_angle * boat_w)
         self.wing.controller.set_target(wing_angle)
-        # self.wing.controller.set_target(np.pi * 0.2)
 
-        # self.rudder.controller.move(dt)
+        self.rudder.controller.move(dt)
         self.wing.controller.move(dt)
        
         # Logger.debug(f'Wind angle: {wind_angle}')
