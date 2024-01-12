@@ -70,8 +70,6 @@ class Boat(RigidBody):
 
         super().__init__(mass)
         self.length = length
-        self.wing = wing
-        self.rudder = rudder
         self.drag_damping = 0.2
         self.target = None
 
@@ -90,10 +88,31 @@ class Boat(RigidBody):
         self.anemometer = anemometer
         self.speedometer = speedometer
         self.uwb = uwb
+        self.wing = wing
+        self.rudder = rudder
+        self.filtered_state = None
+        
+    def set_filtered_state(self, state):
+        self.filtered_state = state
 
-    def position_matrix(self):
-        return np.array([*self.position, compute_angle(self.heading)])
-    
+    def get_state(self):
+        return np.array(
+            [
+                *self.measure_gnss(),
+                self.measure_compass()
+            ]
+        ).T
+
+    def get_state_variance(self):
+        state = self.get_state()
+        return np.diag(
+            [
+                self.gnss.err_position_x.get_sigma(state[0])**2,
+                self.gnss.err_position_y.get_sigma(state[1])**2,
+                self.compass.err_angle.get_sigma(state[2])**2
+            ]
+        )
+
     # compute the rotation rate
     # the rotation rate is directly proportional to the rudder angle and the boat velocity.
     # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
@@ -127,33 +146,33 @@ class Boat(RigidBody):
 
     def set_target(self, target):
         self.target = target
-        self.rudder.controller.set_target(0)
-        self.wing.controller.set_target(0)
     
     def follow_target(self, wind: Wind, dt):
         if self.target is None:
             return
-        boat_angle = compute_angle(self.heading)
-        boat_position = self.position
-        # use the angle from target as setpoint for the rudder pid
-        angle_from_target = compute_angle(self.target - boat_position)
-        delta_rudder_angle = angle_from_target - boat_angle
-        self.rudder.controller.move(delta_rudder_angle, dt)
-        
-        # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
-        # for the wing pid
-        wind_angle = compute_angle(wind.velocity)
-        boat_velocity_w = 0.7
-        wind_velocity_w = 1 - boat_velocity_w
-        avg_angle = (boat_velocity_w * boat_angle) + (wind_velocity_w * wind_angle)
-        delta_wing_angle = avg_angle - boat_angle
-        self.wing.controller.move(delta_wing_angle, dt)
+        # set the angle of rudder equal to the angle between the direction of the boat and
+        # the target point
+        filtered_state = self.filtered_state if self.filtered_state is not None else self.get_state()
+        filtered_heading = polar_to_cartesian(1, filtered_state[2])
+        angle_from_target = compute_angle_between(self.target, filtered_heading)
+        self.rudder.controller.set_target(angle_from_target)
+ 
+        # # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
+        # # for the wing pid
+        # boat_angle_world = compute_angle(self.heading)
+        # boat_velocity_w = 0.7
+        # avg_angle = angle_between_boat_wind * boat_velocity_w
+        # self.wing.controller.set_target(avg_angle)
+        # self.wing.controller.set_target(np.pi * 0.2)
 
+        self.rudder.controller.move(dt)
+        # self.wing.controller.move(dt)
+       
         # Logger.debug(f'Wind angle: {wind_angle}')
         # Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
         # Logger.debug(f'Rudder angle: {self.rudder.controller.get_angle()}')
         # Logger.debug(f'Angle from destination: {angle_from_target}')
-
+    
     def measure_anemometer(self, wind):
         return self.anemometer.measure(wind.velocity, self.velocity, self.heading)
     def measure_speedometer(self):
@@ -170,13 +189,13 @@ class Boat(RigidBody):
         return self.wing.controller.measure_angle()
 
 class World:
-    def __init__(self, gravity, wind: Wind, boat: Boat):
+    def __init__(self, gravity, wind: Wind):
         self.gravity_z = gravity
         self.wind = wind
-        self.boat = boat
     
-    def update(self, dt):
-        self.boat.follow_target(self.wind, dt)
-        self.boat.apply_wind(self.wind)
-        self.boat.apply_friction(self.gravity_z, dt)
-        self.boat.move(dt)
+    def update(self, boats: list[Boat], dt):
+        for b in boats:
+            b.follow_target(self.wind, dt)
+            b.apply_wind(self.wind)
+            b.apply_friction(self.gravity_z, dt)
+            b.move(dt)

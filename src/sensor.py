@@ -45,7 +45,7 @@ class Anemometer:
     def measure_with_truth(self, wind_velocity, boat_velocity, boat_heading):
         wind_relative_to_vel = wind_velocity - boat_velocity
         local_wind_speed = compute_magnitude(wind_relative_to_vel)
-        local_wind_dir = compute_angle(wind_relative_to_vel) - compute_angle(boat_heading)
+        local_wind_dir = mod2pi(compute_angle(wind_relative_to_vel) - compute_angle(boat_heading))
         
         local_wind_speed_measured = value_from_gaussian(
             local_wind_speed,

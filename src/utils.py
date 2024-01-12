@@ -66,7 +66,7 @@ def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading,
     k = compute_drag_coeff(drag_damping, wind_density, wing_area)
     wind_relative_to_vel = wind_velocity - boat_velocity
     local_wind_speed = compute_magnitude(wind_relative_to_vel)
-    local_wind_dir = compute_angle(wind_relative_to_vel) - compute_angle(boat_heading)
+    local_wind_dir = mod2pi(compute_angle(wind_relative_to_vel) - compute_angle(boat_heading))
     wind_force = k * local_wind_speed**2 * np.cos(compute_angle(wing_heading)-local_wind_dir) * np.cos(compute_angle(wing_heading))
     wind_force_vec = polar_to_cartesian(wind_force, compute_angle(boat_heading))
     return wind_force_vec
@@ -100,3 +100,17 @@ def mod2pi(angle):
         angle += 2 * np.pi
 
     return angle
+
+def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, boat_length, wing_area, wind_density, dt):
+    k_friction = 1 - compute_friction_force(gravity, boat_mass, boat_friction_mu) * dt
+    k_speed = 0 if k_friction < 0 else k_friction * dt
+    k_acc = compute_drag_coeff(boat_drag_damping, wind_density, wing_area) * (0.5 * dt**2) / boat_mass    
+    k_angspeed = dt / boat_length
+
+    return np.array(
+        [
+            [k_speed, 0, 0],
+            [0, k_acc, 0],
+            [0, 0, k_angspeed]
+        ]
+    )
