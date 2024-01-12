@@ -154,7 +154,9 @@ class Boat(RigidBody):
         # the target point
         filtered_state = self.filtered_state if self.filtered_state is not None else self.get_state()
         filtered_heading = polar_to_cartesian(1, filtered_state[2])
-        angle_from_target = compute_angle_between(self.target, filtered_heading)
+        target_direction = self.target - np.array([filtered_state[0], filtered_state[1]])
+        angle_from_target = compute_angle_between(filtered_heading, target_direction)
+        # print(angle_from_target)
         self.rudder.controller.set_target(angle_from_target)
  
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
@@ -164,7 +166,7 @@ class Boat(RigidBody):
         wind_direction_world = polar_to_cartesian(1, wind_angle_world)
         wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
         if wind_boat_angle > np.pi:
-            wind_boat_angle -= np.pi
+            wind_boat_angle = np.pi - wind_boat_angle
         boat_w = 0.5
         wing_angle = mod2pi(-wind_boat_angle * boat_w)
         self.wing.controller.set_target(wing_angle)
