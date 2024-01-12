@@ -49,7 +49,7 @@ class EKF:
         boat_speed = boat.measure_speedometer()
         wind_speed, wind_angle = boat.measure_anemometer(wind)
         rudder_angle = boat.measure_rudder()
-        wing_angle = boat.wing.controller.get_angle()#boat.measure_wing()
+        wing_angle = boat.measure_wing()
 
         sensor_meas = np.array(
             [
