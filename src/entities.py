@@ -90,6 +90,10 @@ class Boat(RigidBody):
         self.uwb = uwb
         self.wing = wing
         self.rudder = rudder
+        self.filtered_state = None
+        
+    def set_filtered_state(self, state):
+        self.filtered_state = state
 
     def get_state(self):
         return np.array(
@@ -148,8 +152,10 @@ class Boat(RigidBody):
             return
         # set the angle of rudder equal to the angle between the direction of the boat and
         # the target point
-        # angle_from_target = compute_angle_between(self.target, self.heading)
-        # self.rudder.controller.set_target(angle_from_target)
+        filtered_state = self.filtered_state if self.filtered_state is not None else self.get_state()
+        filtered_heading = polar_to_cartesian(1, filtered_state[2])
+        angle_from_target = compute_angle_between(self.target, filtered_heading)
+        self.rudder.controller.set_target(angle_from_target)
  
         # # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # # for the wing pid
@@ -159,7 +165,7 @@ class Boat(RigidBody):
         # self.wing.controller.set_target(avg_angle)
         # self.wing.controller.set_target(np.pi * 0.2)
 
-        # self.rudder.controller.move(dt)
+        self.rudder.controller.move(dt)
         # self.wing.controller.move(dt)
        
         # Logger.debug(f'Wind angle: {wind_angle}')
@@ -186,15 +192,10 @@ class World:
     def __init__(self, gravity, wind: Wind):
         self.gravity_z = gravity
         self.wind = wind
-        self.boats: list[Boat] = []
     
-    def add_boat(self, boat: Boat):
-        self.boats.append(boat)
-    
-    def update(self, dt):
-        for b in self.boats:
-            # b.follow_target(dt)
+    def update(self, boats: list[Boat], dt):
+        for b in boats:
+            b.follow_target(self.wind, dt)
             b.apply_wind(self.wind)
             b.apply_friction(self.gravity_z, dt)
             b.move(dt)
-
