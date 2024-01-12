@@ -33,7 +33,7 @@ class EKF:
         sensor_meas = np.array(
             [
                 boat_speed,
-                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wind_angle),
+                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle),
                 boat_speed * np.tan(rudder_angle)
             ]
         ).T
@@ -55,7 +55,7 @@ class EKF:
         Q = np.diag(
             [
                 speedometer_var,
-                (2*wind_speed*np.cos(wing_angle-wind_angle)*np.cos(wing_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wing_angle)*np.cos(wing_angle-wind_angle)+np.cos(wing_angle)*np.sin(wing_angle-wind_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wing_angle)*np.sin(wing_angle-wind_angle))**2 * anemometerdir_var,
+                (2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var,
                 (boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var
             ]
         )
@@ -154,6 +154,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     cov_y = []
     cov_theta = []
     time = []
+    updates_pos = []
+    updates_dir = []
 
     np.set_printoptions(suppress=True)
     for i in range(int(total_time/dt)):
@@ -170,19 +172,23 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         cov_theta.append(P[2,2])
         time.append(i*dt)
 
-        if print_debug:
-            color = colors.ORANGE
-            prefix = 'PROCESS'
-            if update_compass and update_gnss:
-                color = colors.OKGREEN
-                prefix = 'UPDATE BOTH'
-            elif update_compass:
-                color = colors.OKBLUE
-                prefix = 'UPDATE COMPASS'
-            elif update_gnss: 
-                color = colors.OKCYAN
-                prefix = 'UPDATE GNSS'   
+        color = colors.ORANGE
+        prefix = 'PROCESS'
+        if update_compass and update_gnss:
+            color = colors.OKGREEN
+            prefix = 'UPDATE BOTH'
+            updates_pos.append(i*dt)
+            updates_dir.append(i*dt)
+        elif update_compass:
+            color = colors.OKBLUE
+            prefix = 'UPDATE COMPASS'
+            updates_dir.append(i*dt)
+        elif update_gnss: 
+            color = colors.OKCYAN
+            prefix = 'UPDATE GNSS'
+            updates_pos.append(i*dt)
 
+        if print_debug:
             custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
 
     if plot:
@@ -195,6 +201,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         mngr.window.setGeometry(int((1920-dx)/2), int((1080-dy)/2), dx, dy)
         plt.subplot(2, 2, 1)
         plt.title('Errors Position')
+        for up in updates_pos:
+            plt.axvline(x=up, linestyle='--', linewidth=0.3, color='k')
         plt.plot(time, err_x, label='Error X')
         plt.plot(time, err_y, label='Error Y')
         plt.legend()
@@ -205,6 +213,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         plt.legend()
         plt.subplot(2, 2, 3)
         plt.title('Error Direction')
+        for ud in updates_dir:
+            plt.axvline(x=ud, linestyle='--', linewidth=0.3, color='k')
         plt.plot(time, err_theta, label='Error Theta')
         plt.legend()
         plt.subplot(2, 2, 4)
