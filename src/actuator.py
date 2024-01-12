@@ -37,13 +37,13 @@ class StepperController:
         self.limits = (mod2pi(limits[0]), mod2pi(limits[1]))
         self.pid.limits = (-stepper.max_speed, stepper.max_speed)
 
-    def move(self, current_value, dt):
-        speed = self.pid.compute(current_value, dt)
+    def move(self, dt):
+        speed = self.pid.compute(self.get_angle(), dt)
         self.set_speed(speed)
         steps_new = self.steps + np.floor(self.speed * self.stepper.resolution * self.direction * dt)
         steps_new %= self.stepper.resolution
-        # if steps_new < 0:
-            # steps_new += self.stepper.resolution
+        if steps_new < 0:
+            steps_new += self.stepper.resolution
         # if is_bounded_2pi(angle_from_steps(steps_new, self.stepper.resolution), self.limits[0], self.limits[1]):
             # self.steps = steps_new
         self.steps = steps_new
@@ -76,10 +76,3 @@ def angle_from_steps(steps, resolution):
 
 def steps_from_angle(angle, resolution):
     return np.floor((angle / (2 * np.pi)) * resolution)
-
-def is_bounded_2pi(angle, min, max):
-        angle = mod2pi(angle)
-        if min < max:
-            return min < angle < max
-        else:
-            return 0 < angle < min or max < angle < 2 * np.pi
