@@ -4,8 +4,7 @@ import numpy as np
 
 ## VECTOR OPERATIONS
 def normalize(vec):
-    mag = compute_magnitude(vec)
-    return np.array([vec[0] / mag, vec[1] / mag]) if mag != 0 else vec
+    return np.linalg.norm(vec)
 
 def compute_angle(vec):
     return np.arctan2(vec[1], vec[0])
@@ -20,6 +19,10 @@ def cartesian_to_polar(vec):
     angle = compute_angle(vec)
     mag = compute_magnitude(vec)
     return mag, angle
+
+def compute_angle_between(vec1, vec2):
+    cosine_theta = np.dot(vec1, vec2) / (compute_magnitude(vec1) * compute_magnitude(vec2))
+    return np.arccos(cosine_theta)
 
 def polar_to_cartesian(mag, angle):
     x = mag * np.cos(angle)
