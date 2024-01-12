@@ -42,21 +42,21 @@ class Anemometer:
         return measured
 
     # use the correct value of the wind velocity to compute its apparent velocity, then add the error to it
-    def measure_with_truth(self, true_wind_velocity, boat_velocity, boat_heading):
-        apparent_wind_velocity = velocity_world_to_local(boat_velocity, true_wind_velocity)
-        apparent_wind_speed_truth, apparent_wind_angle_truth = cartesian_to_polar(apparent_wind_velocity)
-        apparent_wind_angle_truth = mod2pi(apparent_wind_angle_truth - compute_angle(boat_heading))
+    def measure_with_truth(self, wind_velocity, boat_velocity, boat_heading):
+        wind_relative_to_vel = wind_velocity - boat_velocity
+        local_wind_speed = compute_magnitude(wind_relative_to_vel)
+        local_wind_dir = compute_angle(boat_heading) - compute_angle(wind_relative_to_vel)
         
-        apparent_wind_speed_measured = value_from_gaussian(
-            apparent_wind_speed_truth,
-            self.err_speed.get_sigma(apparent_wind_speed_truth)
+        local_wind_speed_measured = value_from_gaussian(
+            local_wind_speed,
+            self.err_speed.get_sigma(local_wind_speed)
         )
-        apparent_wind_angle_measured = value_from_gaussian(
-            apparent_wind_angle_truth,
-            self.err_angle.get_sigma(apparent_wind_angle_truth)
+        local_wind_angle_measured = value_from_gaussian(
+            local_wind_dir,
+            self.err_angle.get_sigma(local_wind_dir)
         )
 
-        return (apparent_wind_speed_truth, apparent_wind_angle_truth), (apparent_wind_speed_measured, apparent_wind_angle_measured)
+        return (local_wind_speed, local_wind_dir), (local_wind_speed_measured, local_wind_angle_measured)
 
 # DX900+ (set velocity error MIXED with threshold of 5m/s and 1% of error)
 class Speedometer:

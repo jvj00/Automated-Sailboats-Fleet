@@ -54,7 +54,7 @@ class EKF:
         sensor_meas = np.array(
             [
                 boat_speed,
-                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wind_angle),
+                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle),
                 boat_speed * np.tan(rudder_angle)
             ]
         ).T
@@ -74,7 +74,7 @@ class EKF:
         Q = np.diag(
             [
                 speedometer_var,
-                (2*wind_speed*np.cos(wing_angle-wind_angle)*np.cos(wing_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wing_angle)*np.cos(wing_angle-wind_angle)+np.cos(wing_angle)*np.sin(wing_angle-wind_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wing_angle)*np.sin(wing_angle-wind_angle))**2 * anemometerdir_var,
+                (2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var,
                 (boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var
             ]
         )

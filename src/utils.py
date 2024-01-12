@@ -64,12 +64,12 @@ def compute_acceleration(force, mass):
 # streamlined airfoils high: 0.2 - 0.5 - 1.0
 def compute_wind_force(wind_velocity, wind_density, boat_velocity, boat_heading, wing_heading, wing_area, drag_damping: float):
     k = compute_drag_coeff(drag_damping, wind_density, wing_area)
-    relative_wind_velocity = velocity_world_to_local(boat_velocity, wind_velocity)
-    relative_wind_speed, relative_wind_angle = cartesian_to_polar(relative_wind_velocity)
-    relative_wind_angle = compute_angle(boat_heading) - relative_wind_angle
-    f_wind_local = k * (relative_wind_speed**2) * np.cos(compute_angle(wing_heading) - relative_wind_angle) * np.cos(relative_wind_angle)
-    f_wind_local = polar_to_cartesian(f_wind_local, compute_angle(boat_heading))
-    return f_wind_local
+    wind_relative_to_vel = wind_velocity - boat_velocity
+    local_wind_speed = compute_magnitude(wind_relative_to_vel)
+    local_wind_dir = compute_angle(boat_heading) - compute_angle(wind_relative_to_vel)
+    wind_force = k * local_wind_speed**2 * np.cos(compute_angle(wing_heading)-local_wind_dir) * np.cos(compute_angle(wing_heading))
+    wind_force_vec = polar_to_cartesian(wind_force, compute_angle(boat_heading))
+    return wind_force_vec
 
 def compute_drag_coeff(drag_damping, wind_density, wing_area):
     return 0.5 * drag_damping * wind_density * wing_area
