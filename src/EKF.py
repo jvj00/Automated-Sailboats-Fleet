@@ -27,19 +27,16 @@ class EKF:
         # Coefficient for speedometer, anemometer and rudder steps (Matrix A)
         k_friction = 1-compute_friction_force(world.gravity_z, boat.mass, boat.friction_mu)*self.dt
         if k_friction < 0:
-            k_speed = 0
-        else:
-            k_speed = k_friction * self.dt
+            k_friction = 0
 
-        k_acc = compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area) * (0.5*self.dt**2) / boat.mass
+        k_drag = compute_drag_coeff(boat.drag_damping, wind.density, boat.wing.area)
         
-        k_angspeed = self.dt / boat.length
 
         A = np.array(
             [
-                [k_speed, 0, 0],
-                [0, k_acc, 0],
-                [0, 0, k_angspeed]
+                [k_friction * self.dt, 0, 0],
+                [0, k_drag * (0.5*self.dt**2), 0],
+                [0, 0, self.dt]
             ]
         )
 
@@ -54,8 +51,8 @@ class EKF:
         sensor_meas = np.array(
             [
                 boat_speed,
-                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle),
-                boat_speed * np.tan(rudder_angle)
+                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle) / boat.mass,
+                boat_speed * np.tan(rudder_angle) / boat.length
             ]
         ).T
         u_dt = A @ sensor_meas
@@ -74,8 +71,8 @@ class EKF:
         Q = np.diag(
             [
                 speedometer_var,
-                (2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var,
-                (boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var
+                (1/boat.mass**2) * ((2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var),
+                (1/boat.length**2) * ((boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var)
             ]
         )
 
