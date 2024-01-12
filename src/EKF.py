@@ -12,7 +12,9 @@ class EKF:
         self.x = self.boat.get_state()
         self.P = self.boat.get_state_variance()
 
-    def get_filtered_state(self, dt, update_gnss=True, update_compass=True):
+    def get_filtered_state(self,  dt, update_gnss=True, update_compass=True):
+        
+        ## INIT MATRICES
         a_dt = compute_a(
             self.gravity,
             self.boat.mass,
@@ -28,13 +30,13 @@ class EKF:
         boat_speed = self.boat.measure_speedometer()
         wind_speed, wind_angle = self.boat.measure_anemometer(self.wind)
         rudder_angle = self.boat.measure_rudder()
-        wing_angle = self.boat.wing.controller.get_angle()
+        wing_angle = self.boat.measure_wing()
 
         sensor_meas = np.array(
             [
                 boat_speed,
-                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle),
-                boat_speed * np.tan(rudder_angle)
+                wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle) / self.boat.mass,
+                boat_speed * np.tan(rudder_angle) / self.boat.length
             ]
         ).T
         
@@ -55,8 +57,8 @@ class EKF:
         Q = np.diag(
             [
                 speedometer_var,
-                (2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var,
-                (boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var
+                (1/self.boat.mass**2) * ((2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var),
+                (1/self.boat.length**2) * ((boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var)
             ]
         )
 
@@ -142,9 +144,10 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     
     world = World(9.81, wind)
 
-    world.add_boat(boat)
+    boats = []
+    boats.append(boat)
     
-    ekf = EKF(world.boats[0], world)
+    ekf = EKF(boats[0], world)
 
     # PLOT VARS
     err_x = []
@@ -159,7 +162,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     np.set_printoptions(suppress=True)
     for i in range(int(total_time/dt)):
-        world.update(dt)
+        world.update(boats, dt)
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
         x, P = ekf.get_filtered_state(dt, update_gnss, update_compass)
