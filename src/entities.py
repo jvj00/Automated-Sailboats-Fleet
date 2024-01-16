@@ -198,6 +198,7 @@ class World:
     def __init__(self, gravity, wind: Wind):
         self.gravity_z = gravity
         self.wind = wind
+        self.seabed = None
     
     def update(self, boats: list[Boat], dt):
         for b in boats:
@@ -205,3 +206,36 @@ class World:
             b.apply_wind(self.wind)
             b.apply_friction(self.gravity_z, dt)
             b.move(dt)
+
+    def create_seabed(self, min_z, max_z, min_x, max_x, min_y, max_y, resolution=5, max_slope=1, prob_go_up=0.2):
+        len_x = int((max_x - min_x)/resolution)
+        len_y = int((max_y - min_y)/resolution)
+        max_diff = max_slope * resolution / (prob_go_up * 2)
+        self.seabed = np.zeros((len_y, len_x))
+        reference = []
+        reference.append(np.random.random() * 0.1 * (max_z - min_z) + min_z)
+        for r in range(1, int(min(len_x, len_y)/2)):
+            reference.append(reference[r-1] + np.random.random() * max_diff * (1-prob_go_up) - max_diff * prob_go_up)
+        
+        for i in range(len_y):
+            for j in range(len_x):
+                min_dist = np.min([i, j, len_x-j-1, len_y-i-1])
+                self.seabed[i][j] = reference[min_dist] + np.random.random() * max_diff * (1-prob_go_up) - max_diff * prob_go_up
+        
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1, projection='3d')
+        #ax.bar3d(range(min_x, max_x, resolution), range(min_y, max_y, resolution), np.zeros((len_x, len_y)), resolution, resolution, self.seabed)
+        plt.matshow(self.seabed)
+        plt.show()
+
+
+    def get_seabed_height(self, x, y):
+        if self.seabed == None:
+            raise Exception('No seabed defined')
+        else:
+            pass        
+
+
+w = World(9.81, Wind(1.225))
+w.create_seabed(20, 100, -100, 100, -100, 100, resolution=5, max_slope=2, prob_go_up=0.2)
