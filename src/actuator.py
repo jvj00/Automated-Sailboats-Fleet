@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from logger import Logger
 from pid import PID
@@ -39,7 +40,7 @@ class MotorController:
 # the PID takes the current angle of the stepper as input, and return a speed
 # for the stepper to reach the target angle
 class StepperController:
-    def __init__(self, stepper: Stepper, pid: PID, max_angle = np.pi * 0.2):
+    def __init__(self, stepper: Stepper, pid: PID, max_angle: Optional[float] = None):
         self.stepper = stepper
         # [revolution/s]
         self.speed = 0
@@ -57,6 +58,10 @@ class StepperController:
         angle_new = angle_from_steps(steps_new, self.stepper.resolution)
         if steps_new < 0:
             steps_new += self.stepper.resolution
+        
+        if self.max_angle is None:
+            self.steps = steps_new
+            return
         
         if self.max_angle < angle_new <= np.pi:
             steps_new = steps_from_angle(self.max_angle, self.stepper.resolution)

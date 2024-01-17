@@ -18,13 +18,13 @@ if __name__ == '__main__':
 
     world = World(9.81, wind, seabed_map)
 
-    rudder_controller = StepperController(Stepper(100, 0.2), PID(0.5, 0, 0))
-    wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    rudder_controller = StepperController(Stepper(100, 0.2), PID(0.5, 0, 0), np.pi * 0.2)
+    wing_controller = StepperController(Stepper(100, 0.2), PID(0.5, 0, 0))
     motor_controller = MotorController(Motor(200))
 
     boats: list[Boat] = []
 
-    boat = Boat(50, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed_map)
+    boat = Boat(30, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed_map)
     boat.position = np.array([5.0, 5.0])
     boat.heading = polar_to_cartesian(1, 0)
     # boat.rudder.controller.set_angle(np.pi * 0.10)
@@ -50,9 +50,11 @@ if __name__ == '__main__':
     anemo_truth = []
     times = []
 
-    dt = 0.1
+    dt = 0.2
     
-    boats[0].set_target(np.array([world_width * 0.2, -world_width * 0.2]))
+    boats[0].set_target(np.array([-world_width * 0.2, -world_height * 0.2]))
+    # boats[0].wing.controller.set_angle(np.pi * 1.9)
+    # boats[0].rudder.controller.set_angle(np.pi * 0.2)
 
     boats[0].motor_controller.set_power(200)
 
@@ -71,6 +73,11 @@ if __name__ == '__main__':
         else:
             update_gnss = False
             update_compass = False
+        
+        if time_elapsed % 30 == 0:
+            x_pos = np.random.uniform(-0.5, 0.5)
+            y_pos = np.random.uniform(-0.5, 0.5)
+            boats[0].set_target(np.array([world_width * x_pos, world_height * y_pos]))
 
         velocities.append(boats[0].velocity.copy())
         wind_velocities.append(world.wind.velocity.copy())

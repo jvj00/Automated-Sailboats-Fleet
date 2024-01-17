@@ -194,14 +194,13 @@ class Boat(RigidBody):
  
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
-        _, wind_angle_local = self.measure_anemometer(wind)
-        wind_angle_world = mod2pi(wind_angle_local + filtered_state[2])
-        wind_direction_world = polar_to_cartesian(1, wind_angle_world)
+        # _, wind_angle_local = self.measure_anemometer(wind)
+        # wind_angle_world = mod2pi(wind_angle_local + filtered_state[2])
+        # wind_direction_world = polar_to_cartesian(1, wind_angle_world)
+        wind_direction_world = normalize(wind.velocity)
         wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
-        if wind_boat_angle > np.pi:
-            wind_boat_angle = np.pi - wind_boat_angle
-        boat_w = 0.5
-        wing_angle = mod2pi(-wind_boat_angle * boat_w)
+        boat_w = 0.8
+        wing_angle = mod2pi(-wind_boat_angle * (1 - boat_w))
         self.wing.controller.set_target(wing_angle)
 
         self.wing.controller.move(dt)
