@@ -3,8 +3,9 @@ from logger import Logger
 import numpy as np
 from utils import *
 from pid import PID
-from sensor import GNSS, Compass, Anemometer, Speedometer, UWB
+from sensor import GNSS, Compass, Anemometer, Speedometer, Sonar
 from typing import Optional
+from environment import SeabedMap
 
 class RigidBody:
     def __init__(self, mass):
@@ -62,16 +63,19 @@ class Boat(RigidBody):
             length,
             wing: Wing,
             rudder: Rudder,
+            boat_seabed: SeabedMap,
             gnss: Optional[GNSS] = None,
             compass: Optional[Compass] = None,
             anemometer: Optional[Anemometer] = None,
             speedometer: Optional[Speedometer] = None,
-            uwb: Optional[UWB] = None):
+            sonar: Optional[Sonar] = None):
 
         super().__init__(mass)
         self.length = length
         self.drag_damping = 0.2
         self.target = None
+        self.seabed = boat_seabed
+        self.seabed.create_empty_seabed()
 
         if gnss is None:
             Logger.warning('No GNSS sensor provided')
@@ -81,13 +85,13 @@ class Boat(RigidBody):
             Logger.warning('No anemometer sensor provided')
         if speedometer is None:
             Logger.warning('No speedometer sensor provided')
-        if uwb is None:
-            Logger.warning('No UWB sensor provided')
+        if sonar is None:
+            Logger.warning('No sonar sensor provided')
         self.gnss = gnss
         self.compass = compass
         self.anemometer = anemometer
         self.speedometer = speedometer
-        self.uwb = uwb
+        self.sonar = sonar
         self.wing = wing
         self.rudder = rudder
         self.filtered_state = None
@@ -187,55 +191,27 @@ class Boat(RigidBody):
         return self.compass.measure(self.heading)
     def measure_gnss(self):
         return self.gnss.measure(self.position)
-    def measure_uwb(self, target):
-        return self.uwb.measure(self.position, target.position)
+    def measure_sonar(self, seabed):
+        return self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
     def measure_rudder(self):
         return self.rudder.controller.measure_angle()    
     def measure_wing(self):
         return self.wing.controller.measure_angle()
 
+
 class World:
-    def __init__(self, gravity, wind: Wind):
+    def __init__(self, gravity, wind: Wind, seabed: SeabedMap):
         self.gravity_z = gravity
         self.wind = wind
-        self.seabed = None
+        self.seabed = seabed
     
     def update(self, boats: list[Boat], dt):
         for b in boats:
             b.follow_target(self.wind, dt)
             b.apply_wind(self.wind)
             b.apply_friction(self.gravity_z, dt)
-            b.move(dt)
-
-    def create_seabed(self, min_z, max_z, min_x, max_x, min_y, max_y, resolution=5, max_slope=1, prob_go_up=0.2):
-        len_x = int((max_x - min_x)/resolution)
-        len_y = int((max_y - min_y)/resolution)
-        max_diff = max_slope * resolution / (prob_go_up * 2)
-        self.seabed = np.zeros((len_y, len_x))
-        reference = []
-        reference.append(np.random.random() * 0.1 * (max_z - min_z) + min_z)
-        for r in range(1, int(min(len_x, len_y)/2)):
-            reference.append(reference[r-1] + np.random.random() * max_diff * (1-prob_go_up) - max_diff * prob_go_up)
-        
-        for i in range(len_y):
-            for j in range(len_x):
-                min_dist = np.min([i, j, len_x-j-1, len_y-i-1])
-                self.seabed[i][j] = reference[min_dist] + np.random.random() * max_diff * (1-prob_go_up) - max_diff * prob_go_up
-        
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1, projection='3d')
-        #ax.bar3d(range(min_x, max_x, resolution), range(min_y, max_y, resolution), np.zeros((len_x, len_y)), resolution, resolution, self.seabed)
-        plt.matshow(self.seabed)
-        plt.show()
+            b.move(dt)     
 
 
-    def get_seabed_height(self, x, y):
-        if self.seabed == None:
-            raise Exception('No seabed defined')
-        else:
-            pass        
-
-
-w = World(9.81, Wind(1.225))
-w.create_seabed(20, 100, -100, 100, -100, 100, resolution=5, max_slope=2, prob_go_up=0.2)
+w = World(9.81, Wind(1.225), SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5))
+w.seabed.create_seabed(min_z=20, max_z=100, max_slope=1, prob_go_up=0.2, plot=True)
