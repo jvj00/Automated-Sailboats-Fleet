@@ -4,7 +4,7 @@ import numpy as np
 
 ## VECTOR OPERATIONS
 def normalize(vec):
-    return np.linalg.norm(vec)
+    return vec / compute_magnitude(vec)
 
 def compute_angle(vec):
     return np.arctan2(vec[1], vec[0])
@@ -50,7 +50,7 @@ def compute_turning_radius(lenght, rudder_angle):
     d = np.tan(rudder_angle)
     if d == 0:
         return 0
-    return lenght / np.tan(rudder_angle)
+    return lenght / d
 
 def compute_acceleration(force, mass):
     return force / mass
@@ -112,3 +112,10 @@ def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, wi
             [0, 0, dt]
         ]
     )
+
+def compute_motor_thrust(motor_power, boat_velocity, boat_heading):
+    boat_speed = compute_magnitude(boat_velocity)
+    if boat_speed == 0:
+        return motor_power
+    thrust_mag = motor_power / boat_speed
+    return boat_heading * thrust_mag

@@ -1,4 +1,4 @@
-from actuator import Stepper, StepperController
+from actuator import MotorController, Stepper, StepperController
 from logger import Logger
 import numpy as np
 from utils import *
@@ -56,6 +56,10 @@ class Wind:
         self.density = density
         self.velocity = np.zeros(2)
 
+class MotionMode:
+    Wing = 0,
+    Motor = 1
+
 class Boat(RigidBody):
     def __init__(
             self,
@@ -63,6 +67,7 @@ class Boat(RigidBody):
             length,
             wing: Wing,
             rudder: Rudder,
+            motor_controller: MotorController,
             boat_seabed: SeabedMap,
             gnss: Optional[GNSS] = None,
             compass: Optional[Compass] = None,
@@ -76,6 +81,8 @@ class Boat(RigidBody):
         self.target = None
         self.seabed = boat_seabed
         self.seabed.create_empty_seabed()
+        self.motor_controller = motor_controller
+        self.motion_mode = MotionMode.Motor
 
         if gnss is None:
             Logger.warning('No GNSS sensor provided')
@@ -137,6 +144,8 @@ class Boat(RigidBody):
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
     def apply_wind(self, wind: Wind):
+        if self.motion_mode == MotionMode.Motor:
+            return
         wind_force = compute_wind_force(
             wind.velocity,
             wind.density,
@@ -148,20 +157,40 @@ class Boat(RigidBody):
         )
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
+    def apply_motor(self):
+        if self.motion_mode == MotionMode.Wing:
+            return
+        motor_force = compute_motor_thrust(self.motor_controller.power, self.velocity, self.heading)
+        self.acceleration = compute_acceleration(motor_force, self.mass)
+
     def set_target(self, target):
         self.target = target
     
     def follow_target(self, wind: Wind, dt):
         if self.target is None:
             return
+        
         # set the angle of rudder equal to the angle between the direction of the boat and
         # the target point
         filtered_state = self.filtered_state if self.filtered_state is not None else self.get_state()
-        filtered_heading = polar_to_cartesian(1, filtered_state[2])
-        target_direction = self.target - np.array([filtered_state[0], filtered_state[1]])
+        # filtered_heading = polar_to_cartesian(1, filtered_state[2])
+        filtered_heading = self.heading
+        # target_direction = self.target - np.array([filtered_state[0], filtered_state[1]])
+        target_direction = self.target - self.position
+
+        # if the boat is heading to the target and the boat is upwind, switch to motor mode
+        if np.dot(target_direction, filtered_heading) > 0 and np.dot(wind.velocity, filtered_heading) < 0:
+            self.motion_mode = MotionMode.Motor
+        else:
+            self.motion_mode = MotionMode.Wing
+
         angle_from_target = compute_angle_between(filtered_heading, target_direction)
-        # print(angle_from_target)
         self.rudder.controller.set_target(angle_from_target)
+
+        self.rudder.controller.move(dt)
+
+        if self.motion_mode == MotionMode.Motor:
+            return
  
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
@@ -175,7 +204,6 @@ class Boat(RigidBody):
         wing_angle = mod2pi(-wind_boat_angle * boat_w)
         self.wing.controller.set_target(wing_angle)
 
-        self.rudder.controller.move(dt)
         self.wing.controller.move(dt)
        
         # Logger.debug(f'Wind angle: {wind_angle}')
@@ -209,9 +237,10 @@ class World:
         for b in boats:
             b.follow_target(self.wind, dt)
             b.apply_wind(self.wind)
+            b.apply_motor()
             b.apply_friction(self.gravity_z, dt)
             b.move(dt)     
 
 
-w = World(9.81, Wind(1.225), SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5))
-w.seabed.create_seabed(min_z=20, max_z=100, max_slope=1, prob_go_up=0.2, plot=True)
+# w = World(9.81, Wind(1.225), SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5))
+# w.seabed.create_seabed(min_z=20, max_z=100, max_slope=1, prob_go_up=0.2, plot=True)

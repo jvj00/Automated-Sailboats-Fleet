@@ -1,9 +1,10 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from EKF import EKF
-from actuator import Stepper, StepperController
+from actuator import Motor, Stepper, StepperController, MotorController
 from disegnino import Drawer
 from entities import Boat, Wind, Wing, Rudder, World
+from environment import SeabedMap
 from pid import PID
 from logger import Logger
 from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
@@ -13,12 +14,17 @@ if __name__ == '__main__':
     wind = Wind(1.291)
     wind.velocity = np.array([15.0, 0.0])
 
-    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    seabed_map = SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5)
+
+    world = World(9.81, wind, seabed_map)
+
+    rudder_controller = StepperController(Stepper(100, 0.2), PID(0.5, 0, 0))
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 0.1))
+    motor_controller = MotorController(Motor(200))
 
     boats: list[Boat] = []
 
-    boat = Boat(10, 10, Wing(15, wing_controller), Rudder(rudder_controller))
+    boat = Boat(50, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed_map)
     boat.position = np.array([5.0, 5.0])
     boat.heading = polar_to_cartesian(1, 0)
     # boat.rudder.controller.set_angle(np.pi * 0.10)
@@ -28,8 +34,6 @@ if __name__ == '__main__':
     boat.gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
     boats.append(boat)
-
-    world = World(9.81, wind)
 
     win_width = 900
     win_height = 500
@@ -48,7 +52,9 @@ if __name__ == '__main__':
 
     dt = 0.1
     
-    boats[0].set_target(np.array([world_width * 0.2, world_width * 0.2]))
+    boats[0].set_target(np.array([world_width * 0.2, -world_width * 0.2]))
+
+    boats[0].motor_controller.set_power(200)
 
     ekf = EKF(boats[0], world)
 
