@@ -113,6 +113,17 @@ class GNSS:
     
     def measure(self, boat_position):
         return self.measure_with_truth(boat_position)[1]
+    
+class Sonar:
+    def __init__(self, err_distance: Error):
+        self.err_distance = err_distance
+    
+    def measure_with_truth(self, value):
+        measured = value_from_gaussian(value, self.err_distance.get_sigma(value))
+        return value, measured
+    
+    def measure(self, value) -> float:
+        return self.measure_with_truth(value)[1]
 
 def test_sensor():
     from entities import Wing, Rudder, Stepper, Boat, Wind
