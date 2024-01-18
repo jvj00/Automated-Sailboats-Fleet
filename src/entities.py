@@ -95,11 +95,12 @@ class Boat(RigidBody):
         self.rudder = rudder
         self.ekf = ekf
     
-    def compute_filtered_state(self, true_wind_data, dt):
+    def compute_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
         boat_sensors = self.speedometer, self.anemometer, self.rudder, self.wing, self.gnss, self.compass
         true_boat_data = self.velocity, self.heading, self.position
-        filtered_state = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt)
-        
+        filtered_state = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
+        return filtered_state
+
     def get_state(self):
         return np.array(
             [
@@ -227,9 +228,9 @@ class World:
     
     def update(self, boats: list[Boat], dt):
         for b in boats:
-            b.follow_target(self.wind, dt)
+            # b.follow_target(self.wind, dt)
             b.apply_wind(self.wind)
-            b.apply_motor()
+            # b.apply_motor()
             b.apply_friction(self.gravity_z, dt)
             b.move(dt)     
 
