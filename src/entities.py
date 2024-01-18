@@ -1,4 +1,5 @@
-from actuator import MotorController, Stepper, StepperController
+from ekf import EKF
+from actuators import MotorController, Rudder, Stepper, StepperController, Wing
 from logger import Logger
 import numpy as np
 from utils import *
@@ -42,15 +43,6 @@ class RigidBody:
         else:
             self.velocity += velocity_decrease
     
-class Wing:
-    def __init__(self, area: float, controller: StepperController):
-        self.area = area
-        self.controller = controller
-
-class Rudder:
-    def __init__(self, controller: StepperController):
-        self.controller = controller
-
 class Wind:
     def __init__(self, density: float):
         self.density = density
@@ -73,7 +65,8 @@ class Boat(RigidBody):
             compass: Optional[Compass] = None,
             anemometer: Optional[Anemometer] = None,
             speedometer: Optional[Speedometer] = None,
-            sonar: Optional[Sonar] = None):
+            sonar: Optional[Sonar] = None,
+            ekf: Optional[EKF] = None):
 
         super().__init__(mass)
         self.length = length
@@ -82,7 +75,6 @@ class Boat(RigidBody):
         self.seabed = boat_seabed
         self.seabed.create_empty_seabed()
         self.motor_controller = motor_controller
-        self.motion_mode = MotionMode.Motor
 
         if gnss is None:
             Logger.warning('No GNSS sensor provided')
@@ -101,11 +93,13 @@ class Boat(RigidBody):
         self.sonar = sonar
         self.wing = wing
         self.rudder = rudder
-        self.filtered_state = None
+        self.ekf = ekf
+    
+    def compute_filtered_state(self, true_wind_data, dt):
+        boat_sensors = self.speedometer, self.anemometer, self.rudder, self.wing, self.gnss, self.compass
+        true_boat_data = self.velocity, self.heading, self.position
+        filtered_state = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt)
         
-    def set_filtered_state(self, state):
-        self.filtered_state = state
-
     def get_state(self):
         return np.array(
             [
@@ -118,12 +112,12 @@ class Boat(RigidBody):
         state = self.get_state()
         return np.diag(
             [
-                self.gnss.err_position_x.get_sigma(state[0])**2,
-                self.gnss.err_position_y.get_sigma(state[1])**2,
-                self.compass.err_angle.get_sigma(state[2])**2
+                self.gnss.err_position_x.get_variance(state[0]),
+                self.gnss.err_position_y.get_variance(state[1]),
+                self.compass.err_angle.get_variance(state[2])
             ]
         )
-
+    
     # compute the rotation rate
     # the rotation rate is directly proportional to the rudder angle and the boat velocity.
     # the higher is the rudder angle and the boat velocity, the higher will be the rotation rate of the boat
@@ -144,8 +138,6 @@ class Boat(RigidBody):
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
     def apply_wind(self, wind: Wind):
-        if self.motion_mode == MotionMode.Motor:
-            return
         wind_force = compute_wind_force(
             wind.velocity,
             wind.density,
@@ -158,50 +150,51 @@ class Boat(RigidBody):
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
     def apply_motor(self):
-        if self.motion_mode == MotionMode.Wing:
-            return
         motor_force = compute_motor_thrust(self.motor_controller.power, self.velocity, self.heading)
         self.acceleration = compute_acceleration(motor_force, self.mass)
 
     def set_target(self, target):
         self.target = target
     
-    def follow_target(self, wind: Wind, dt):
+    def follow_target(self, filtered_state, dt):
         if self.target is None:
             return
         
+        boat_position, boat_angle = None
+        if filtered_state is not None:
+            boat_position, boat_angle = filtered_state
+        else:
+            boat_position = self.measure_gnss()
+            boat_angle = self.measure_compass()
+        
         # set the angle of rudder equal to the angle between the direction of the boat and
         # the target point
-        filtered_state = self.filtered_state if self.filtered_state is not None else self.get_state()
-        # filtered_heading = polar_to_cartesian(1, filtered_state[2])
-        filtered_heading = self.heading
-        # target_direction = self.target - np.array([filtered_state[0], filtered_state[1]])
-        target_direction = self.target - self.position
-
-        # if the boat is heading to the target and the boat is upwind, switch to motor mode
-        if np.dot(target_direction, filtered_heading) > 0 and np.dot(wind.velocity, filtered_heading) < 0:
-            self.motion_mode = MotionMode.Motor
-        else:
-            self.motion_mode = MotionMode.Wing
+        filtered_heading = polar_to_cartesian(1, boat_angle)
+        target_direction = self.target - boat_position
 
         angle_from_target = compute_angle_between(filtered_heading, target_direction)
         self.rudder.controller.set_target(angle_from_target)
 
         self.rudder.controller.move(dt)
 
-        if self.motion_mode == MotionMode.Motor:
-            return
- 
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
         # _, wind_angle_local = self.measure_anemometer(wind)
         # wind_angle_world = mod2pi(wind_angle_local + filtered_state[2])
         # wind_direction_world = polar_to_cartesian(1, wind_angle_world)
         wind_direction_world = normalize(wind.velocity)
-        wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
-        boat_w = 0.8
-        wing_angle = mod2pi(-wind_boat_angle * (1 - boat_w))
-        self.wing.controller.set_target(wing_angle)
+
+        # if the boat is heading to the target and the boat is upwind, switch to motor mode
+        # in this case, in order to reduce the wing thrust as much as possible,
+        # the wing must be placed parallel to the wind
+        if np.dot(target_direction, filtered_heading) > 0 and np.dot(wind.velocity, filtered_heading) < 0:
+            wing_angle = mod2pi(compute_angle(self.heading) - compute_angle(wind.velocity) + (np.pi * 0.5))
+            self.wing.controller.set_target(wing_angle)
+        else:
+            wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
+            boat_w = 0.8
+            wing_angle = mod2pi(-wind_boat_angle * (1 - boat_w))
+            self.wing.controller.set_target(wing_angle)
 
         self.wing.controller.move(dt)
        

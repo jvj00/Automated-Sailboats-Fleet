@@ -11,18 +11,24 @@ class Error:
         pass
     def get_sigma(self, value): # consider 3 sigma rule: encapsulate 99.7% of the values in 3 sigma
         pass
+    def get_variance(self, value):
+        return self.get_sigma(value) ** 2
 
 class AbsoluteError(Error):
     def __init__(self, error):
         self.error = error
     def get_sigma(self, value):
         return self.error /3.0
+    def get_variance(self, value):
+        return super().get_variance(value)
 
 class RelativeError(Error):
     def __init__(self, error):
         self.error = error
     def get_sigma(self, value):
         return (self.error*np.abs(value)) /3.0
+    def get_variance(self, value):
+        return super().get_variance(value)
 
 class MixedError(Error):
     def __init__(self, error, threshold):
@@ -30,6 +36,8 @@ class MixedError(Error):
         self.threshold = threshold
     def get_sigma(self, value):
         return self.error * (self.threshold if np.abs(value) < self.threshold else np.abs(value)) /3.0
+    def get_variance(self, value):
+        return super().get_variance(value)
 
 # JRC WS-12 (set velocity error RELATIVE to 5% and direction error ABSOLUTE to 1*pi/180 rad)
 class Anemometer:

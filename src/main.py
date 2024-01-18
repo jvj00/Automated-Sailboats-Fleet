@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from EKF import EKF
-from actuator import Motor, Stepper, StepperController, MotorController
+from ekf import EKF
+from actuators import Motor, Stepper, StepperController, MotorController
 from disegnino import Drawer
 from entities import Boat, Wind, Wing, Rudder, World
 from environment import SeabedMap

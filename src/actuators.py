@@ -23,6 +23,9 @@ class Stepper:
     
     def get_sigma(self): # consider 3 sigma rule: encapsulate 99.7% of the values in 3 sigma
         return self.get_error() / 3.0
+    
+    def get_variance(self):
+        return self.get_sigma()**2
 
 class Motor:
     def __init__(self, max_power):
@@ -92,6 +95,16 @@ class StepperController:
 
     def set_target(self, angle: float):
         self.pid.set_target(angle)
+
+class Wing:
+    def __init__(self, area: float, controller: StepperController):
+        self.area = area
+        self.controller = controller
+
+class Rudder:
+    def __init__(self, controller: StepperController):
+        self.controller = controller
+
 
 def angle_from_steps(steps, resolution):
     return (steps / resolution) * (2 * np.pi)

@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from actuator import Stepper, StepperController
+from actuators import Stepper, StepperController
 from entities import RigidBody, Wing, Rudder, Wind, Boat, compute_wind_force
 from pid import PID
 from utils import cartesian_to_polar, normalize, polar_to_cartesian
