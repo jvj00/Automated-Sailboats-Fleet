@@ -8,31 +8,32 @@ import numpy as np
 from utils import polar_to_cartesian
 
 def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_every_sec=5, compass_prob=1, print_debug=False, plot=True):
-    ## SENSORS INITIALIZATION
+    
     steps_to_gnss = int(gnss_every_sec / dt)
     steps_to_compass = int(compass_every_sec / dt)
-    err_speed = RelativeError(0.05)
-    err_angle = AbsoluteError(np.pi/180)
-    anemometer = Anemometer(err_speed, err_angle)
-    err_speed = MixedError(0.01, 5)
-    speedometer = Speedometer(err_speed)
-    err_angle = AbsoluteError(3*np.pi/180)
-    compass = Compass(err_angle)
-    err_position_x = AbsoluteError(1.5)
-    err_position_y = AbsoluteError(1.5)
-    gnss = GNSS(err_position_x=err_position_x, err_position_y=err_position_y)
 
-    ## BOAT WORLD INITIALIZATION
-    wind = Wind(1.291)
-    wind.velocity = np.array([10.0, -10.0])
+    ## sensor intialization
+    anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+    speedometer = Speedometer(MixedError(0.01, 5))
+    compass = Compass(AbsoluteError(3*np.pi/180))
+    gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+
+    # actuators initialization
     rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), limits = (-np.pi * 0.25, np.pi * 0.25))
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
+
+    ## boat initialization    
     boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), gnss, compass, anemometer, speedometer)
     boat.position = np.array([0.0, 0.0])
     boat.velocity = np.array([0.0, 0.0])
     boat.heading = polar_to_cartesian(1, -np.pi/4)
     
-    world = World(9.81, wind)
+    ## wind initialization
+    wind = Wind(1.291)
+    wind.velocity = np.array([10.0, -10.0])
+    
+    # world initialization
+    world = World(9.81, wind, SeabedMap())
 
     boats: list[Boat] = []
     boats.append(boat)
