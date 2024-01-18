@@ -18,7 +18,6 @@ class EKF:
         self.constants = constants
 
     def get_filtered_state(self, boat_sensors, true_boat_data, true_wind_data, dt, update_gnss=True, update_compass=True):
-
         if self.x is None or self.P is None or self.constants is None:
             raise Exception('Initial state, variance or constants not provided')
 
@@ -47,7 +46,7 @@ class EKF:
         boat_speed = speedometer.measure(true_boat_velocity)
         wind_speed, wind_angle = anemometer.measure(true_wind_velocity, true_boat_velocity, true_boat_heading)
         boat_position = gnss.measure(true_boat_position)
-        boat_angle = compass.measure(compute_angle(true_boat_heading))
+        boat_angle = compass.measure(true_boat_heading)
         rudder_angle = rudder.controller.measure_angle()
         wing_angle = wing.controller.measure_angle()
 

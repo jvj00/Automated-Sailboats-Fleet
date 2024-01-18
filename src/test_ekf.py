@@ -1,11 +1,13 @@
+from actuators import Motor, MotorController
 from ekf import EKF
 from entities import Boat, Wind, Wing, Rudder, Stepper, StepperController, World
+from environment import SeabedMap
 from pid import PID
 import logger
 from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
 import numpy as np
 
-from utils import polar_to_cartesian
+from utils import compute_angle, polar_to_cartesian
 
 def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_every_sec=5, compass_prob=1, print_debug=False, plot=True):
     
@@ -19,28 +21,35 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
     # actuators initialization
-    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), limits = (-np.pi * 0.25, np.pi * 0.25))
+    rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), np.pi * 0.25)
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
+    motor_controller = MotorController(Motor(100))
+
+    # seadbed initialization
+    seabed = SeabedMap(0,0,0,0)
 
     ## boat initialization    
-    boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), gnss, compass, anemometer, speedometer)
+    boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
     boat.position = np.array([0.0, 0.0])
     boat.velocity = np.array([0.0, 0.0])
     boat.heading = polar_to_cartesian(1, -np.pi/4)
-    
+
     ## wind initialization
     wind = Wind(1.291)
     wind.velocity = np.array([10.0, -10.0])
     
     # world initialization
-    world = World(9.81, wind, SeabedMap())
+    world = World(9.81, wind, seabed)
 
+    # boat ekf setup
+    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
+
+    boat.ekf.set_initial_state(boat.get_state())
+    boat.ekf.set_initial_state_variance(boat.get_state_variance())
+    boat.ekf.set_constants(ekf_constants)
+    
     boats: list[Boat] = []
     boats.append(boat)
-
-    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
-    
-    ekf = EKF(boats[0].get_state(), boats[0].get_state_variance(), ekf_constants)
 
     # PLOT VARS
     err_x = []
@@ -58,7 +67,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         world.update(boats, dt)
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
-        x, P = ekf.get_filtered_state(dt, update_gnss, update_compass)
+        x, P = boat.compute_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
         t = np.array([*boat.position, compute_angle(boat.heading)])
         err_x.append(x[0] - t[0])
         err_y.append(x[1] - t[1])
@@ -68,24 +77,24 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         cov_theta.append(P[2,2])
         time.append(i*dt)
 
-        color = colors.ORANGE
+        color = logger.colors.ORANGE
         prefix = 'PROCESS'
         if update_compass and update_gnss:
-            color = colors.OKGREEN
+            color = logger.colors.OKGREEN
             prefix = 'UPDATE BOTH'
             updates_pos.append(i*dt)
             updates_dir.append(i*dt)
         elif update_compass:
-            color = colors.OKBLUE
+            color = logger.colors.OKBLUE
             prefix = 'UPDATE COMPASS'
             updates_dir.append(i*dt)
         elif update_gnss: 
-            color = colors.OKCYAN
+            color = logger.colors.OKCYAN
             prefix = 'UPDATE GNSS'
             updates_pos.append(i*dt)
 
         if print_debug:
-            custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
+            logger.custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
 
     if plot:
         import matplotlib.pyplot as plt
