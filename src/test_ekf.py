@@ -69,9 +69,13 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     np.set_printoptions(suppress=True)
     for i in range(int(total_time/dt)):
+
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
+        boat.follow_target(world.wind, dt)
         x, P = boat.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
+        world.update(boats, dt)
+        
         t = np.array([*boat.position, compute_angle(boat.heading)])
         err_x.append(x[0] - t[0])
         err_y.append(x[1] - t[1])
@@ -102,8 +106,6 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         if print_debug:
             logger.custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
 
-        boat.follow_target(world.wind, dt)
-        world.update(boats, dt)
 
 
 
@@ -120,7 +122,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         for up in updates_pos:
             plt.axvline(x=up, linestyle='--', linewidth=0.3, color='k')
         for mo in motor_on:
-            plt.axvline(x=mo, linestyle='--', linewidth=0.3, color='g')
+            plt.axvline(x=mo, linestyle='--', linewidth=0.1, color='g')
         plt.plot(time, err_x, label='Error X')
         plt.plot(time, err_y, label='Error Y')
         plt.legend()
@@ -143,4 +145,4 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         plt.show()
 
 if __name__ == '__main__':
-    test_ekf(0.5, 1000, 60, 0.9, 10, 0.9, print_debug=True, plot=True)
+    test_ekf(0.5, 1000, 60, 0.9, 10, 0.9, print_debug=False, plot=True)

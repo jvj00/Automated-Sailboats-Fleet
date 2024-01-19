@@ -24,14 +24,11 @@ class RigidBody:
 
     def rotate(self, dt):
         _, curr_angle = cartesian_to_polar(self.heading)
-        prev_angular_speed = self.angular_speed
-        self.angular_speed = prev_angular_speed + (self.angular_acceleration * dt)
-        curr_angle += 0.5 * self.angular_acceleration * (dt ** 2) + prev_angular_speed * dt
+        curr_angle += self.angular_speed * dt
         self.heading = polar_to_cartesian(1, curr_angle)
     
     def translate(self, dt):
         self.position += (0.5 * self.acceleration * (dt ** 2) + self.velocity * dt)
-        self.velocity += (self.acceleration * dt)
     
     # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
     def apply_friction(self, gravity: float, dt):
@@ -140,6 +137,9 @@ class Boat(RigidBody):
     def move(self, dt):
         self.translate(dt)
         self.rotate(dt)
+
+    def apply_acceleration_to_velocity(self, dt):
+        self.velocity += (self.acceleration * dt)
     
     # compute the acceleration that the wind produces to the boat
     # in order to avoid 
@@ -206,14 +206,14 @@ class Boat(RigidBody):
             wing_angle = mod2pi(wind_angle_relative + np.pi * 0.5)
             self.wing.controller.set_target(wing_angle)
             self.motor_controller.set_power(self.motor_controller.motor.max_power)
-            #print('Upwind')
+            # print('Upwind')
         else:
             wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
             boat_w = 0.8
             wing_angle = mod2pi(-wind_boat_angle * (1 - boat_w))
             self.wing.controller.set_target(wing_angle)
             self.motor_controller.set_power(0)
-            #print('Downwind')
+            # print('Downwind')
 
         self.wing.controller.move(dt)
 
@@ -247,8 +247,9 @@ class World:
     def update(self, boats: list[Boat], dt):
         for b in boats:
             b.apply_forces(self.wind, dt)
+            b.move(dt)
+            b.apply_acceleration_to_velocity(dt)
             b.apply_friction(self.gravity_z, dt)
-            b.move(dt)     
 
 
 # w = World(9.81, Wind(1.225), SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5))

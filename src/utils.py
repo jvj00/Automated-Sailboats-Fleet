@@ -103,12 +103,11 @@ def modpi(angle):
     return angle
 
 def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, wing_area, wind_density, motor_efficiency, dt):
-    k_friction = np.max([0, 1 - compute_friction_force(gravity, boat_mass, boat_friction_mu) * dt])
-    k_drag = compute_drag_coeff(boat_drag_damping, wind_density, wing_area)   
+    k_drag = compute_drag_coeff(boat_drag_damping, wind_density, wing_area)
     return np.array(
         [
-            [k_friction * dt, 0, k_drag * 0.5 * (dt**2), motor_efficiency * 0.5 * (dt**2), 0],
-            [0, k_friction * dt, 0, 0, 0],
+            [dt, 0, k_drag * 0.5 * (dt**2), motor_efficiency * 0.5 * (dt**2), 0],
+            [0, dt, 0, 0, 0],
             [0, 0, 0, 0, dt]
         ]
     )
