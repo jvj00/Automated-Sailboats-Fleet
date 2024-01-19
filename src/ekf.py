@@ -21,7 +21,8 @@ class EKF:
         if self.x is None or self.P is None or self.constants is None:
             raise Exception('Initial state, variance or constants not provided')
 
-        boat_mass, boat_length, boat_friction_mu, boat_drag_damping, wing_area, wind_density, gravity = self.constants
+        # retrieve coefficients
+        boat_mass, boat_length, boat_friction_mu, boat_drag_damping, wing_area, wind_density, gravity, motor_efficiency = self.constants
         
         ## INIT MATRICES
         # coefficient matrix
@@ -32,71 +33,85 @@ class EKF:
             boat_drag_damping,
             wing_area,
             wind_density,
+            motor_efficiency,
             dt
         )
         
         ## PROPRIOCEPTIVE MEASUREMENTS
+
         # retrieve boat sensors
-        speedometer, anemometer, rudder, wing, gnss, compass = boat_sensors
+        speedometer_par, speedometer_perp, anemometer, rudder, wing, motor_controller, gnss, compass = boat_sensors
         # retrieve true boat data (from simulation)
         true_boat_velocity, true_boat_heading, true_boat_position = true_boat_data
         true_wind_velocity = true_wind_data
-
         # retrieve measurements from boat sensors
-        boat_speed = speedometer.measure(true_boat_velocity)
+        boat_speed_par = speedometer_par.measure(true_boat_velocity, true_boat_heading)
+        boat_speed_perp = speedometer_perp.measure(true_boat_velocity, true_boat_heading)
         wind_speed, wind_angle = anemometer.measure(true_wind_velocity, true_boat_velocity, true_boat_heading)
-        boat_position = gnss.measure(true_boat_position)
-        boat_angle = compass.measure(true_boat_heading)
         rudder_angle = rudder.controller.measure_angle()
         wing_angle = wing.controller.measure_angle()
+        motor_power = motor_controller.measure_power()
 
         sensor_meas = np.array(
             [
-                boat_speed,
+                boat_speed_par,
+                boat_speed_perp,
                 wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle) / boat_mass,
-                boat_speed * np.tan(rudder_angle) / boat_length
+                motor_power / ((boat_speed_par+1) * boat_mass), # Errato , da corregere boat_speed
+                boat_speed_par * np.tan(rudder_angle) / boat_length
             ]
         ).T
-        
         u_dt = a_dt @ sensor_meas
 
         # compute variance for each sensor reading
-        speedometer_var = speedometer.err_speed.get_variance(boat_speed)
+        speedometer_par_var = speedometer_par.err_speed.get_variance(boat_speed_par)
+        speedometer_perp_var = speedometer_perp.err_speed.get_variance(boat_speed_perp)
         anemometer_var = anemometer.err_speed.get_variance(wind_speed)
         anemometerdir_var = anemometer.err_angle.get_variance(wind_angle)
         rudder_var = rudder.controller.stepper.get_variance()
         wing_var = wing.controller.stepper.get_variance()
+        motor_var = motor_controller.motor.get_variance()
 
         # Process noise covariance matrix (velocity, acceleration, angular velocity) (It varies for each measurement!) (Matrix Q)
         Q = np.diag(
             [
-                speedometer_var,
+                speedometer_par_var,
+                speedometer_perp_var,
                 (1/boat_mass**2) * ((2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var),
-                (1/boat_length**2) * ((boat_speed**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_var)
+                (1/boat_mass**2) * motor_var,
+                (1/boat_length**2) * ((boat_speed_par**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_par_var)
             ]
         )
 
         # State transition matrix (F_q)
-        F_q = np.array([[np.cos(self.x[2]), np.cos(self.x[2]), 0],
-                        [np.sin(self.x[2]), np.sin(self.x[2]), 0],
+        F_q = np.array([[np.cos(self.x[2]), np.sin(self.x[2]), 0],
+                        [np.sin(self.x[2]), -np.cos(self.x[2]), 0],
                         [0, 0, 1]])
         
 
         # Jacobian of partial derivatives of the state transition matrix
-        Ad = np.array([[1, 0, -np.sin(self.x[2])*(u_dt[0]+u_dt[1])],
-                       [0, 1, np.cos(self.x[2])*(u_dt[0]+u_dt[1])],
+        Ad = np.array([[1, 0, -np.sin(self.x[2])*u_dt[0] + np.cos(self.x[2])*u_dt[1]],
+                       [0, 1, np.cos(self.x[2])*u_dt[0] + np.sin(self.x[2])*u_dt[1]],
                        [0, 0, 1]])
 
         ## PREDICTION STEP
         x_pred = self.x + F_q @ u_dt
         P_pred = Ad @ self.P @ Ad.T + (F_q @ (a_dt @ Q @ a_dt.T) @ F_q.T)
+        x_pred[2] = mod2pi(x_pred[2])
+        
 
         ## UPDATE STEP
 
         if update_gnss or update_compass:
 
             ## EXTEROCEPTIVE MEASUREMENTS
+            boat_angle = mod2pi(compass.measure(true_boat_heading))
+            if boat_angle-x_pred[2] > np.pi: #because kalman filter update gain doesn't matter to angles
+                x_pred[2]+=2*np.pi
+            elif boat_angle-x_pred[2] < -np.pi:
+                x_pred[2]-=2*np.pi
 
+            boat_position = gnss.measure(true_boat_position)
             # Measurement matrix
             if update_gnss and update_compass:
                 H = np.eye(3)

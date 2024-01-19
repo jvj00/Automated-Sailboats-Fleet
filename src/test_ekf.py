@@ -6,6 +6,7 @@ from pid import PID
 import logger
 from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
 import numpy as np
+from utils import *
 
 from utils import compute_angle, polar_to_cartesian
 
@@ -16,23 +17,24 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     ## sensor intialization
     anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-    speedometer = Speedometer(MixedError(0.01, 5))
+    speedometer_par = Speedometer(MixedError(0.01, 5), parallel=True)
+    speedometer_perp = Speedometer(MixedError(0.01, 5), parallel=False)
     compass = Compass(AbsoluteError(3*np.pi/180))
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
     # actuators initialization
     rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), np.pi * 0.25)
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
-    motor_controller = MotorController(Motor(100))
+    motor_controller = MotorController(Motor(100, 0.85, 1024))
 
     # seadbed initialization
     seabed = SeabedMap(0,0,0,0)
 
     ## boat initialization    
-    boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
+    boat = Boat(100, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer_par, speedometer_perp, None, EKF())
     boat.position = np.array([0.0, 0.0])
     boat.velocity = np.array([0.0, 0.0])
-    boat.heading = polar_to_cartesian(1, -np.pi/4)
+    boat.heading = polar_to_cartesian(1, np.pi)
 
     ## wind initialization
     wind = Wind(1.291)
@@ -42,11 +44,13 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     world = World(9.81, wind, seabed)
 
     # boat ekf setup
-    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
+    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
 
     boat.ekf.set_initial_state(boat.get_state())
     boat.ekf.set_initial_state_variance(boat.get_state_variance())
     boat.ekf.set_constants(ekf_constants)
+
+    boat.set_target(np.array([-100, 0]))
     
     boats: list[Boat] = []
     boats.append(boat)
@@ -64,6 +68,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     np.set_printoptions(suppress=True)
     for i in range(int(total_time/dt)):
+        boat.follow_target(world.wind, dt)
         world.update(boats, dt)
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
@@ -71,7 +76,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         t = np.array([*boat.position, compute_angle(boat.heading)])
         err_x.append(x[0] - t[0])
         err_y.append(x[1] - t[1])
-        err_theta.append(x[2] - t[2])
+        err_theta.append(modpi(x[2] - t[2]))
         cov_x.append(P[0,0])
         cov_y.append(P[1,1])
         cov_theta.append(P[2,2])
@@ -95,6 +100,9 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
         if print_debug:
             logger.custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
+
+
+
 
     if plot:
         import matplotlib.pyplot as plt

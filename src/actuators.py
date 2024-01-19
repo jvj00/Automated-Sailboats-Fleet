@@ -28,8 +28,18 @@ class Stepper:
         return self.get_sigma()**2
 
 class Motor:
-    def __init__(self, max_power):
+    def __init__(self, max_power, efficiency, resolution):
         self.max_power = max_power
+        self.efficiency = efficiency
+        self.resolution = resolution
+    def get_error(self):
+        return self.max_power / self.resolution
+    
+    def get_sigma(self): # consider 3 sigma rule: encapsulate 99.7% of the values in 3 sigma
+        return self.get_error() / 3.0
+    
+    def get_variance(self):
+        return self.get_sigma()**2
 
 class MotorController:
     def __init__(self, motor: Motor):
@@ -38,6 +48,13 @@ class MotorController:
     
     def set_power(self, power):
         self.power = power if power < self.motor.max_power else self.motor.max_power
+
+    def get_power(self):
+        return self.power
+    
+    def measure_power(self):
+        return value_from_gaussian(self.power, self.motor.get_sigma())
+
 
 # controls the movement of a stepper
 # the PID takes the current angle of the stepper as input, and return a speed

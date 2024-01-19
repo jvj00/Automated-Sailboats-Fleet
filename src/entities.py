@@ -64,7 +64,8 @@ class Boat(RigidBody):
             gnss: Optional[GNSS] = None,
             compass: Optional[Compass] = None,
             anemometer: Optional[Anemometer] = None,
-            speedometer: Optional[Speedometer] = None,
+            speedometer_par: Optional[Speedometer] = None,
+            speedometer_perp: Optional[Speedometer] = None,
             sonar: Optional[Sonar] = None,
             ekf: Optional[EKF] = None):
 
@@ -82,14 +83,17 @@ class Boat(RigidBody):
             Logger.warning('No compass sensor provided')
         if anemometer is None:
             Logger.warning('No anemometer sensor provided')
-        if speedometer is None:
-            Logger.warning('No speedometer sensor provided')
+        if speedometer_par is None:
+            Logger.warning('No parallel speedometer sensor provided')
+        if speedometer_perp is None:
+            Logger.warning('No perpendicular speedometer sensor provided')
         if sonar is None:
             Logger.warning('No sonar sensor provided')
         self.gnss = gnss
         self.compass = compass
         self.anemometer = anemometer
-        self.speedometer = speedometer
+        self.speedometer_par = speedometer_par
+        self.speedometer_perp = speedometer_perp
         self.sonar = sonar
         self.wing = wing
         self.rudder = rudder
@@ -97,7 +101,7 @@ class Boat(RigidBody):
         self.filtered_state = None
     
     def update_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
-        boat_sensors = self.speedometer, self.anemometer, self.rudder, self.wing, self.gnss, self.compass
+        boat_sensors = self.speedometer_par, self.speedometer_perp, self.anemometer, self.rudder, self.wing, self.motor_controller, self.gnss, self.compass
         true_boat_data = self.velocity, self.heading, self.position
         self.filtered_state, filtered_variance = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
         return self.filtered_state, filtered_variance
@@ -127,7 +131,7 @@ class Boat(RigidBody):
     # angular_speed = boat_speed / (boat_length / np.tan(rudder_angle)) = (boat_speed * np.tan(rudder_angle)) / boat_length
     def rotate(self, dt):
         turning_radius = compute_turning_radius(self.length, self.rudder.controller.get_angle())
-        self.angular_speed = 0 if turning_radius == 0 else compute_magnitude(self.velocity) / turning_radius
+        self.angular_speed = 0 if turning_radius == 0 else compute_magnitude(self.velocity) * np.cos(compute_angle(self.velocity)-compute_angle(self.heading)) / turning_radius
         super().rotate(dt)
     
     def translate(self, dt):
@@ -151,12 +155,9 @@ class Boat(RigidBody):
         )
         self.acceleration = compute_acceleration(wind_force, self.mass)
 
-    def apply_motor(self):
-        motor_force = compute_motor_thrust(self.motor_controller.power, self.velocity, self.heading)
-        self.acceleration = compute_acceleration(motor_force, self.mass)
     
-    def apply_forces(self, wind):
-        motor_force = compute_motor_thrust(self.motor_controller.power, self.velocity, self.heading)
+    def apply_forces(self, wind, dt):
+        motor_force = compute_motor_thrust(self.motor_controller.power, self.motor_controller.motor.efficiency, self.velocity, self.heading)
         wind_force = compute_wind_force(
             wind.velocity,
             wind.density,
@@ -205,14 +206,14 @@ class Boat(RigidBody):
             wing_angle = mod2pi(wind_angle_relative + np.pi * 0.5)
             self.wing.controller.set_target(wing_angle)
             self.motor_controller.set_power(self.motor_controller.motor.max_power)
-            print('Upwind')
+            #print('Upwind')
         else:
             wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
             boat_w = 0.8
             wing_angle = mod2pi(-wind_boat_angle * (1 - boat_w))
             self.wing.controller.set_target(wing_angle)
             self.motor_controller.set_power(0)
-            print('Downwind')
+            #print('Downwind')
 
         self.wing.controller.move(dt)
 
@@ -221,8 +222,10 @@ class Boat(RigidBody):
     
     def measure_anemometer(self, wind):
         return self.anemometer.measure(wind.velocity, self.velocity, self.heading)
-    def measure_speedometer(self):
-        return self.speedometer.measure(self.velocity)
+    def measure_speedometer_par(self):
+        return self.speedometer_par.measure(self.velocity, self.heading)
+    def measure_speedometer_perp(self):
+        return self.speedometer_perp.measure(self.velocity, self.heading)
     def measure_compass(self):
         return self.compass.measure(self.heading)
     def measure_gnss(self):
@@ -243,8 +246,7 @@ class World:
     
     def update(self, boats: list[Boat], dt):
         for b in boats:
-            b.apply_forces(self.wind)
-            # b.apply_motor()
+            b.apply_forces(self.wind, dt)
             b.apply_friction(self.gravity_z, dt)
             b.move(dt)     
 
