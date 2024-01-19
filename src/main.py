@@ -32,7 +32,9 @@ if __name__ == '__main__':
 
     # boats initialization
     boats: list[Boat] = []
-    boats_n = 1
+    boats_n = 3
+
+    boats_starting_point = np.array([0.0, 0.0])
 
     for i in range(boats_n):
 
@@ -47,9 +49,10 @@ if __name__ == '__main__':
         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
         motor_controller = MotorController(Motor(100))
 
+        boat_position = boats_starting_point + np.array([i * 10, i * 10])
         ## boat initialization
         boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
-        boat.position = np.array([0.0, 0.0])
+        boat.position = np.array(boat_position)
         boat.velocity = np.array([0.0, 0.0])
         boat.heading = polar_to_cartesian(1, -np.pi/4)
 
