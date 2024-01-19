@@ -4,44 +4,34 @@ import numpy as np
 
 ## VECTOR OPERATIONS
 def normalize(vec):
-    return vec / compute_magnitude(vec)
+    mag = compute_magnitude(vec)
+    if mag == 0:
+        return None
+    return vec / mag
 
 def compute_angle(vec):
-    return np.arctan2(vec[1], vec[0])
+    return mod2pi(np.arctan2(vec[1], vec[0]))
 
 def compute_magnitude(vec):
-    return np.sqrt(vec[0]*vec[0] + vec[1]*vec[1])
+    return np.sqrt(vec[0]**2 + vec[1]**2)
 
 def compute_distance(v1, v2):
     return compute_magnitude(v2 - v1)
 
-def cartesian_to_polar(vec):
-    angle = compute_angle(vec)
-    mag = compute_magnitude(vec)
-    return mag, angle
-
 def compute_angle_between(vec1, vec2):
-    cosine_theta = np.dot(vec1, vec2) / (compute_magnitude(vec1) * compute_magnitude(vec2))
-    return np.arccos(cosine_theta)
+    th1 = compute_angle(vec1)
+    th2 = compute_angle(vec2)
+    return mod2pi(th1 - th2)
 
 def polar_to_cartesian(mag, angle):
     x = mag * np.cos(angle)
     y = mag * np.sin(angle)
     return np.array([x, y])
 
-# converts the given local direction to an absolute direction (relative to the world system)
-# s_direction: system direction (rotation vector)
-# direction: direction to convert, relative to the system
-def direction_local_to_world(s_direction, direction):
-    angle_relative = compute_angle(direction)
-    system_angle = compute_angle(s_direction)
-    return polar_to_cartesian(1, system_angle + angle_relative)
-
-def velocity_local_to_world(s_velocity, velocity):
-    return velocity + s_velocity
-
-def velocity_world_to_local(s_velocity, velocity):
-    return velocity - s_velocity
+def cartesian_to_polar(vec):
+    angle = compute_angle(vec)
+    mag = compute_magnitude(vec)
+    return mag, angle
 
 # Angular Speed(ω)= Velocity / Turning Radius
 # Turning radius = L / tan(th)
@@ -95,6 +85,10 @@ def now():
 
 def mod2pi(angle):
     angle = np.fmod(angle, 2 * np.pi)
+    # fix the float approx of np.fmod.
+    # if the input angle is np.pi, the resulting angle will not be 0 by a very small error 
+    if np.abs(angle) < 10**(-9):
+        angle = 0
 
     if angle < 0:
         angle += 2 * np.pi
