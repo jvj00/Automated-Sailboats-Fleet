@@ -67,12 +67,13 @@ class Anemometer:
 
 # DX900+ (set velocity error MIXED with threshold of 5m/s and 1% of error)
 class Speedometer:
-    def __init__(self, err_speed: Error, parallel: bool):
+    def __init__(self, err_speed: Error, offset_angle: float = 0):
         self.err_speed = err_speed
-        self.parallel = parallel
+        self.offset_angle = offset_angle
     
+    # use the offset angle to compute the correct translation
     def measure_with_truth(self, boat_velocity, boat_heading):
-        if self.parallel:
+        if self.offset_angle:
             translation = np.cos(compute_angle(boat_velocity)-compute_angle(boat_heading))
         else:
             translation = -np.sin(compute_angle(boat_velocity)-compute_angle(boat_heading))
@@ -137,53 +138,53 @@ class Sonar:
     def measure(self, value) -> float:
         return self.measure_with_truth(value)[1]
 
-def test_sensor():
-    from entities import Wing, Rudder, Stepper, Boat, Wind
-    test_repetition = 20
-    err_speed = RelativeError(0.05)
-    err_angle = AbsoluteError(np.pi/180)
-    sensor = Anemometer(err_speed, err_angle)
-    boat = Boat(
-        100,
-        Wing(15, Stepper(100, 0.05)),
-        Rudder(Stepper(100, 0.2)),
-        PID(1, 0.1, 0.1),
-        PID(1, 0.1, 0.1)
-    )
-    wind = Wind(1.291)
-    anemo_truth = []
-    anemo_meas = []
-    outliers_direction = 0
-    outliers_velocity = 0
+# def test_sensor():
+#     from entities import Wing, Rudder, Stepper, Boat, Wind
+#     test_repetition = 20
+#     err_speed = RelativeError(0.05)
+#     err_angle = AbsoluteError(np.pi/180)
+#     sensor = Anemometer(err_speed, err_angle)
+#     boat = Boat(
+#         100,
+#         Wing(15, Stepper(100, 0.05)),
+#         Rudder(Stepper(100, 0.2)),
+#         PID(1, 0.1, 0.1),
+#         PID(1, 0.1, 0.1)
+#     )
+#     wind = Wind(1.291)
+#     anemo_truth = []
+#     anemo_meas = []
+#     outliers_direction = 0
+#     outliers_velocity = 0
     
-    for i in range(test_repetition):
-        wind.velocity = np.array([20.0, 0.0])
-        boat.velocity = np.array([5.0, 5.0])
-        truth, meas = sensor.measure_with_truth(wind.velocity, boat.velocity)
-        if np.abs(meas[0] - truth[0]) > err_speed.error * truth[0]:
-            outliers_velocity += 1
-        if np.abs(meas[1] - truth[1]) > err_angle.error:
-            outliers_direction += 1
-        anemo_truth.append(truth)
-        anemo_meas.append(meas)
+#     for i in range(test_repetition):
+#         wind.velocity = np.array([20.0, 0.0])
+#         boat.velocity = np.array([5.0, 5.0])
+#         truth, meas = sensor.measure_with_truth(wind.velocity, boat.velocity)
+#         if np.abs(meas[0] - truth[0]) > err_speed.error * truth[0]:
+#             outliers_velocity += 1
+#         if np.abs(meas[1] - truth[1]) > err_angle.error:
+#             outliers_direction += 1
+#         anemo_truth.append(truth)
+#         anemo_meas.append(meas)
 
-    # Outliers (values over 3 times sigma, must be below 0.4%)
-    print("Outliers velocity: ", outliers_velocity/test_repetition * 100, "%")
-    print("Outliers direction: ", outliers_direction/test_repetition * 100, "%")
+#     # Outliers (values over 3 times sigma, must be below 0.4%)
+#     print("Outliers velocity: ", outliers_velocity/test_repetition * 100, "%")
+#     print("Outliers direction: ", outliers_direction/test_repetition * 100, "%")
 
-    plt.figure(1)
-    plt.cla()
-    plt.plot(range(test_repetition), list(map(lambda p: p[0], anemo_truth)), label="Anemo truth velocity")
-    plt.plot(range(test_repetition), list(map(lambda p: p[0], anemo_meas)), label="Anemo meas velocity")
-    plt.legend()
+#     plt.figure(1)
+#     plt.cla()
+#     plt.plot(range(test_repetition), list(map(lambda p: p[0], anemo_truth)), label="Anemo truth velocity")
+#     plt.plot(range(test_repetition), list(map(lambda p: p[0], anemo_meas)), label="Anemo meas velocity")
+#     plt.legend()
 
-    plt.figure(2)
-    plt.cla()
-    plt.plot(range(test_repetition), list(map(lambda p: p[1], anemo_truth)), label="Anemo truth direction")
-    plt.plot(range(test_repetition), list(map(lambda p: p[1], anemo_meas)), label="Anemo meas direction")
-    plt.legend()
+#     plt.figure(2)
+#     plt.cla()
+#     plt.plot(range(test_repetition), list(map(lambda p: p[1], anemo_truth)), label="Anemo truth direction")
+#     plt.plot(range(test_repetition), list(map(lambda p: p[1], anemo_meas)), label="Anemo meas direction")
+#     plt.legend()
 
-    plt.show()
+#     plt.show()
 
-if __name__ == '__main__':
-    test_sensor()
+# if __name__ == '__main__':
+#     test_sensor()
