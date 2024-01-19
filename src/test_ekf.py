@@ -17,15 +17,15 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     ## sensor intialization
     anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-    speedometer_par = Speedometer(MixedError(0.01, 5), 0)
-    speedometer_perp = Speedometer(MixedError(0.01, 5), np.pi * 0.5)
+    speedometer_par = Speedometer(MixedError(0.01, 5), offset_angle=0)
+    speedometer_perp = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
     compass = Compass(AbsoluteError(3*np.pi/180))
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
     # actuators initialization
     rudder_controller = StepperController(Stepper(100, 1), PID(1, 0, 1), np.pi * 0.25)
     wing_controller = StepperController(Stepper(100, 1), PID(1, 0.1, 1))
-    motor_controller = MotorController(Motor(100, 0.85, 1024))
+    motor_controller = MotorController(Motor(1000, 0.85, 1024))
 
     # seadbed initialization
     seabed = SeabedMap(0,0,0,0)
@@ -65,11 +65,10 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     time = []
     updates_pos = []
     updates_dir = []
+    motor_on = []
 
     np.set_printoptions(suppress=True)
     for i in range(int(total_time/dt)):
-        boat.follow_target(world.wind, dt)
-        world.update(boats, dt)
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
         x, P = boat.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
@@ -81,6 +80,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         cov_y.append(P[1,1])
         cov_theta.append(P[2,2])
         time.append(i*dt)
+        if boat.motor_controller.get_power() > 0:
+            motor_on.append(i*dt)
 
         color = logger.colors.ORANGE
         prefix = 'PROCESS'
@@ -101,6 +102,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         if print_debug:
             logger.custom_print(prefix, f'(X: {x[0]} -> {t[0]}\tY: {x[1]} -> {t[1]}\tTH: {x[2]} -> {t[2]})', color)
 
+        boat.follow_target(world.wind, dt)
+        world.update(boats, dt)
 
 
 
@@ -116,6 +119,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         plt.title('Errors Position')
         for up in updates_pos:
             plt.axvline(x=up, linestyle='--', linewidth=0.3, color='k')
+        for mo in motor_on:
+            plt.axvline(x=mo, linestyle='--', linewidth=0.3, color='g')
         plt.plot(time, err_x, label='Error X')
         plt.plot(time, err_y, label='Error Y')
         plt.legend()
@@ -138,4 +143,4 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         plt.show()
 
 if __name__ == '__main__':
-    test_ekf(0.5, 1000, 60, 0.9, 10, 0.9)
+    test_ekf(0.5, 1000, 60, 0.9, 10, 0.9, print_debug=True, plot=True)

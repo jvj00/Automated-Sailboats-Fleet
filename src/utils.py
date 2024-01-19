@@ -114,5 +114,5 @@ def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, wi
     )
 
 def compute_motor_thrust(motor_power, efficiency, boat_velocity, boat_heading):
-    thrust_mag = efficiency * motor_power / (compute_magnitude(boat_velocity)*np.cos(compute_angle(boat_velocity-boat_heading))+1)
+    thrust_mag = efficiency * motor_power / (np.abs(compute_magnitude(boat_velocity)*np.cos(compute_angle(boat_velocity)-compute_angle(boat_heading)))+1)
     return boat_heading * thrust_mag

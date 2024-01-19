@@ -73,11 +73,7 @@ class Speedometer:
     
     # use the offset angle to compute the correct translation
     def measure_with_truth(self, boat_velocity, boat_heading):
-        if self.offset_angle:
-            translation = np.cos(compute_angle(boat_velocity)-compute_angle(boat_heading))
-        else:
-            translation = -np.sin(compute_angle(boat_velocity)-compute_angle(boat_heading))
-        boat_speed = compute_magnitude(boat_velocity) * translation
+        boat_speed = compute_magnitude(boat_velocity) * np.cos(compute_angle(boat_velocity)-(compute_angle(boat_heading)+self.offset_angle))
         truth = boat_speed
         measured = value_from_gaussian(boat_speed, self.err_speed.get_sigma(boat_speed))
         return truth, measured
