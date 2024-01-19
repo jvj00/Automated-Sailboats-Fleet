@@ -40,7 +40,8 @@ if __name__ == '__main__':
 
         ## sensor intialization
         anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-        speedometer = Speedometer(MixedError(0.01, 5))
+        speedometer_par = Speedometer(MixedError(0.01, 5))
+        speedometer_per = Speedometer(MixedError(0.01, 5))
         compass = Compass(AbsoluteError(3*np.pi/180))
         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
@@ -51,7 +52,7 @@ if __name__ == '__main__':
 
         boat_position = boats_starting_point + np.array([i * 10, i * 10])
         ## boat initialization
-        boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
+        boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
         boat.position = np.array(boat_position)
         boat.velocity = np.array([0.0, 0.0])
         boat.heading = polar_to_cartesian(1, -np.pi/4)
