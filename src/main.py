@@ -11,25 +11,9 @@ from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, Relativ
 from utils import polar_to_cartesian
 
 if __name__ == '__main__':
-    ## sensor intialization
-    anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-    speedometer = Speedometer(MixedError(0.01, 5))
-    compass = Compass(AbsoluteError(3*np.pi/180))
-    gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
-
-    # actuators initialization
-    rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
-    wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
-    motor_controller = MotorController(Motor(100))
-
+    
     # seadbed initialization
     seabed = SeabedMap(0,0,0,0)
-
-    ## boat initialization    
-    boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
-    boat.position = np.array([0.0, 0.0])
-    boat.velocity = np.array([0.0, 0.0])
-    boat.heading = polar_to_cartesian(1, -np.pi/4)
 
     ## wind initialization
     wind = Wind(1.291)
@@ -38,16 +22,6 @@ if __name__ == '__main__':
     # world initialization
     world = World(9.81, wind, seabed)
 
-    # boat ekf setup
-    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
-
-    boat.ekf.set_initial_state(boat.get_state())
-    boat.ekf.set_initial_state_variance(boat.get_state_variance())
-    boat.ekf.set_constants(ekf_constants)
-    
-    boats: list[Boat] = []
-    boats.append(boat)
-
     win_width = 900
     win_height = 500
 
@@ -55,6 +29,38 @@ if __name__ == '__main__':
     world_height = 250
     drawer = Drawer(win_width, win_height, world_width, world_height)
     drawer.debug = True
+
+    # boats initialization
+    boats: list[Boat] = []
+    boats_n = 1
+
+    for i in range(boats_n):
+
+        ## sensor intialization
+        anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+        speedometer = Speedometer(MixedError(0.01, 5))
+        compass = Compass(AbsoluteError(3*np.pi/180))
+        gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+
+        # actuators initialization
+        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
+        wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
+        motor_controller = MotorController(Motor(100))
+
+        ## boat initialization
+        boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
+        boat.position = np.array([0.0, 0.0])
+        boat.velocity = np.array([0.0, 0.0])
+        boat.heading = polar_to_cartesian(1, -np.pi/4)
+
+        # boat ekf setup
+        ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
+
+        # boat.ekf.set_initial_state(boat.get_state())
+        # boat.ekf.set_initial_state_variance(boat.get_state_variance())
+        # boat.ekf.set_constants(ekf_constants)
+        
+        boats.append(boat)
 
     velocities = []
     wind_velocities = []
@@ -65,16 +71,10 @@ if __name__ == '__main__':
 
     dt = 0.2
     
-    boats[0].set_target(np.array([-world_width * 0.2, -world_height * 0.2]))
-    # boats[0].wing.controller.set_angle(np.pi * 1.9)
-    # boats[0].rudder.controller.set_angle(np.pi * 0.2)
-
-    # boats[0].motor_controller.set_power(200)
-
     update_gnss = False
     update_compass = False
 
-    for time_elapsed in np.arange(0, 100, dt):
+    for time_elapsed in np.arange(0, 300, dt):
         # if time_elapsed == 5:
         #     world.wind.velocity = -world.wind.velocity
 
@@ -88,20 +88,28 @@ if __name__ == '__main__':
         if time_elapsed % 30 == 0:
             x_pos = np.random.uniform(-0.5, 0.5)
             y_pos = np.random.uniform(-0.5, 0.5)
-            boats[0].set_target(np.array([world_width * x_pos, world_height * y_pos]))
+            for b in boats:
+                b.set_target(np.array([world_width * x_pos, world_height * y_pos]))
 
-        velocities.append(boats[0].velocity.copy())
-        wind_velocities.append(world.wind.velocity.copy())
+        # velocities.append(boats[0].velocity.copy())
+        # wind_velocities.append(world.wind.velocity.copy())
 
-        times.append(time_elapsed)
+        # times.append(time_elapsed)
+                
+        for b in boats:
+            try:
+                x, P = b.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
+            except:
+                print('ekf not available')
 
-        x, P = boat.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
-        boat.follow_target(world.wind, dt)
-
+            b.follow_target(world.wind, dt)
+            
         world.update(boats, dt)
 
+        # update drawing
         drawer.clear()
-        drawer.draw_boat(boats[0])
+        for b in boats:
+            drawer.draw_boat(b)
         drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
         if boats[0].target is not None:
             drawer.draw_target(boats[0].target)
@@ -112,14 +120,14 @@ if __name__ == '__main__':
         # Logger.debug(f'Boat heading: {world.boat.heading}')
 
         #Plot anemometer measurements
-        plt.figure(1)
-        plt.cla()
-        plt.plot(times, list(map(lambda p: p[0], velocities)), label='Boat Velocity X')
-        plt.plot(times, list(map(lambda p: p[1], velocities)), label='Boat Velocity Y')
-        plt.plot(times, list(map(lambda p: p[0], wind_velocities)), label='Wind Velocity X')
-        plt.plot(times, list(map(lambda p: p[1], wind_velocities)), label='Wind Velocity Y')
+        # plt.figure(1)
+        # plt.cla()
+        # plt.plot(times, list(map(lambda p: p[0], velocities)), label='Boat Velocity X')
+        # plt.plot(times, list(map(lambda p: p[1], velocities)), label='Boat Velocity Y')
+        # plt.plot(times, list(map(lambda p: p[0], wind_velocities)), label='Wind Velocity X')
+        # plt.plot(times, list(map(lambda p: p[1], wind_velocities)), label='Wind Velocity Y')
 
-        plt.legend()
+        # plt.legend()
         plt.pause(dt)
     
     plt.show()

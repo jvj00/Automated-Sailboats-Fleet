@@ -191,7 +191,6 @@ class Boat(RigidBody):
 
         angle_from_target = compute_angle_between(filtered_heading, target_direction)
         self.rudder.controller.set_target(angle_from_target)
-
         self.rudder.controller.move(dt)
 
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
