@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import velocity_world_to_local
 from logger import Logger
 from pid import PID
 from utils import value_from_gaussian
