@@ -196,14 +196,13 @@ class Boat(RigidBody):
 
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
-        wind_speed_relative, wind_angle_relative = self.measure_anemometer(wind)
-        wind_velocity_relative = polar_to_cartesian(wind_speed_relative, wind_angle_relative)
+        _, wind_angle_relative = self.measure_anemometer(wind)
         wind_direction_world = polar_to_cartesian(1, mod2pi(wind_angle_relative + boat_angle))
 
-        # if the boat is heading to the target and the boat is upwind, switch to motor mode
+        # if the boat is upwind (controvento), switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,
         # the wing must be placed parallel to the wind
-        if np.dot(target_direction, filtered_heading) > 0 and np.dot(wind_velocity_relative, filtered_heading) < 0:
+        if np.pi * 0.5 <= wind_angle_relative <= np.pi * 1.5:
             wing_angle = mod2pi(wind_angle_relative + np.pi * 0.5)
             self.wing.controller.set_target(wing_angle)
             self.motor_controller.set_power(self.motor_controller.motor.max_power)
