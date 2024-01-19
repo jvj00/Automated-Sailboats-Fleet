@@ -17,8 +17,8 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
 
     ## sensor intialization
     anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-    speedometer_par = Speedometer(MixedError(0.01, 5), parallel=True)
-    speedometer_perp = Speedometer(MixedError(0.01, 5), parallel=False)
+    speedometer_par = Speedometer(MixedError(0.01, 5), 0)
+    speedometer_perp = Speedometer(MixedError(0.01, 5), np.pi * 0.5)
     compass = Compass(AbsoluteError(3*np.pi/180))
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
