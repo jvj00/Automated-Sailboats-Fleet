@@ -47,7 +47,7 @@ if __name__ == '__main__':
         # actuators initialization
         rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
-        motor_controller = MotorController(Motor(100))
+        motor_controller = MotorController(Motor(200, 0.85, 1024))
 
         boat_position = boats_starting_point + np.array([i * 10, i * 10])
         ## boat initialization
@@ -57,11 +57,11 @@ if __name__ == '__main__':
         boat.heading = polar_to_cartesian(1, -np.pi/4)
 
         # boat ekf setup
-        ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
+        ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
 
-        # boat.ekf.set_initial_state(boat.get_state())
-        # boat.ekf.set_initial_state_variance(boat.get_state_variance())
-        # boat.ekf.set_constants(ekf_constants)
+        boat.ekf.set_initial_state(boat.get_state())
+        boat.ekf.set_initial_state_variance(boat.get_state_variance())
+        boat.ekf.set_constants(ekf_constants)
         
         boats.append(boat)
 
@@ -102,11 +102,12 @@ if __name__ == '__main__':
         for b in boats:
             try:
                 x, P = b.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
+                print(np.abs(b.get_state()-x))
             except:
                 print('ekf not available')
 
             b.follow_target(world.wind, dt)
-            
+        
         world.update(boats, dt)
 
         # update drawing
