@@ -57,10 +57,11 @@ class EKF:
                 boat_speed_par,
                 boat_speed_perp,
                 wind_speed ** 2 * np.cos(wing_angle - wind_angle) * np.cos(wing_angle) / boat_mass,
-                motor_power / ((boat_speed_par+1) * boat_mass), # Errato , da corregere boat_speed
+                motor_power / ((np.abs(boat_speed_par)+1) * boat_mass),
                 boat_speed_par * np.tan(rudder_angle) / boat_length
             ]
         ).T
+        
         u_dt = a_dt @ sensor_meas
 
         # compute variance for each sensor reading
@@ -78,7 +79,7 @@ class EKF:
                 speedometer_par_var,
                 speedometer_perp_var,
                 (1/boat_mass**2) * ((2*wind_speed*np.cos(wind_angle-wing_angle)*np.cos(wind_angle))**2 * anemometer_var  +  (wind_speed**2*(np.sin(wind_angle)*np.cos(wind_angle-wing_angle)+np.cos(wind_angle)*np.sin(wind_angle-wing_angle)))**2 * wing_var  +  (wind_speed**2*np.cos(wind_angle)*np.sin(wind_angle-wing_angle))**2 * anemometerdir_var),
-                (1/boat_mass**2) * motor_var,
+                (1/boat_mass**2) * ((1/(boat_speed_par+1)**2) * motor_var + (motor_power**2/(boat_speed_par+1)**4) * speedometer_par_var),
                 (1/boat_length**2) * ((boat_speed_par**2) / (np.cos(rudder_angle)**4) * rudder_var + np.tan(rudder_angle)**2 * speedometer_par_var)
             ]
         )
