@@ -18,8 +18,8 @@ if __name__ == '__main__':
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
     # actuators initialization
-    rudder_controller = StepperController(Stepper(100, 0.1), PID(0.5, 0, 0), np.pi * 0.25)
-    wing_controller = StepperController(Stepper(100, 0.1), PID(0.5, 0, 0))
+    rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
+    wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
     motor_controller = MotorController(Motor(100))
 
     # seadbed initialization
