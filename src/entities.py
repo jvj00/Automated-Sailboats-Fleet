@@ -94,12 +94,13 @@ class Boat(RigidBody):
         self.wing = wing
         self.rudder = rudder
         self.ekf = ekf
+        self.filtered_state = None
     
-    def compute_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
+    def update_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
         boat_sensors = self.speedometer, self.anemometer, self.rudder, self.wing, self.gnss, self.compass
         true_boat_data = self.velocity, self.heading, self.position
-        filtered_state = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
-        return filtered_state
+        self.filtered_state, filtered_variance = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
+        return self.filtered_state, filtered_variance
 
     def get_state(self):
         return np.array(
@@ -153,17 +154,32 @@ class Boat(RigidBody):
     def apply_motor(self):
         motor_force = compute_motor_thrust(self.motor_controller.power, self.velocity, self.heading)
         self.acceleration = compute_acceleration(motor_force, self.mass)
+    
+    def apply_forces(self, wind):
+        motor_force = compute_motor_thrust(self.motor_controller.power, self.velocity, self.heading)
+        wind_force = compute_wind_force(
+            wind.velocity,
+            wind.density,
+            self.velocity,
+            self.heading,
+            polar_to_cartesian(1, self.wing.controller.get_angle()),
+            self.wing.area,
+            self.drag_damping
+        )
+        tot_force = motor_force + wind_force
+        self.acceleration = compute_acceleration(tot_force, self.mass)
+
 
     def set_target(self, target):
         self.target = target
     
-    def follow_target(self, filtered_state, dt):
+    def follow_target(self, wind: Wind, dt):
         if self.target is None:
             return
         
-        boat_position, boat_angle = None
-        if filtered_state is not None:
-            boat_position, boat_angle = filtered_state
+        if self.filtered_state is not None:
+            boat_position = np.array([self.filtered_state[0], self.filtered_state[1]])
+            boat_angle = self.filtered_state[2]
         else:
             boat_position = self.measure_gnss()
             boat_angle = self.measure_compass()
@@ -180,27 +196,28 @@ class Boat(RigidBody):
 
         # use the weighted angle between the direction of the boat and the direction of the wind as setpoint
         # for the wing pid
-        # _, wind_angle_local = self.measure_anemometer(wind)
-        # wind_angle_world = mod2pi(wind_angle_local + filtered_state[2])
-        # wind_direction_world = polar_to_cartesian(1, wind_angle_world)
-        wind_direction_world = normalize(wind.velocity)
+        wind_speed_relative, wind_angle_relative = self.measure_anemometer(wind)
+        wind_velocity_relative = polar_to_cartesian(wind_speed_relative, wind_angle_relative)
+        wind_direction_world = polar_to_cartesian(1, mod2pi(wind_angle_relative + boat_angle))
 
         # if the boat is heading to the target and the boat is upwind, switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,
         # the wing must be placed parallel to the wind
-        if np.dot(target_direction, filtered_heading) > 0 and np.dot(wind.velocity, filtered_heading) < 0:
-            wing_angle = mod2pi(compute_angle(self.heading) - compute_angle(wind.velocity) + (np.pi * 0.5))
+        if np.dot(target_direction, filtered_heading) > 0 and np.dot(wind_velocity_relative, filtered_heading) < 0:
+            wing_angle = mod2pi(wind_angle_relative + np.pi * 0.5)
             self.wing.controller.set_target(wing_angle)
+            self.motor_controller.set_power(self.motor_controller.motor.max_power)
+            print('Upwind')
         else:
             wind_boat_angle = compute_angle_between(filtered_heading, wind_direction_world)
             boat_w = 0.8
             wing_angle = mod2pi(-wind_boat_angle * (1 - boat_w))
             self.wing.controller.set_target(wing_angle)
+            self.motor_controller.set_power(0)
+            print('Downwind')
 
         self.wing.controller.move(dt)
-       
-        # Logger.debug(f'Wind angle: {wind_angle}')
-        # Logger.debug(f'Wing angle: {self.wing.controller.get_angle()}')
+
         # Logger.debug(f'Rudder angle: {self.rudder.controller.get_angle()}')
         # Logger.debug(f'Angle from destination: {angle_from_target}')
     
@@ -228,8 +245,7 @@ class World:
     
     def update(self, boats: list[Boat], dt):
         for b in boats:
-            # b.follow_target(self.wind, dt)
-            b.apply_wind(self.wind)
+            b.apply_forces(self.wind)
             # b.apply_motor()
             b.apply_friction(self.gravity_z, dt)
             b.move(dt)     

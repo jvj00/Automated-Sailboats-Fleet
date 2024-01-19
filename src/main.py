@@ -11,28 +11,41 @@ from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, Relativ
 from utils import polar_to_cartesian
 
 if __name__ == '__main__':
+    ## sensor intialization
+    anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+    speedometer = Speedometer(MixedError(0.01, 5))
+    compass = Compass(AbsoluteError(3*np.pi/180))
+    gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+
+    # actuators initialization
+    rudder_controller = StepperController(Stepper(100, 0.1), PID(0.5, 0, 0), np.pi * 0.25)
+    wing_controller = StepperController(Stepper(100, 0.1), PID(0.5, 0, 0))
+    motor_controller = MotorController(Motor(100))
+
+    # seadbed initialization
+    seabed = SeabedMap(0,0,0,0)
+
+    ## boat initialization    
+    boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer, None, EKF())
+    boat.position = np.array([0.0, 0.0])
+    boat.velocity = np.array([0.0, 0.0])
+    boat.heading = polar_to_cartesian(1, -np.pi/4)
+
+    ## wind initialization
     wind = Wind(1.291)
-    wind.velocity = np.array([15.0, 0.0])
+    wind.velocity = np.array([10.0, -10.0])
+    
+    # world initialization
+    world = World(9.81, wind, seabed)
 
-    seabed_map = SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5)
+    # boat ekf setup
+    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z
 
-    world = World(9.81, wind, seabed_map)
-
-    rudder_controller = StepperController(Stepper(100, 0.2), PID(0.5, 0, 0), np.pi * 0.2)
-    wing_controller = StepperController(Stepper(100, 0.2), PID(0.5, 0, 0))
-    motor_controller = MotorController(Motor(200))
-
+    boat.ekf.set_initial_state(boat.get_state())
+    boat.ekf.set_initial_state_variance(boat.get_state_variance())
+    boat.ekf.set_constants(ekf_constants)
+    
     boats: list[Boat] = []
-
-    boat = Boat(30, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed_map)
-    boat.position = np.array([5.0, 5.0])
-    boat.heading = polar_to_cartesian(1, 0)
-    # boat.rudder.controller.set_angle(np.pi * 0.10)
-    boat.anemometer = Anemometer(RelativeError(0.05), AbsoluteError(3 * np.pi / 180))
-    boat.speedometer = Speedometer(MixedError(0.01, 5))
-    boat.compass = Compass(AbsoluteError(3*np.pi/180))
-    boat.gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
-
     boats.append(boat)
 
     win_width = 900
@@ -56,9 +69,7 @@ if __name__ == '__main__':
     # boats[0].wing.controller.set_angle(np.pi * 1.9)
     # boats[0].rudder.controller.set_angle(np.pi * 0.2)
 
-    boats[0].motor_controller.set_power(200)
-
-    ekf = EKF(boats[0], world)
+    # boats[0].motor_controller.set_power(200)
 
     update_gnss = False
     update_compass = False
@@ -84,8 +95,8 @@ if __name__ == '__main__':
 
         times.append(time_elapsed)
 
-        x, P = ekf.get_filtered_state(dt, update_gnss, update_compass)
-        boats[0].set_filtered_state(x)
+        x, P = boat.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
+        boat.follow_target(world.wind, dt)
 
         world.update(boats, dt)
 

@@ -67,7 +67,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         world.update(boats, dt)
         update_gnss = np.random.rand() < gnss_prob and i % steps_to_gnss == 0
         update_compass = np.random.rand() < compass_prob and i % steps_to_compass == 0
-        x, P = boat.compute_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
+        x, P = boat.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
         t = np.array([*boat.position, compute_angle(boat.heading)])
         err_x.append(x[0] - t[0])
         err_y.append(x[1] - t[1])
