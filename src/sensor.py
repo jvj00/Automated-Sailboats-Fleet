@@ -67,16 +67,12 @@ class Anemometer:
 
 # DX900+ (set velocity error MIXED with threshold of 5m/s and 1% of error)
 class Speedometer:
-    def __init__(self, err_speed: Error, parallel: bool):
+    def __init__(self, err_speed: Error, offset_angle: float):
         self.err_speed = err_speed
-        self.parallel = parallel
+        self.offset_angle = offset_angle
     
     def measure_with_truth(self, boat_velocity, boat_heading):
-        if self.parallel:
-            translation = np.cos(compute_angle(boat_velocity)-compute_angle(boat_heading))
-        else:
-            translation = -np.sin(compute_angle(boat_velocity)-compute_angle(boat_heading))
-        boat_speed = compute_magnitude(boat_velocity) * translation
+        boat_speed = compute_magnitude(boat_velocity) * np.cos(compute_angle(boat_velocity)-(compute_angle(boat_heading)+self.offset_angle))
         truth = boat_speed
         measured = value_from_gaussian(boat_speed, self.err_speed.get_sigma(boat_speed))
         return truth, measured
