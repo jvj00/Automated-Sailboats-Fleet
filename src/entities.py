@@ -94,7 +94,6 @@ class Boat(RigidBody):
         self.sonar = sonar
         self.wing = wing
         self.rudder = rudder
-        print(ekf)
         self.ekf = ekf
         self.filtered_state = None
     
