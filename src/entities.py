@@ -214,12 +214,11 @@ class Boat(RigidBody):
             Logger.error('Cannot follow target due to missing values')
             return
 
-        # set the angle of rudder equal to the angle between the direction of the boat and
-        # the target point
-        filtered_heading = polar_to_cartesian(1, boat_angle)
-        target_direction = self.target - boat_position
-
         if self.rudder is not None:
+            # set the angle of rudder equal to the angle between the direction of the boat and
+            # the target point
+            filtered_heading = polar_to_cartesian(1, boat_angle)
+            target_direction = self.target - boat_position
             angle_from_target = mod2pi(-compute_angle_between(filtered_heading, target_direction))
             self.rudder.controller.set_target(angle_from_target)
             self.rudder.controller.move(dt)
@@ -231,7 +230,7 @@ class Boat(RigidBody):
             if self.wing is not None:
                 wing_angle = mod2pi(wind_angle + np.pi * 0.5)
                 self.wing.controller.set_target(wing_angle)
-            if self.motor_controller:
+            if self.motor_controller is not None:
                 self.motor_controller.set_power(self.motor_controller.motor.max_power)
         else:
             if self.wing is not None:

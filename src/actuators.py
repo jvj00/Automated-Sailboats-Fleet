@@ -71,18 +71,21 @@ class StepperController:
         self.pid.limits = (-stepper.max_speed, stepper.max_speed)
 
     def move(self, dt):
-        speed = self.pid.compute(self.get_angle(), dt)
+        # the target is set with modpi, so we need to read the current angle in the same way
+        current_angle = modpi(angle_from_steps(self.steps, self.stepper.resolution))
+        speed = self.pid.compute(current_angle, dt)
         self.set_speed(speed)
         steps_new = self.steps + np.floor(self.speed * self.stepper.resolution * self.direction * dt)
         steps_new %= self.stepper.resolution
-        angle_new = angle_from_steps(steps_new, self.stepper.resolution)
         if steps_new < 0:
             steps_new += self.stepper.resolution
         
         if self.max_angle is None:
             self.steps = steps_new
             return
-        
+
+        angle_new = angle_from_steps(steps_new, self.stepper.resolution)
+
         if self.max_angle < angle_new <= np.pi:
             steps_new = steps_from_angle(self.max_angle, self.stepper.resolution)
         elif np.pi < angle_new < self.max_angle + np.pi:
@@ -109,9 +112,12 @@ class StepperController:
     
     def measure_angle(self):
         return value_from_gaussian(self.get_angle(), self.stepper.get_sigma())
-
+    
+    # set the target angle for the PID
+    # the PID control works much better if the angle is between -pi and pi,
+    # not between 0 and 2pi
     def set_target(self, angle: float):
-        self.pid.set_target(angle)
+        self.pid.set_target(modpi(angle))
 
 class Wing:
     def __init__(self, area: float, controller: StepperController):
