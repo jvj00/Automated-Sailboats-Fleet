@@ -184,7 +184,7 @@ class Boat(RigidBody):
     # enable simulation data to use boat and wind data from the simulation
     # enable measured_data to use boat and wind measured data
     # set both to False to use filtered data coming from the kalman filter, if available
-    def follow_target(self, wind: Wind, dt, simulated_data = False, measured_data = False, motor_only = False):
+    def follow_target(self, wind: Wind, dt, simulated_data = False, measured_data = False, motor_only = False, wing_only = False):
         if self.target is None:
             return
 
@@ -196,7 +196,9 @@ class Boat(RigidBody):
         if simulated_data:
             boat_position = self.position
             boat_angle = compute_angle(self.heading)
-            wind_speed, wind_angle = cartesian_to_polar(wind.velocity)
+            # convert wind data (absolute) to relative to the boat
+            wind_speed, wind_angle = cartesian_to_polar(wind.velocity - self.velocity)
+            wind_angle = mod2pi(wind_angle - compute_angle(self.heading))
         
         elif measured_data:
             if self.compass is not None and self.gnss is not None and self.anemometer is not None:
