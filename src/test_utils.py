@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from utils import compute_angle, compute_angle_between, polar_to_cartesian, normalize
+from utils import compute_angle, compute_angle_between, compute_turning_radius, polar_to_cartesian, normalize
 
 class TestComputeAngle(unittest.TestCase):
 
@@ -73,6 +73,26 @@ class TestComputeAngleBetween(unittest.TestCase):
         self.assertEqual(angle, np.pi * 0.5)
         angle = compute_angle_between(v1, v2)
         self.assertEqual(angle, np.pi * 1.5)
+
+class TestComputeTurningRadius(unittest.TestCase):
+    
+    def test_turning_radius_clockwise(self):
+        length = 7
+        rudder_angle = np.pi * 0.2
+        r = compute_turning_radius(length, rudder_angle)
+        self.assertAlmostEqual(r, 9.634673443298215)
+    
+    def test_turning_radius_none_2(self):
+        length = 7
+        rudder_angle = np.pi * 1.5
+        r = compute_turning_radius(length, rudder_angle)
+        self.assertAlmostEqual(r, 0)
+    
+    def test_turning_radius_counterclockwise(self):
+        length = 7
+        rudder_angle = np.pi * 1.8
+        r = compute_turning_radius(length, rudder_angle)
+        self.assertAlmostEqual(r, -9.634673443298215)
 
 if __name__ == '__main__':
     unittest.main()

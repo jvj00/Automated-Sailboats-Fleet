@@ -95,6 +95,15 @@ class Drawer:
         draw.setOutline(color)
         draw.draw(self.win)
     
+    def draw_route(self, points, color):
+        for i in range(len(points) - 1):
+            start_canvas = self.to_canvas(points[i])
+            end_canvas = self.to_canvas(points[i+1])
+            draw = Line(array_to_point(start_canvas), array_to_point(end_canvas))
+            draw.setFill(color)
+            draw.setOutline(color)
+            draw.draw(self.win)
+    
     def draw_axis(self):
         x_axis = Line(Point(0, self.win.height * 0.5), Point(self.win.width, self.win.height * 0.5))
         y_axis = Line(Point(self.win.width * 0.5, 0), Point(self.win.width * 0.5, self.win.height))

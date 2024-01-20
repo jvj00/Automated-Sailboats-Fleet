@@ -23,6 +23,12 @@ def compute_angle_between(vec1, vec2):
     th2 = compute_angle(vec2)
     return mod2pi(th1 - th2)
 
+def is_angle_between(angle, min, max):
+    if max > min:
+        return angle >= min and angle <= max
+    else:
+        return min <= angle <= 2 * np.pi and 0 <= angle <=max
+
 def polar_to_cartesian(mag, angle):
     x = mag * np.cos(angle)
     y = mag * np.sin(angle)
@@ -113,5 +119,5 @@ def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, wi
     )
 
 def compute_motor_thrust(motor_power, efficiency, boat_velocity, boat_heading):
-    thrust_mag = efficiency * motor_power / (np.abs(compute_magnitude(boat_velocity)*np.cos(compute_angle(boat_velocity)-compute_angle(boat_heading)))+1)
+    thrust_mag = efficiency * motor_power / (np.abs(np.dot(boat_velocity, boat_heading))+1)
     return boat_heading * thrust_mag

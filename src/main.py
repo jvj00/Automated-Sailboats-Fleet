@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     # boats initialization
     boats: list[Boat] = []
-    boats_n = 3
+    boats_n = 1
 
     boats_starting_point = np.array([0.0, 0.0])
 
@@ -60,9 +60,9 @@ if __name__ == '__main__':
         # boat ekf setup
         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
 
-        boat.ekf.set_initial_state(boat.get_state())
-        boat.ekf.set_initial_state_variance(boat.get_state_variance())
-        boat.ekf.set_constants(ekf_constants)
+        # boat.ekf.set_initial_state(boat.get_state())
+        # boat.ekf.set_initial_state_variance(boat.get_state_variance())
+        # boat.ekf.set_constants(ekf_constants)
         
         boats.append(boat)
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
             except:
                 print('ekf not available')
 
-            b.follow_target(world.wind, dt)
+            b.follow_target(world.wind, dt, simulated_data=True)
         
         world.update(boats, dt)
 
