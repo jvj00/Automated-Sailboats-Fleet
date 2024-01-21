@@ -1,50 +1,50 @@
 import unittest
 import numpy as np
 
-from utils import compute_angle, compute_angle_between, compute_turning_radius, polar_to_cartesian, normalize
+from utils import compute_angle, compute_angle_between, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
 
 class TestComputeAngle(unittest.TestCase):
 
-    def test_compute_angle_0(self):
+    def test_0(self):
         v1 = polar_to_cartesian(1, 0)
         angle = compute_angle(v1)
         self.assertEqual(angle, 0)
     
-    def test_compute_angle_1(self):
+    def test_1(self):
         v1 = polar_to_cartesian(1, np.pi)
         angle = compute_angle(v1)
         self.assertEqual(angle, np.pi)
     
-    def test_compute_angle_2(self):
+    def test_2(self):
         v1 = polar_to_cartesian(1, np.pi * 1.5)
         angle = compute_angle(v1)
         self.assertEqual(angle, np.pi * 1.5)
     
-    def test_compute_angle_3(self):
+    def test_3(self):
         v1 = polar_to_cartesian(1, np.pi * 2)
         angle = compute_angle(v1)
         self.assertEqual(angle, 0)
 
 class TestNormalize(unittest.TestCase):
 
-    def test_normalize_0(self):
+    def test_0(self):
         v1 = polar_to_cartesian(1, 0)
         norm = normalize(v1)
         self.assertEqual(norm[0], 1)
         self.assertEqual(norm[1], 0)
 
-    def test_normalize_1(self):
+    def test_1(self):
         v1 = np.zeros(2)
         norm = normalize(v1)
         self.assertEqual(norm, None)
 
-    def test_normalize_2(self):
+    def test_2(self):
         v1 = polar_to_cartesian(1, -np.pi * 0.5)
         norm = normalize(v1)
         self.assertAlmostEqual(norm[0], 0)
         self.assertAlmostEqual(norm[1], -1)
     
-    def test_normalize_3(self):
+    def test_3(self):
         v1 = polar_to_cartesian(8, np.pi * 0.25)
         norm = normalize(v1)
         self.assertAlmostEqual(norm[0], 0.70710678)
@@ -52,13 +52,13 @@ class TestNormalize(unittest.TestCase):
 
 class TestComputeAngleBetween(unittest.TestCase):
 
-    def test_compute_angle_between_parallel(self):
+    def test_parallel(self):
         v1 = polar_to_cartesian(4, 0)
         v2 = polar_to_cartesian(1, 0)
         angle = compute_angle_between(v1, v2)
         self.assertEqual(angle, 0)
     
-    def test_compute_angle_between_parallel_opposite(self):
+    def test_opposite(self):
         v1 = polar_to_cartesian(4, np.pi * 0.5)
         v2 = polar_to_cartesian(1, np.pi * 1.5)
         angle = compute_angle_between(v1, v2)
@@ -66,7 +66,7 @@ class TestComputeAngleBetween(unittest.TestCase):
         angle = compute_angle_between(v2, v1)
         self.assertEqual(angle, np.pi)
     
-    def test_compute_angle_between_0(self):
+    def test_0(self):
         v1 = polar_to_cartesian(4, np.pi * 0.5)
         v2 = polar_to_cartesian(1, np.pi)
         angle = compute_angle_between(v2, v1)
@@ -76,23 +76,53 @@ class TestComputeAngleBetween(unittest.TestCase):
 
 class TestComputeTurningRadius(unittest.TestCase):
     
-    def test_turning_radius_clockwise(self):
+    def test_clockwise(self):
         length = 7
         rudder_angle = np.pi * 0.2
         r = compute_turning_radius(length, rudder_angle)
         self.assertAlmostEqual(r, 9.634673443298215)
     
-    def test_turning_radius_none_2(self):
+    def test_none_2(self):
         length = 7
         rudder_angle = np.pi * 1.5
         r = compute_turning_radius(length, rudder_angle)
         self.assertAlmostEqual(r, 0)
     
-    def test_turning_radius_counterclockwise(self):
+    def test_counterclockwise(self):
         length = 7
         rudder_angle = np.pi * 1.8
         r = compute_turning_radius(length, rudder_angle)
         self.assertAlmostEqual(r, -9.634673443298215)
+
+class TestIsAngleBetween(unittest.TestCase):
+    
+    def test_0(self):
+        min = 0
+        max = np.pi
+        angle = np.pi * 0.5
+        between = is_angle_between(angle, min, max)
+        self.assertTrue(between)
+    
+    def test_1(self):
+        min = np.pi
+        max = 0
+        angle = np.pi * 0.5
+        between = is_angle_between(angle, min, max)
+        self.assertFalse(between)
+    
+    def test_2(self):
+        min = np.pi * 1.5
+        max = np.pi * 0.5
+        angle = 0
+        between = is_angle_between(angle, min, max)
+        self.assertTrue(between)
+    
+    def test_3(self):
+        min = np.pi * 1.5
+        max = np.pi * 0.5
+        angle = np.pi
+        between = is_angle_between(angle, min, max)
+        self.assertFalse(between)
 
 if __name__ == '__main__':
     unittest.main()

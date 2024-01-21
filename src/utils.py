@@ -27,7 +27,7 @@ def is_angle_between(angle, min, max):
     if max > min:
         return angle >= min and angle <= max
     else:
-        return min <= angle <= 2 * np.pi and 0 <= angle <=max
+        return min <= angle <= 2 * np.pi or 0 <= angle <=max
 
 def polar_to_cartesian(mag, angle):
     x = mag * np.cos(angle)
