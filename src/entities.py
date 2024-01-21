@@ -71,7 +71,7 @@ class Boat(RigidBody):
         self.drag_damping = 0.2
         self.target = None
         self.seabed = boat_seabed
-        self.seabed.create_empty_seabed()
+        # self.seabed.create_empty_seabed()
         self.motor_controller = motor_controller
 
         if gnss is None:
@@ -228,7 +228,7 @@ class Boat(RigidBody):
         # if the boat is upwind (controvento), switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,
         # the wing must be placed parallel to the wind
-        if (np.pi * 0.5 <= wind_angle <= np.pi * 1.5) or motor_only:
+        if is_angle_between(wind_angle, np.pi * 0.5, np.pi * 1.5) or motor_only:
             if self.wing is not None:
                 wing_angle = mod2pi(wind_angle + np.pi * 0.5)
                 self.wing.controller.set_target(wing_angle)
@@ -241,7 +241,7 @@ class Boat(RigidBody):
                 self.wing.controller.set_target(wing_angle)
             if self.motor_controller is not None:
                 self.motor_controller.set_power(0)
-        
+    
         if self.wing is not None:
             self.wing.controller.move(dt)
 
@@ -267,7 +267,7 @@ class Boat(RigidBody):
 
 
 class World:
-    def __init__(self, gravity, wind: Wind, seabed: SeabedMap):
+    def __init__(self, gravity, wind: Wind, seabed: Optional[SeabedMap] = None):
         self.gravity_z = gravity
         self.wind = wind
         self.seabed = seabed
