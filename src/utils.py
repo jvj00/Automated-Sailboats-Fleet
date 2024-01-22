@@ -121,3 +121,18 @@ def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, wi
 def compute_motor_thrust(motor_power, efficiency, boat_velocity, boat_heading):
     thrust_mag = efficiency * motor_power / (np.abs(np.dot(boat_velocity, boat_heading))+1)
     return boat_heading * thrust_mag
+
+def check_intersection(center, radius, start, end):
+    delta = end - start
+    a = delta[0] ** 2 + delta[1] ** 2
+    b = delta[0] * (start[0] - center[0]) + delta[1] * (start[1] - center[1])
+    cc = (start[0] - center[0])**2 + (start[1] - center[1])**2 - radius ** 2
+    delta = b * b - a * cc;
+    if delta < 0 or a == 0:
+        return False
+    
+    delta = np.sqrt(delta)
+    t1 = (-b + delta) / a;
+    t2 = (-b - delta) / a;
+    
+    return 0 <= t1 <= 1 or 0 <= t2 <= 1

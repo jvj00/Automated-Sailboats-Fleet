@@ -4,12 +4,14 @@ from logger import Logger
 import numpy as np
 from utils import *
 from pid import PID
-from sensor import GNSS, Compass, Anemometer, Speedometer, Sonar
+from sensor import GNSS, UWB, Compass, Anemometer, Speedometer, Sonar
 from typing import Optional
 from environment import SeabedMap
+from uuid import uuid4
 
 class RigidBody:
     def __init__(self, mass):
+        self.uuid = uuid4()
         self.mass = mass
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
@@ -64,6 +66,7 @@ class Boat(RigidBody):
             speedometer_par: Optional[Speedometer] = None,
             speedometer_perp: Optional[Speedometer] = None,
             sonar: Optional[Sonar] = None,
+            uwb: Optional[UWB] = None,
             ekf: Optional[EKF] = None):
 
         super().__init__(mass)
@@ -97,6 +100,10 @@ class Boat(RigidBody):
         if sonar is None:
             Logger.warning('No sonar sensor provided')
         self.sonar = sonar
+
+        if uwb is None:
+            Logger.warning('No UWB sensor provided')
+        self.uwb = uwb
 
         if wing is None:
             Logger.warning('No wing provided')
@@ -184,7 +191,7 @@ class Boat(RigidBody):
     # enable simulation data to use boat and wind data from the simulation
     # enable measured_data to use boat and wind measured data
     # set both to False to use filtered data coming from the kalman filter, if available
-    def follow_target(self, wind: Wind, dt, simulated_data = False, measured_data = False, motor_only = False, wing_only = False):
+    def follow_target(self, wind: Wind, dt, boats: list['Boat'] = None, simulated_data = False, measured_data = False, motor_only = False, wing_only = False):
         if self.target is None:
             return
 
@@ -217,13 +224,29 @@ class Boat(RigidBody):
             return
 
         if self.rudder is not None:
-            # set the angle of rudder equal to the angle between the direction of the boat and
-            # the target point
-            filtered_heading = polar_to_cartesian(1, boat_angle)
-            target_direction = self.target - boat_position
-            angle_from_target = mod2pi(-compute_angle_between(filtered_heading, target_direction))
-            self.rudder.controller.set_target(angle_from_target)
-            self.rudder.controller.move(dt)
+            # avoiding_collisions = False
+            # if boats is not None:
+            #     for b in boats:
+            #         offset = 2
+            #         # if the two boats are close enough, compute the angle bewteen their directions, and
+            #         # move the rudder 
+            #         radius = (b.length + self.length) * 0.5 + offset
+            #         center = b.position
+            #         start = self.position
+            #         end = self.heading * 5
+            #         if check_intersection(center, radius, start, end):
+            #             angle = compute_angle_between(b.heading, self.heading)
+            #             self.rudder.controller.set_target(angle)
+            #             avoiding_collisions = True
+            
+            # if not avoiding_collisions:
+                # set the angle of rudder equal to the angle between the direction of the boat and
+                # the target point
+                filtered_heading = polar_to_cartesian(1, boat_angle)
+                target_direction = self.target - boat_position
+                angle_from_target = mod2pi(-compute_angle_between(filtered_heading, target_direction))
+                self.rudder.controller.set_target(angle_from_target)
+                self.rudder.controller.move(dt)
 
         # if the boat is upwind (controvento), switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,

@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from utils import compute_angle, compute_angle_between, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
+from utils import check_intersection, compute_angle, compute_angle_between, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
 
 class TestComputeAngle(unittest.TestCase):
 
@@ -123,6 +123,32 @@ class TestIsAngleBetween(unittest.TestCase):
         angle = np.pi
         between = is_angle_between(angle, min, max)
         self.assertFalse(between)
+
+class TestCheckIntersection(unittest.TestCase):
+
+    def test_0(self):
+        start = np.array([3.0, -4.0])
+        end = start * 2
+        center = np.array([3.0, -7.0])
+        radius = 2
+        interect = check_intersection(center, radius, start, end)
+        self.assertTrue(interect)
+    
+    def test_1(self):
+        start = np.array([3.0, -4.0])
+        end = start * 2
+        center = np.array([3.0, -8.0])
+        radius = 1
+        interect = check_intersection(center, radius, start, end)
+        self.assertFalse(interect)
+    
+    def test_2(self):
+        start = np.array([3.0, 4.0])
+        end = start * 2
+        center = np.array([3.0, 4.0])
+        radius = 1
+        interect = check_intersection(center, radius, start, end)
+        self.assertTrue(interect)
 
 if __name__ == '__main__':
     unittest.main()
