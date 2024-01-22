@@ -6,7 +6,7 @@ from utils import *
 from pid import PID
 from sensor import GNSS, Compass, Anemometer, Speedometer, Sonar
 from typing import Optional
-from environment import SeabedMap
+from environment import SeabedMap, SeabedBoatMap
 
 class RigidBody:
     def __init__(self, mass):
@@ -54,10 +54,10 @@ class Boat(RigidBody):
             self,
             mass,
             length,
+            map: Optional[SeabedBoatMap] = None,
             wing: Optional[Wing] = None,
             rudder: Optional[Rudder] = None,
             motor_controller: Optional[MotorController] = None,
-            boat_seabed: Optional[SeabedMap] = None,
             gnss: Optional[GNSS] = None,
             compass: Optional[Compass] = None,
             anemometer: Optional[Anemometer] = None,
@@ -70,8 +70,7 @@ class Boat(RigidBody):
         self.length = length
         self.drag_damping = 0.2
         self.target = None
-        self.seabed = boat_seabed
-        # self.seabed.create_empty_seabed()
+        self.map = map
         self.motor_controller = motor_controller
 
         if gnss is None:
@@ -108,6 +107,9 @@ class Boat(RigidBody):
 
         if ekf is None:
             Logger.warning('No EKF provided')
+        
+        if map is None:
+            Logger.warning('No map provided')
         self.ekf = ekf
         self.filtered_state = None
     
@@ -258,8 +260,14 @@ class Boat(RigidBody):
         return self.compass.measure(self.heading)
     def measure_gnss(self):
         return self.gnss.measure(self.position)
-    def measure_sonar(self, seabed):
-        return self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
+    def measure_sonar(self, seabed: SeabedMap, filtered_pos):
+        try:
+            meas = self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
+            self.map.insert_measure(filtered_pos[0], filtered_pos[1], meas)
+        except Exception as e:
+            Logger.error(e)
+            meas = 0
+        return meas
     def measure_rudder(self):
         return self.rudder.controller.measure_angle()    
     def measure_wing(self):
