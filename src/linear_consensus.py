@@ -2,18 +2,27 @@ import numpy as np
 
 PROB_OF_CONNECTION = 1
 N_BOATS = 4
-N_MEASUREMENTS = 200
-N_MSGS = 200
+N_MSGS = 500
+N_MEASUREMENTS = N_MSGS
+SIZE_MAP_X = 30
+SIZE_MAP_Y = 30
 
 
 class Boat:
     def __init__(self) -> None:
-        self.result = np.zeros((5, 5))
-        self.count_others = np.zeros((5, 5))
-        self.sum_others = np.zeros((5, 5))
-        self.meas = None
-        self.row_meas = None
-        self.col_meas = None
+        self.result = np.zeros((SIZE_MAP_Y, SIZE_MAP_X))
+        self.count_others = np.zeros((SIZE_MAP_Y, SIZE_MAP_X))
+        self.sum_others = np.zeros((SIZE_MAP_Y, SIZE_MAP_X))
+        self.meas = []
+    def measure_sonar(self, row, col, value):
+        self.meas.append((row, col, value + np.random.normal(0, 5)))
+    def get_measure(self, row, col):
+        for m in self.meas:
+            if m[0] == row and m[1] == col:
+                return m[2]
+        return 0
+    def empty_measures(self):
+        self.meas = []
 
 
 boats = []
@@ -21,58 +30,53 @@ errors = []
 for i in range(N_BOATS):
     boats.append(Boat())
     errors.append([])
-map = np.array([
-       [100, 200, 300, 400, 500],
-       [500, 150, 250, 350, 500],
-       [600, 700, 850, 750, 450],
-       [550, 100, 200, 300, 100],
-       [900, 450, 250, 750, 450]
-       ])
+map = np.random.rand(SIZE_MAP_Y, SIZE_MAP_X) * 500 + 100
 
 
 for mes in range(N_MSGS):
     # MEASUREMENT IN A RANDOM POSITION
     if mes < N_MEASUREMENTS:
         for i in range(N_BOATS):
-            boats[i].row_meas = np.random.randint(0, 5)
-            boats[i].col_meas = np.random.randint(0, 5)
-            boats[i].meas = map[boats[i].row_meas][boats[i].col_meas] + np.random.normal(0, 5)
+            n_measure_per_step = np.random.randint(1, 5)
+            for _ in range(n_measure_per_step):
+                row = np.random.randint(0, SIZE_MAP_Y)
+                col = np.random.randint(0, SIZE_MAP_X)
+                boats[i].measure_sonar(row, col, map[row][col]) 
     else:
         for i in range(N_BOATS):
-            boats[i].meas = None
-            boats[i].row_meas = None
-            boats[i].col_meas = None
+            boats[i].empty_measures()
+    
     
     # EXCHANGE MESSAGES
     for i in range(N_BOATS): #receiver
-        for row in range(5):
-            for col in range(5):
+        for row in range(SIZE_MAP_Y):
+            for col in range(SIZE_MAP_X):
                 boats[i].count_others[row][col] = 0
                 boats[i].sum_others[row][col] = 0
 
         for j in range(N_BOATS): #sender
             if i != j and np.random.rand() < PROB_OF_CONNECTION:
-                for row in range(5):
-                    for col in range(5):
+                for row in range(SIZE_MAP_Y):
+                    for col in range(SIZE_MAP_X):
                         if boats[j].result[row][col] != 0:
                             boats[i].count_others[row][col] += 1
                             boats[i].sum_others[row][col] += boats[j].result[row][col]
 
     # COMPUTE RESULT
     for i in range(N_BOATS):
-        for row in range(5):
-            for col in range(5):
+        for row in range(SIZE_MAP_Y):
+            for col in range(SIZE_MAP_X):
                 # CASE ALL: data from old value, data from measurement, (possible) data from others
-                if boats[i].result[row][col] !=0 and boats[i].row_meas == row and boats[i].col_meas == col:
-                    boats[i].result[row][col] = 0.5 * (1 - boats[i].count_others[row][col]/N_BOATS) * (boats[i].result[row][col] + boats[i].meas)
+                if boats[i].result[row][col] !=0 and boats[i].get_measure(row, col) != 0:
+                    boats[i].result[row][col] = 0.5 * (1 - boats[i].count_others[row][col]/N_BOATS) * (boats[i].result[row][col] + boats[i].get_measure(row, col))
                     boats[i].result[row][col] += boats[i].sum_others[row][col] / N_BOATS
                 # CASE OLD VALUE AND OTHERS: data from old value, (possible) data from others
                 elif boats[i].result[row][col] !=0:
                     boats[i].result[row][col] = (1 - boats[i].count_others[row][col]/N_BOATS) * boats[i].result[row][col]
                     boats[i].result[row][col] += boats[i].sum_others[row][col] / N_BOATS
                 # CASE MEASUREMENT AND OTHERS: data from measurement, (possible) data from others
-                elif boats[i].row_meas == row and boats[i].col_meas == col:
-                    boats[i].result[row][col] = (1 - boats[i].count_others[row][col]/N_BOATS) * boats[i].meas
+                elif boats[i].get_measure(row, col) != 0:
+                    boats[i].result[row][col] = (1 - boats[i].count_others[row][col]/N_BOATS) * boats[i].get_measure(row, col)
                     boats[i].result[row][col] += boats[i].sum_others[row][col] / N_BOATS
                 # CASE OTHERS: data from others
                 elif boats[i].count_others[row][col] != 0:
