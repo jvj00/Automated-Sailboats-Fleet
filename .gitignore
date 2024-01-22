@@ -1,5 +1,6 @@
 # Personal files
 src/kalman_filter.py
+csv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
