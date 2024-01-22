@@ -35,16 +35,15 @@ map = np.random.rand(SIZE_MAP_Y, SIZE_MAP_X) * 500 + 100
 
 for mes in range(N_MSGS):
     # MEASUREMENT IN A RANDOM POSITION
+    for i in range(N_BOATS):
+        boats[i].empty_measures()
     if mes < N_MEASUREMENTS:
         for i in range(N_BOATS):
             n_measure_per_step = np.random.randint(1, 5)
             for _ in range(n_measure_per_step):
                 row = np.random.randint(0, SIZE_MAP_Y)
                 col = np.random.randint(0, SIZE_MAP_X)
-                boats[i].measure_sonar(row, col, map[row][col]) 
-    else:
-        for i in range(N_BOATS):
-            boats[i].empty_measures()
+                boats[i].measure_sonar(row, col, map[row][col])
     
     
     # EXCHANGE MESSAGES
