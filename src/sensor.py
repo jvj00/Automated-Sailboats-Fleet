@@ -128,7 +128,7 @@ class Sonar:
         self.err_distance = err_distance
     
     def measure_with_truth(self, value):
-        measured = value_from_gaussian(value, self.err_distance.get_sigma(value))
+        measured = mod2pi(value_from_gaussian(value, self.err_distance.get_sigma(value)))
         return value, measured
     
     def measure(self, value) -> float:
