@@ -333,13 +333,16 @@ class World:
 # TODO
 # takes a list of boats and creates, for each group of boats, its route
 # each group goes to specific rows
-def compute_targets(boats: list[Boat], map: SeabedMap, groups_n: int):
-    targets = []
+def compute_targets(map: SeabedMap, groups_n: int):
+    targets = [[] for _ in range(groups_n)]
     x_cells = int((map.max_x - map.min_x) / map.resolution)
     y_cells = int((map.max_y - map.min_y) / map.resolution)
 
     for row in range(x_cells):
+        row_idx = row % groups_n
         for col in range(y_cells):
             center_x = col * map.resolution + map.resolution / 2
             center_y = row * map.resolution + map.resolution / 2
-            targets.append(np.array([center_x, center_y]))
+            targets[row_idx].append(np.array([center_x, center_y]))
+    
+    return targets
