@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
+from environment import SeabedMap
 
-from utils import check_intersection_circle_line, compute_angle, compute_angle_between, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
+from utils import check_intersection_circle_line, compute_angle, compute_angle_between, compute_targets_from_map, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
 
 class TestComputeAngle(unittest.TestCase):
 
@@ -149,6 +150,17 @@ class TestCheckIntersection(unittest.TestCase):
         radius = 1
         interect = check_intersection_circle_line(center, radius, start, end)
         self.assertTrue(interect)
+
+class TestComputeTargetsFromMap(unittest.TestCase):
+
+    def test_0(self):
+        seabed = SeabedMap(-100, 100, -100, 100, 5)
+        groups = 2
+        targets = compute_targets_from_map(seabed, groups)
+        print(len(targets[0]))
+        print(targets[0][1] - targets[0][0])
+        print(targets[0][1], targets[0][0])
+        print(len(targets[1]))
 
 if __name__ == '__main__':
     unittest.main()
