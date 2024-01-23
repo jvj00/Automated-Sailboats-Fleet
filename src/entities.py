@@ -249,10 +249,10 @@ class Boat(RigidBody):
                 wing_angle = self.wing.controller.get_angle()
                 if np.abs(wing_angle - mod2pi(wind_angle + np.pi * 0.5)) > np.abs(wing_angle - mod2pi(wind_angle - np.pi * 0.5)):
                     wing_angle = mod2pi(wind_angle - np.pi * 0.5)
-                    print("POS")
+                    # print("POS")
                 else:
                     wing_angle = mod2pi(wind_angle + np.pi * 0.5)
-                    print("NEG")
+                    # print("NEG")
                 self.wing.controller.set_target(wing_angle)
             if self.motor_controller is not None:
                 self.motor_controller.set_power(self.motor_controller.motor.max_power)
