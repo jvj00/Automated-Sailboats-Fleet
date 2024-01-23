@@ -42,6 +42,9 @@ class RigidBody:
         else:
             self.velocity += velocity_decrease
     
+    def apply_acceleration_to_velocity(self, dt):
+        self.velocity += (self.acceleration * dt)
+    
 class Wind:
     def __init__(self, density: float):
         self.density = density
@@ -170,9 +173,6 @@ class Boat(RigidBody):
     def move(self, dt):
         self.translate(dt)
         self.rotate(dt)
-
-    def apply_acceleration_to_velocity(self, dt):
-        self.velocity += (self.acceleration * dt)
     
     def apply_forces(self, wind, dt):
         motor_force = 0
