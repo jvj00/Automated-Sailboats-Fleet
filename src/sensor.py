@@ -88,7 +88,7 @@ class Compass:
     
     def measure_with_truth(self, boat_heading):
         truth = compute_angle(boat_heading)
-        measured = value_from_gaussian(truth, self.err_angle.get_sigma(truth))
+        measured = mod2pi(value_from_gaussian(truth, self.err_angle.get_sigma(truth)))
         return truth, measured
 
     def measure(self, boat_heading) -> float:

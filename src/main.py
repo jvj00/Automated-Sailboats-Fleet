@@ -7,13 +7,18 @@ from entities import Boat, Wind, Wing, Rudder, World
 from environment import SeabedMap
 from pid import PID
 from logger import Logger
-from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
+from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer, Sonar
+from environment import SeabedMap, SeabedBoatMap
+from fleet import Fleet
 from utils import polar_to_cartesian
 
 if __name__ == '__main__':
     
+    world_width = 450
+    world_height = 250
     # seadbed initialization
-    seabed = SeabedMap(0,0,0,0)
+    seabed = SeabedMap(int(-world_height*0.5),int(world_width*0.5),int(-world_height*0.5),int(world_height*0.5), resolution=25)
+    seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=True)
 
     ## wind initialization
     wind = Wind(1.291)
@@ -21,18 +26,14 @@ if __name__ == '__main__':
     
     # world initialization
     world = World(9.81, wind, seabed)
-
-    win_width = 900
-    win_height = 500
-
-    world_width = 450
-    world_height = 250
+    win_width = world_width * 2
+    win_height = world_height * 2
     drawer = Drawer(win_width, win_height, world_width, world_height)
     drawer.debug = True
 
     # boats initialization
     boats: list[Boat] = []
-    boats_n = 1
+    boats_n = 4
 
     boats_starting_point = np.array([0.0, 0.0])
 
@@ -44,15 +45,16 @@ if __name__ == '__main__':
         speedometer_per = Speedometer(MixedError(0.01, 5))
         compass = Compass(AbsoluteError(3*np.pi/180))
         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+        sonar = Sonar(RelativeError(0.01))
 
         # actuators initialization
-        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
+        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
         motor_controller = MotorController(Motor(200, 0.85, 1024))
 
         boat_position = boats_starting_point + np.array([i * 10, i * 10])
         ## boat initialization
-        boat = Boat(40, 10, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, seabed, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
+        boat = Boat(40, 10, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, EKF())
         boat.position = np.array(boat_position)
         boat.velocity = np.array([0.0, 0.0])
         boat.heading = polar_to_cartesian(1, -np.pi/4)
@@ -60,12 +62,14 @@ if __name__ == '__main__':
         # boat ekf setup
         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
 
-        # boat.ekf.set_initial_state(boat.get_state())
-        # boat.ekf.set_initial_state_variance(boat.get_state_variance())
-        # boat.ekf.set_constants(ekf_constants)
+        boat.ekf.set_initial_state(boat.measure_state())
+        boat.ekf.set_initial_state_variance(boat.get_state_variance())
+        boat.ekf.set_constants(ekf_constants)
         
         boats.append(boat)
 
+    # fleet initialization
+    fleet = Fleet(boats, seabed, prob_of_connection=0.8)
     velocities = []
     wind_velocities = []
     positions = []
@@ -85,6 +89,7 @@ if __name__ == '__main__':
         if time_elapsed % 10 == 0:
             update_gnss = True
             update_compass = True
+            fleet.sync_boat_measures(debug=True)
         else:
             update_gnss = False
             update_compass = False
@@ -99,15 +104,17 @@ if __name__ == '__main__':
         # wind_velocities.append(world.wind.velocity.copy())
 
         # times.append(time_elapsed)
-                
+        i = 0
         for b in boats:
+            b.follow_target(world.wind, dt)
             try:
+                print(i)
+                i+=1
                 x, P = b.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
-                print(np.abs(b.get_state()-x))
+                b.measure_sonar(seabed, x) # WARNING: INSERT THEN FILTERED POSITION, NOT TRUTH
             except:
+                pass
                 print('ekf not available')
-
-            b.follow_target(world.wind, dt, simulated_data=True)
         
         world.update(boats, dt)
 

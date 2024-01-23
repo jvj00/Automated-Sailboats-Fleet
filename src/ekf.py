@@ -91,13 +91,13 @@ class EKF:
         
 
         # Jacobian of partial derivatives of the state transition matrix
-        Ad = np.array([[1, 0, -np.sin(self.x[2])*u_dt[0] + np.cos(self.x[2])*u_dt[1]],
+        J = np.array([[1, 0, -np.sin(self.x[2])*u_dt[0] + np.cos(self.x[2])*u_dt[1]],
                        [0, 1, np.cos(self.x[2])*u_dt[0] + np.sin(self.x[2])*u_dt[1]],
                        [0, 0, 1]])
 
         ## PREDICTION STEP
         x_pred = self.x + F_q @ u_dt
-        P_pred = Ad @ self.P @ Ad.T + (F_q @ (a_dt @ Q @ a_dt.T) @ F_q.T)
+        P_pred = J @ self.P @ J.T + (F_q @ (a_dt @ Q @ a_dt.T) @ F_q.T)
         x_pred[2] = mod2pi(x_pred[2])
         
 
@@ -106,13 +106,14 @@ class EKF:
         if update_gnss or update_compass:
 
             ## EXTEROCEPTIVE MEASUREMENTS
-            boat_angle = mod2pi(compass.measure(true_boat_heading))
-            if boat_angle-x_pred[2] > np.pi: #because kalman filter update gain doesn't matter to angles
+            boat_angle = compass.measure(true_boat_heading)
+            boat_position = gnss.measure(true_boat_position)
+
+            if boat_angle-x_pred[2] > np.pi: # because Kalman Filter's update gain doesn't matter to angles (6.27 is much bigger than 0.01) 
                 x_pred[2]+=2*np.pi
             elif boat_angle-x_pred[2] < -np.pi:
                 x_pred[2]-=2*np.pi
 
-            boat_position = gnss.measure(true_boat_position)
             # Measurement matrix
             if update_gnss and update_compass:
                 H = np.eye(3)

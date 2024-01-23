@@ -6,7 +6,7 @@ from utils import *
 from pid import PID
 from sensor import GNSS, UWB, Compass, Anemometer, Speedometer, Sonar
 from typing import Optional
-from environment import SeabedMap
+from environment import SeabedMap, SeabedBoatMap
 from uuid import uuid4
 
 class RigidBody:
@@ -56,10 +56,10 @@ class Boat(RigidBody):
             self,
             mass,
             length,
+            map: Optional[SeabedBoatMap] = None,
             wing: Optional[Wing] = None,
             rudder: Optional[Rudder] = None,
             motor_controller: Optional[MotorController] = None,
-            boat_seabed: Optional[SeabedMap] = None,
             gnss: Optional[GNSS] = None,
             compass: Optional[Compass] = None,
             anemometer: Optional[Anemometer] = None,
@@ -73,9 +73,9 @@ class Boat(RigidBody):
         self.length = length
         self.drag_damping = 0.2
         self.target = None
-        self.seabed = boat_seabed
-        # self.seabed.create_empty_seabed()
+        self.map = map
         self.motor_controller = motor_controller
+        self.trigger_motor = False
 
         if gnss is None:
             Logger.warning('No GNSS sensor provided')
@@ -115,6 +115,9 @@ class Boat(RigidBody):
 
         if ekf is None:
             Logger.warning('No EKF provided')
+        
+        if map is None:
+            Logger.warning('No map provided')
         self.ekf = ekf
         self.filtered_state = None
     
@@ -125,6 +128,14 @@ class Boat(RigidBody):
         return self.filtered_state, filtered_variance
 
     def get_state(self):
+        return np.array(
+            [
+                *self.position,
+                compute_angle(self.heading)
+            ]
+        ).T
+    
+    def measure_state(self):
         return np.array(
             [
                 *self.measure_gnss(),
@@ -251,9 +262,20 @@ class Boat(RigidBody):
         # if the boat is upwind (controvento), switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,
         # the wing must be placed parallel to the wind
-        if is_angle_between(wind_angle, np.pi * 0.5, np.pi * 1.5) or motor_only:
+        if is_angle_between(wind_angle, np.pi * 1/2, np.pi * 3/2):
+            self.trigger_motor = True
+        elif is_angle_between(wind_angle, 0, np.pi * 1/3) or is_angle_between(wind_angle, np.pi * 5/3, np.pi * 2):
+            self.trigger_motor = False
+
+        if self.trigger_motor or motor_only:
             if self.wing is not None:
-                wing_angle = mod2pi(wind_angle + np.pi * 0.5)
+                wing_angle = self.wing.controller.get_angle()
+                if np.abs(wing_angle - mod2pi(wind_angle + np.pi * 0.5)) > np.abs(wing_angle - mod2pi(wind_angle - np.pi * 0.5)):
+                    wing_angle = mod2pi(wind_angle - np.pi * 0.5)
+                    print("POS")
+                else:
+                    wing_angle = mod2pi(wind_angle + np.pi * 0.5)
+                    print("NEG")
                 self.wing.controller.set_target(wing_angle)
             if self.motor_controller is not None:
                 self.motor_controller.set_power(self.motor_controller.motor.max_power)
@@ -281,8 +303,14 @@ class Boat(RigidBody):
         return self.compass.measure(self.heading)
     def measure_gnss(self):
         return self.gnss.measure(self.position)
-    def measure_sonar(self, seabed):
-        return self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
+    def measure_sonar(self, seabed: SeabedMap, filtered_pos):
+        try:
+            meas = self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
+            self.map.insert_measure(filtered_pos[0], filtered_pos[1], meas)
+        except Exception as e:
+            Logger.error(e)
+            meas = 0
+        return meas
     def measure_rudder(self):
         return self.rudder.controller.measure_angle()    
     def measure_wing(self):
