@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class SeabedMap:
     def __init__(self, min_x, max_x, min_y, max_y, resolution=5) -> None:
@@ -27,7 +28,6 @@ class SeabedMap:
         np.clip(self.seabed, min_z, max_z, out=self.seabed)
         
         if plot:
-            import matplotlib.pyplot as plt
             fig = plt.figure()
             ax = fig.add_subplot(1, 1, 1, projection='3d')
             x, y = np.meshgrid(range(self.min_x, self.max_x, self.resolution), range(self.min_y, self.max_y, self.resolution))

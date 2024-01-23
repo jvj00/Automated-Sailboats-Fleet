@@ -2,6 +2,7 @@ from entities import Boat
 from environment import SeabedMap, SeabedBoatMap
 from typing import List
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Fleet:
     def __init__(self, boats: List[Boat], seabed: SeabedMap, prob_of_connection=1):
@@ -53,5 +54,43 @@ class Fleet:
                             count += 1
                 if count != 0:
                     error = round(error / count *100)/100
-                print(f'Boat {debug_index}: {round(np.count_nonzero(boat.map.partial_map)*1000/boat.map.partial_map.size)/10}% of map with avgerage error of {error} m')
+                print(f'Boat {debug_index}: {round(np.count_nonzero(boat.map.partial_map)*1000/boat.map.partial_map.size)/10}% of map with average error of {error} m')
                 debug_index+=1
+    
+    def plot_boat_maps(self):
+        dx = 1800
+        dy = 900
+        dpi = 100
+        if np.any([np.count_nonzero(boat.map.partial_map) for boat in self.boats]):
+            fig = plt.figure(figsize=(dx/dpi, dy/dpi), dpi=dpi)
+            fig.suptitle('Boat maps')
+            mngr = plt.get_current_fig_manager()
+            mngr.window.setGeometry(int((1920-dx)/2), int((1080-dy)/2), dx, dy)
+            fig_err = plt.figure(figsize=(dx/dpi, dy/dpi), dpi=dpi)
+            fig_err.suptitle('Boat maps error')
+            mngr_err = plt.get_current_fig_manager()
+            mngr_err.window.setGeometry(int((1920-dx)/2), int((1080-dy)/2), dx, dy)
+            fig_col = int(np.ceil(np.sqrt(len(self.boats))))
+            fig_row = int(np.ceil(len(self.boats)/fig_col))
+            for idx, boat in enumerate(self.boats):
+                if np.count_nonzero(boat.map.partial_map) != 0:
+                    error=0
+                    count=0
+                    for row in range(self.seabed.len_x):
+                        for col in range(self.seabed.len_y):
+                            if boat.map.partial_map[row][col] != 0:
+                                error += np.abs(self.seabed.seabed[row][col] - boat.map.partial_map[row][col])
+                                count += 1
+                    if count != 0:
+                        error = round(error / count *100)/100
+                    ax = fig.add_subplot(fig_row, fig_col, idx+1, projection='3d')
+                    ax_err = fig_err.add_subplot(fig_row, fig_col, idx+1, projection='3d')
+                    ax.set_title(f'Boat {idx+1}: {round(np.count_nonzero(boat.map.partial_map)*1000/boat.map.partial_map.size)/10}% of map with avg error of {error} m')
+                    ax_err.set_title(f'Boat {idx+1}')
+                    x, y = np.meshgrid(range(boat.map.min_x, boat.map.max_x, boat.map.resolution), range(boat.map.min_y, boat.map.max_y, boat.map.resolution))
+                    ax.plot_surface(x, y, -boat.map.partial_map.T, color=(0.7,0.0,0.0,0.5), edgecolor='red', lw=0.5, rstride=1, cstride=1)
+                    ax.plot_surface(x, y, -self.seabed.seabed.T, color=(0.5,0.5,0.5,0.5) ,edgecolor='grey', lw=0.5, rstride=1, cstride=1)
+                    ax_err.plot_surface(x, y, np.abs(boat.map.partial_map - self.seabed.seabed).T, color=(0.0,0.7,0.0,0.5), edgecolor='green', lw=0.5, rstride=1, cstride=1)
+                    ax.set_aspect('equal', adjustable='box')
+                    ax_err.set_aspect('equal', adjustable='box')
+            plt.show()

@@ -18,7 +18,7 @@ if __name__ == '__main__':
     world_height = 250
     # seadbed initialization
     seabed = SeabedMap(int(-world_height*0.5),int(world_width*0.5),int(-world_height*0.5),int(world_height*0.5), resolution=25)
-    seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=True)
+    seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=False)
 
     ## wind initialization
     wind = Wind(1.291)
@@ -90,6 +90,7 @@ if __name__ == '__main__':
             update_gnss = True
             update_compass = True
             fleet.sync_boat_measures(debug=True)
+            fleet.plot_boat_maps()
         else:
             update_gnss = False
             update_compass = False
@@ -104,14 +105,11 @@ if __name__ == '__main__':
         # wind_velocities.append(world.wind.velocity.copy())
 
         # times.append(time_elapsed)
-        i = 0
         for b in boats:
             b.follow_target(world.wind, dt)
             try:
-                print(i)
-                i+=1
                 x, P = b.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
-                b.measure_sonar(seabed, x) # WARNING: INSERT THEN FILTERED POSITION, NOT TRUTH
+                b.measure_sonar(seabed, b.get_state()) # WARNING: INSERT THEN FILTERED POSITION, NOT TRUTH
             except:
                 pass
                 print('ekf not available')
