@@ -157,10 +157,27 @@ class TestComputeTargetsFromMap(unittest.TestCase):
         seabed = SeabedMap(-100, 100, -100, 100, 5)
         groups = 2
         targets = compute_targets_from_map(seabed, groups)
-        print(len(targets[0]))
-        print(targets[0][1] - targets[0][0])
-        print(targets[0][1], targets[0][0])
-        print(len(targets[1]))
+        
+        self.assertEqual(len(targets), 2)
+
+        self.assertEqual(len(targets[0]), 800)
+        
+        self.assertAlmostEqual(targets[0][0][0], 2.5)
+        self.assertAlmostEqual(targets[0][0][1], 2.5)
+        self.assertAlmostEqual(targets[0][1][0], 7.5)
+        self.assertAlmostEqual(targets[0][1][1], 2.5)
+
+        self.assertEqual(len(targets[1]), 800)
+
+        self.assertAlmostEqual(targets[1][0][0], 2.5)
+        self.assertAlmostEqual(targets[1][0][1], 7.5)
+        self.assertAlmostEqual(targets[1][1][0], 7.5)
+        self.assertAlmostEqual(targets[1][1][1], 7.5)
+        
+        # print(len(targets[0]))
+        # print(targets[0][1] - targets[0][0])
+        # print(targets[0][1], targets[0][0])
+        # print(len(targets[1]))
 
 if __name__ == '__main__':
     unittest.main()
