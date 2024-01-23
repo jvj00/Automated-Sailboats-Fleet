@@ -122,7 +122,7 @@ def compute_motor_thrust(motor_power, efficiency, boat_velocity, boat_heading):
     thrust_mag = efficiency * motor_power / (np.abs(np.dot(boat_velocity, boat_heading))+1)
     return boat_heading * thrust_mag
 
-def check_intersection(center, radius, start, end):
+def check_intersection_circle_line(center, radius, start, end):
     delta = end - start
     a = delta[0] ** 2 + delta[1] ** 2
     b = delta[0] * (start[0] - center[0]) + delta[1] * (start[1] - center[1])
@@ -136,3 +136,6 @@ def check_intersection(center, radius, start, end):
     t2 = (-b - delta) / a;
     
     return 0 <= t1 <= 1 or 0 <= t2 <= 1
+
+def check_intersection_circle_circle(center_a, radius_a, center_b, radius_b) -> bool:
+    return compute_magnitude(center_a - center_b) < radius_a + radius_b

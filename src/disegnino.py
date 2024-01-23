@@ -61,15 +61,15 @@ class Drawer:
         
     def draw_boat(self, boat: Boat):
         # draw boat
-        boat_width = 30
-        boat_height = 10
+        boat_width = boat.length
+        boat_height = boat_width / 3
         boat_color = color_rgb(255,168,168)
         boat_angle = compute_angle(boat.heading)
         self.draw_rectangle(boat_width, boat_height, boat.position, boat.position, boat_angle, boat_color)
 
         # draw wing
-        wing_width = 2
-        wing_height = 10
+        wing_height = boat_width / 2
+        wing_width = wing_height / 3
         wing_color = color_rgb(150, 150, 150)
         wing_angle = boat.wing.controller.get_angle() + boat_angle
         self.draw_rectangle(wing_width, wing_height, boat.position, boat.position, wing_angle, wing_color)
@@ -85,6 +85,11 @@ class Drawer:
             rudder_angle_abs += np.pi
             rudder_heading = polar_to_cartesian(1, rudder_angle_abs) 
             self.draw_vector(boat.position, rudder_heading, 'purple', 10)
+    
+            collision_box_center = self.to_canvas(boat.position)
+            radius = scale(self.world_width, self.win.width, boat.length * 0.5)
+            draw = Circle(Point(collision_box_center[0], collision_box_center[1]), radius)
+            draw.draw(self.win)
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)
@@ -110,7 +115,7 @@ class Drawer:
         x_axis.draw(self.win)
         y_axis.draw(self.win)
 
-        steps = 10
+        steps = 30
 
         x_step = self.win.width / steps
         x_position = 0
@@ -118,7 +123,7 @@ class Drawer:
         for x in np.arange(0, self.win.width, x_step):
             value = scale(self.win.width, self.world_width, x) - (self.world_width * 0.5)
             p = Point(x, self.win.height * 0.5 + offset_from_x_axis)
-            txt = Text(p, str(value))
+            txt = Text(p, str(np.floor(value)))
             txt.setSize(8)
             txt.draw(self.win)
             x_position += x
@@ -129,7 +134,7 @@ class Drawer:
         for y in np.arange(0, self.win.height, y_step):
             value = scale(self.win.height, self.world_height, y) - (self.world_height * 0.5)
             p = Point(self.win.width * 0.5 + offset_from_y_axis, y)
-            txt = Text(p, str(value))
+            txt = Text(p, str(np.floor(value)))
             txt.setSize(8)
             txt.draw(self.win)
             y_position += y
