@@ -18,7 +18,7 @@ if __name__ == '__main__':
     world_height = 250
     # seadbed initialization
     seabed = SeabedMap(int(-world_height*0.5),int(world_width*0.5),int(-world_height*0.5),int(world_height*0.5), resolution=25)
-    seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=False)
+    seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=True)
 
     ## wind initialization
     wind = Wind(1.291)
@@ -48,7 +48,7 @@ if __name__ == '__main__':
         sonar = Sonar(RelativeError(0.01))
 
         # actuators initialization
-        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
+        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
         motor_controller = MotorController(Motor(200, 0.85, 1024))
 
@@ -62,9 +62,9 @@ if __name__ == '__main__':
         # boat ekf setup
         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
 
-        # boat.ekf.set_initial_state(boat.get_state())
-        # boat.ekf.set_initial_state_variance(boat.get_state_variance())
-        # boat.ekf.set_constants(ekf_constants)
+        boat.ekf.set_initial_state(boat.measure_state())
+        boat.ekf.set_initial_state_variance(boat.get_state_variance())
+        boat.ekf.set_constants(ekf_constants)
         
         boats.append(boat)
 
@@ -104,17 +104,17 @@ if __name__ == '__main__':
         # wind_velocities.append(world.wind.velocity.copy())
 
         # times.append(time_elapsed)
-                
+        i = 0
         for b in boats:
+            b.follow_target(world.wind, dt)
             try:
+                print(i)
+                i+=1
                 x, P = b.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
-                print(np.abs(b.get_state()-x))
+                b.measure_sonar(seabed, x) # WARNING: INSERT THEN FILTERED POSITION, NOT TRUTH
             except:
                 pass
-                #print('ekf not available')
-
-            b.measure_sonar(seabed, b.position) # WARNING: INSERT THEN FILTERED POSITION, NOT TRUTH
-            b.follow_target(world.wind, dt, simulated_data=True)
+                print('ekf not available')
         
         world.update(boats, dt)
 

@@ -72,6 +72,7 @@ class Boat(RigidBody):
         self.target = None
         self.map = map
         self.motor_controller = motor_controller
+        self.trigger_motor = False
 
         if gnss is None:
             Logger.warning('No GNSS sensor provided')
@@ -120,6 +121,14 @@ class Boat(RigidBody):
         return self.filtered_state, filtered_variance
 
     def get_state(self):
+        return np.array(
+            [
+                *self.position,
+                compute_angle(self.heading)
+            ]
+        ).T
+    
+    def measure_state(self):
         return np.array(
             [
                 *self.measure_gnss(),
@@ -230,9 +239,20 @@ class Boat(RigidBody):
         # if the boat is upwind (controvento), switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,
         # the wing must be placed parallel to the wind
-        if is_angle_between(wind_angle, np.pi * 0.5, np.pi * 1.5) or motor_only:
+        if is_angle_between(wind_angle, np.pi * 1/2, np.pi * 3/2):
+            self.trigger_motor = True
+        elif is_angle_between(wind_angle, 0, np.pi * 1/3) or is_angle_between(wind_angle, np.pi * 5/3, np.pi * 2):
+            self.trigger_motor = False
+
+        if self.trigger_motor or motor_only:
             if self.wing is not None:
-                wing_angle = mod2pi(wind_angle + np.pi * 0.5)
+                wing_angle = self.wing.controller.get_angle()
+                if np.abs(wing_angle - mod2pi(wind_angle + np.pi * 0.5)) > np.abs(wing_angle - mod2pi(wind_angle - np.pi * 0.5)):
+                    wing_angle = mod2pi(wind_angle - np.pi * 0.5)
+                    print("POS")
+                else:
+                    wing_angle = mod2pi(wind_angle + np.pi * 0.5)
+                    print("NEG")
                 self.wing.controller.set_target(wing_angle)
             if self.motor_controller is not None:
                 self.motor_controller.set_power(self.motor_controller.motor.max_power)

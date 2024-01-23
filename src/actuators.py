@@ -88,8 +88,8 @@ class StepperController:
 
         if self.max_angle < angle_new <= np.pi:
             steps_new = steps_from_angle(self.max_angle, self.stepper.resolution)
-        elif np.pi < angle_new < self.max_angle + np.pi:
-            steps_new = steps_from_angle(self.max_angle + np.pi, self.stepper.resolution)
+        elif np.pi < angle_new < 2*np.pi - self.max_angle:
+            steps_new = steps_from_angle(mod2pi(-self.max_angle), self.stepper.resolution)
         
         self.steps = steps_new
         # Logger.debug(f'Steps: {self.steps}')
