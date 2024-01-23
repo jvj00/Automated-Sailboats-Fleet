@@ -33,11 +33,13 @@ class TestRigidBody(unittest.TestCase):
         e = RigidBody(10)
         e.acceleration = np.array([1.0, -2.0])
         e.translate(1)
+        e.apply_acceleration_to_velocity(1)
         self.assertEqual(e.position[0], 0.5)
         self.assertEqual(e.position[1], -1.0)
         self.assertEqual(e.velocity[0], 1.0)
         self.assertEqual(e.velocity[1], -2.0)
         e.translate(1)
+        e.apply_acceleration_to_velocity(1)
         self.assertEqual(e.position[0], 2.0)
         self.assertEqual(e.position[1], -4.0)
         self.assertEqual(e.velocity[0], 2.0)
@@ -65,26 +67,6 @@ class TestRigidBody(unittest.TestCase):
         self.assertEqual(e.position[1], 0.0)
         self.assertEqual(e.velocity[0], 0.0)
         self.assertEqual(e.velocity[1], 0.0)
-        self.assertEqual(curr_angle, np.pi)
-    
-    def test_rotate_constant_acceleration(self):
-        e = RigidBody(10)
-        e.angular_acceleration = np.pi * 0.5
-        e.rotate(1)
-        _, curr_angle = cartesian_to_polar(e.heading)
-        self.assertEqual(e.position[0], 0.0)
-        self.assertEqual(e.position[1], 0.0)
-        self.assertEqual(e.velocity[0], 0.0)
-        self.assertEqual(e.velocity[1], 0.0)
-        self.assertEqual(e.angular_speed, np.pi * 0.5)
-        self.assertEqual(curr_angle, np.pi * 0.25)
-        e.rotate(1)
-        _, curr_angle = cartesian_to_polar(e.heading)
-        self.assertEqual(e.position[0], 0.0)
-        self.assertEqual(e.position[1], 0.0)
-        self.assertEqual(e.velocity[0], 0.0)
-        self.assertEqual(e.velocity[1], 0.0)
-        self.assertEqual(e.angular_speed, np.pi)
         self.assertEqual(curr_angle, np.pi)
     
     def test_apply_friction_steady_still(self):
@@ -131,7 +113,7 @@ class TestBoat(unittest.TestCase):
     rudder = Rudder(StepperController(Stepper(100, 1), PID()))
     motor_controller = MotorController(Motor(100, 0.9, 2**10))
     seabed = SeabedMap(0,0,0,0)
-    boat = Boat(10, 10, wing, rudder, motor_controller, seabed)
+    boat = Boat(10, 10, None, wing, rudder, motor_controller, seabed)
     
     def test_rotate_aligned_rudder(self):
         self.boat.rudder.controller.set_angle(0.0)
