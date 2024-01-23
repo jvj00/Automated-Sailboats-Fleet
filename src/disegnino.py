@@ -86,10 +86,10 @@ class Drawer:
             rudder_heading = polar_to_cartesian(1, rudder_angle_abs) 
             self.draw_vector(boat.position, rudder_heading, 'purple', 10)
     
-            collision_box_center = self.to_canvas(boat.position)
-            radius = scale(self.world_width, self.win.width, boat.length * 0.5)
-            draw = Circle(Point(collision_box_center[0], collision_box_center[1]), radius)
-            draw.draw(self.win)
+            # collision_box_center = self.to_canvas(boat.position)
+            # radius = scale(self.world_width, self.win.width, boat.length * 0.5)
+            # draw = Circle(Point(collision_box_center[0], collision_box_center[1]), radius)
+            # draw.draw(self.win)
     
     def draw_vector(self, start, vec, color, gain=1):
         end = start + (vec * gain)

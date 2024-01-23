@@ -10,15 +10,57 @@ from logger import Logger
 from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer, Sonar
 from environment import SeabedMap, SeabedBoatMap
 from fleet import Fleet
-from utils import polar_to_cartesian
+from utils import check_intersection_circle_circle, polar_to_cartesian
+
+# takes a list of boats and creates, for each group of boats, its route
+# each group goes to specific rows
+def create_targets_from_map(map: SeabedMap, boats: list[Boat], boats_per_group_n: int):
+    boats_per_group = [boats[n : n + boats_per_group_n] for n in range(0, len(boats), boats_per_group_n)]
+    groups_n = len(boats_per_group)
+
+    targets_dict = {}
+
+    x_cells = int((map.max_x - map.min_x) / map.resolution)
+    y_cells = int((map.max_y - map.min_y) / map.resolution)
+
+    rows_idx = 0
+
+    for row in np.arange(map.min_x, map.max_x, map.resolution):
+        
+        row_idx = rows_idx % groups_n
+        
+        for col in range(map.min_y, map.max_y, map.resolution):
+            center_x = col + map.resolution / 2
+            center_y = row + map.resolution / 2
+            target = np.array([center_x, center_y])
+        
+            for b in boats_per_group[row_idx]:
+                key = str(b.uuid)
+                if key not in targets_dict:
+                    targets_dict[key] = [target]
+                else:
+                    targets_dict[key].append(target)
+
+        rows_idx += 1
+    
+    for key in targets_dict:
+        targets = targets_dict[key]
+        grouped_lists = [targets[i : i + y_cells] for i in range(0, len(targets), y_cells)]
+
+        for i in range(1, len(grouped_lists), 2):
+            grouped_lists[i] = grouped_lists[i][::-1]
+        
+        targets_dict[key] = [x for xs in grouped_lists for x in xs]
+    
+    return targets_dict
 
 if __name__ == '__main__':
 
     np.set_printoptions(suppress=True)
-    world_width = 450
-    world_height = 250
+    world_width = 400
+    world_height = 200
     # seadbed initialization
-    seabed = SeabedMap(int(-world_height*0.5),int(world_width*0.5),int(-world_height*0.5),int(world_height*0.5), resolution=25)
+    seabed = SeabedMap(int(-world_height*0.3),int(world_width*0.3),int(-world_height*0.3),int(world_height*0.3), resolution=15)
     seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=False)
 
     ## wind initialization
@@ -27,16 +69,14 @@ if __name__ == '__main__':
     
     # world initialization
     world = World(9.81, wind, seabed)
-    win_width = world_width * 2
-    win_height = world_height * 2
+    win_width = world_width * 3
+    win_height = world_height * 3
     drawer = Drawer(win_width, win_height, world_width, world_height)
     drawer.debug = True
 
     # boats initialization
     boats: list[Boat] = []
-    boats_n = 4
-
-    boats_starting_point = np.array([0.0, 0.0])
+    boats_n = 2
 
     for i in range(boats_n):
 
@@ -49,16 +89,15 @@ if __name__ == '__main__':
         sonar = Sonar(RelativeError(0.01))
 
         # actuators initialization
-        rudder_controller = StepperController(Stepper(100, 0.1), PID(0.5, 0, 0), np.pi * 0.15)
+        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
         motor_controller = MotorController(Motor(1000, 0.85, 1024))
 
-        boat_position = boats_starting_point + np.array([i * 10, i * 10])
         ## boat initialization
-        boat = Boat(100, 10, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, None, EKF())
-        boat.position = np.array(boat_position)
-        boat.velocity = np.array([0.0, 0.0])
-        boat.heading = polar_to_cartesian(1, -np.pi/4)
+        boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, None, EKF())
+        boat_position = np.zeros(2)
+        boat.velocity = np.zeros(2)
+        boat.heading = polar_to_cartesian(1, 0)
 
         # boat ekf setup
         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
@@ -71,6 +110,24 @@ if __name__ == '__main__':
 
     # fleet initialization
     fleet = Fleet(boats, seabed, prob_of_connection=0.8)
+
+    # boat as key, targets as value
+    targets_dict = create_targets_from_map(seabed, boats, 2)
+    # boat as key, current target index as value
+    targets_idx = {}
+    
+    for b in boats:
+        uuid = str(b.uuid)
+        targets_idx[uuid] = 0
+        target = targets_dict[uuid][targets_idx[uuid]]
+        b.position = target
+        b.set_target(target)
+
+    for i in range(len(boats)):
+        color = "#%06x" % np.random.randint(0, 0xFFFFFF)
+        drawer.draw_axis()
+        drawer.draw_route(targets_dict[str(boats[i].uuid)], color)
+
     velocities = []
     wind_velocities = []
     positions = []
@@ -78,13 +135,21 @@ if __name__ == '__main__':
     anemo_truth = []
     times = []
 
-    dt = 0.2
+    dt = 0.1
     
     update_gnss = False
     update_compass = False
 
-    for i in range(int(300/dt)):
-        time_elapsed = i * dt
+    for time_elapsed in range(10000):
+
+        for b in boats:
+            uuid = str(b.uuid)
+            boat_target = targets_dict[uuid][targets_idx[uuid]]
+
+            if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 3):
+                targets_idx[uuid] += 1
+                print(targets_dict[uuid][targets_idx[uuid]])
+                b.set_target(targets_dict[uuid][targets_idx[uuid]])
 
         if time_elapsed % 10 == 0:
             update_gnss = True
@@ -95,11 +160,11 @@ if __name__ == '__main__':
             update_gnss = False
             update_compass = False
         
-        if time_elapsed % 30 == 0:
-            x_pos = np.random.uniform(-0.5, 0.5)
-            y_pos = np.random.uniform(-0.5, 0.5)
-            for b in boats:
-                b.set_target(np.array([world_width * x_pos, world_height * y_pos]))
+        # if time_elapsed % 30 == 0:
+        #     x_pos = np.random.uniform(-0.5, 0.5)
+        #     y_pos = np.random.uniform(-0.5, 0.5)
+        #     for b in boats:
+        #         b.set_target(np.array([world_width * x_pos, world_height * y_pos]))
 
         fleet.follow_targets(world.wind, dt)
 
@@ -121,6 +186,6 @@ if __name__ == '__main__':
             drawer.draw_target(boats[0].target)
         drawer.draw_axis()
 
-        plt.pause(dt)
+        plt.pause(0.01)
     
     plt.show()
