@@ -271,7 +271,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -299,7 +299,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -327,7 +327,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -363,7 +363,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -398,7 +398,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -434,7 +434,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
