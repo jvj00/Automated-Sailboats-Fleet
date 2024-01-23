@@ -63,7 +63,7 @@ def simulate(
                     continue
                 boats[i].set_target(targets[i][current_targets_idx[i]])
 
-            boats[i].follow_target(world.wind, dt, boats if collision_avoidance else None, simulated_data, measured_data, motor_only)
+            boats[i].follow_target(world.wind, dt, simulated_data, measured_data, motor_only)
 
         world.update(boats, dt)
 

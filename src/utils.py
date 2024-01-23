@@ -2,6 +2,8 @@ from random import gauss
 from datetime import datetime
 import numpy as np
 
+from environment import SeabedMap
+
 ## VECTOR OPERATIONS
 def normalize(vec):
     mag = compute_magnitude(vec)
@@ -139,3 +141,19 @@ def check_intersection_circle_line(center, radius, start, end):
 
 def check_intersection_circle_circle(center_a, radius_a, center_b, radius_b) -> bool:
     return compute_magnitude(center_a - center_b) < radius_a + radius_b
+
+# takes a list of boats and creates, for each group of boats, its route
+# each group goes to specific rows
+def compute_targets_from_map(map: SeabedMap, groups_n: int):
+    targets = [[] for _ in range(groups_n)]
+    x_cells = int((map.max_x - map.min_x) / map.resolution)
+    y_cells = int((map.max_y - map.min_y) / map.resolution)
+
+    for row in range(x_cells):
+        row_idx = row % groups_n
+        for col in range(y_cells):
+            center_x = col * map.resolution + map.resolution / 2
+            center_y = row * map.resolution + map.resolution / 2
+            targets[row_idx].append(np.array([center_x, center_y]))
+    
+    return targets
