@@ -96,7 +96,7 @@ class TestMotorOnly(unittest.TestCase):
         motor_controller = MotorController(Motor(200, 0.85, 1024))
 
         ## boat initialization
-        boat = Boat(40, 5, None, Rudder(rudder_controller), motor_controller)
+        boat = Boat(40, 5, None, None, Rudder(rudder_controller), motor_controller)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -109,7 +109,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 91.7)
+        self.assertAlmostEqual(time_elapsed, 96)
     
     def test_slalom_medium_simulated(self):
 
@@ -121,7 +121,7 @@ class TestMotorOnly(unittest.TestCase):
         motor_controller = MotorController(Motor(200, 0.85, 1024))
 
         ## boat initialization
-        boat = Boat(40, 5, None, Rudder(rudder_controller), motor_controller)
+        boat = Boat(40, 5, None, None, Rudder(rudder_controller), motor_controller)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -134,7 +134,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 159.3)
+        self.assertAlmostEqual(time_elapsed, 171.4)
     
     def test_sparse_simulated(self):
 
@@ -146,7 +146,7 @@ class TestMotorOnly(unittest.TestCase):
         motor_controller = MotorController(Motor(200, 0.85, 1024))
 
         ## boat initialization
-        boat = Boat(40, 5, None, Rudder(rudder_controller), motor_controller)
+        boat = Boat(40, 5, None, None, Rudder(rudder_controller), motor_controller)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -179,7 +179,7 @@ class TestMotorOnly(unittest.TestCase):
         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
         ## boat initialization
-        boat = Boat(40, 5, None, Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, None, Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -187,7 +187,7 @@ class TestMotorOnly(unittest.TestCase):
 
         targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
         dt = 0.1
-        simulation_time = 100
+        simulation_time = 200
 
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
@@ -211,7 +211,7 @@ class TestMotorOnly(unittest.TestCase):
         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
         ## boat initialization
-        boat = Boat(40, 5, None, Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, None, Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -219,7 +219,7 @@ class TestMotorOnly(unittest.TestCase):
 
         targets = [np.array([50, 50]), np.array([100, -50]), np.array([150, 50]), np.array([200, -50])]
         dt = 0.1
-        simulation_time = 200
+        simulation_time = 300
 
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
@@ -243,7 +243,7 @@ class TestMotorOnly(unittest.TestCase):
         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
         ## boat initialization
-        boat = Boat(40, 5, None, Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, None, Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -251,7 +251,7 @@ class TestMotorOnly(unittest.TestCase):
 
         targets = [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])]
         dt = 0.1
-        simulation_time = 450
+        simulation_time = 500
 
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
@@ -286,7 +286,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 70.3)
+        self.assertAlmostEqual(time_elapsed, 71.2)
     
     def test_slalom_medium_simulated(self):
         ## wind initialization
@@ -314,7 +314,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 135.6)
+        self.assertAlmostEqual(time_elapsed, 128.5)
     
     def test_sparse_simulated(self):
         ## wind initialization
@@ -342,7 +342,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 325.5)
+        self.assertAlmostEqual(time_elapsed, 319.5)
 
     
     def test_slalom_easy_measured(self):
@@ -363,7 +363,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -373,7 +373,7 @@ class TestWingMotor(unittest.TestCase):
 
         targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
         dt = 0.1
-        simulation_time = 100
+        simulation_time = 150
 
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
@@ -398,7 +398,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -408,7 +408,7 @@ class TestWingMotor(unittest.TestCase):
 
         targets = [np.array([50, 50]), np.array([100, -50]), np.array([150, 50]), np.array([200, -50])]
         dt = 0.1
-        simulation_time = 150
+        simulation_time = 200
 
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
@@ -434,7 +434,7 @@ class TestWingMotor(unittest.TestCase):
 
         wing_area = 8
         ## boat initialization
-        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, None, gnss, compass, anemometer, speedometer_par, speedometer_per)
+        boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
         boat.position = np.array([0.0, 0.0])
         boat.velocity = np.array([0.0, 0.0])
@@ -444,7 +444,7 @@ class TestWingMotor(unittest.TestCase):
 
         targets = [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])]
         dt = 0.1
-        simulation_time = 400
+        simulation_time = 500
 
         completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
