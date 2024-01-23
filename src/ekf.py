@@ -17,7 +17,7 @@ class EKF:
     def set_constants(self, constants):
         self.constants = constants
 
-    def get_filtered_state(self, boat_sensors, true_boat_data, true_wind_data, dt, update_gnss=True, update_compass=True):
+    def compute_filtered_state(self, boat_sensors, true_boat_data, true_wind_data, dt, update_gnss=True, update_compass=True):
         if self.x is None or self.P is None or self.constants is None:
             raise Exception('Initial state, variance or constants not provided')
 

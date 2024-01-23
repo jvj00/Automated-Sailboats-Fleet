@@ -122,13 +122,15 @@ class Boat(RigidBody):
         if map is None:
             Logger.warning('No map provided')
         self.ekf = ekf
-        self.filtered_state = None
     
     def update_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
         boat_sensors = self.speedometer_par, self.speedometer_perp, self.anemometer, self.rudder, self.wing, self.motor_controller, self.gnss, self.compass
         true_boat_data = self.velocity, self.heading, self.position
-        self.filtered_state, filtered_variance = self.ekf.get_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
-        return self.filtered_state, filtered_variance
+        filtered_state, filtered_variance = self.ekf.compute_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
+        return filtered_state, filtered_variance
+    
+    def get_filtered_state(self):
+        return self.ekf.x
 
     def get_state(self):
         return np.array(
@@ -225,9 +227,9 @@ class Boat(RigidBody):
                 wind_speed, wind_angle = self.measure_anemometer(wind)
             
         else:
-            if self.filtered_state is not None:
-                boat_position = np.array([self.filtered_state[0], self.filtered_state[1]])
-                boat_angle = self.filtered_state[2]
+            if self.get_filtered_state() is not None:
+                boat_position = np.array([self.get_filtered_state()[0], self.get_filtered_state()[1]])
+                boat_angle = self.get_filtered_state()[2]
                 wind_speed, wind_angle = self.measure_anemometer(wind)
             
         if boat_position is None or boat_angle is None or wind_speed is None or wind_angle is None:

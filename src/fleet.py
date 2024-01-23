@@ -9,6 +9,25 @@ class Fleet:
         self.boats = boats
         self.prob_of_connection = prob_of_connection
         self.seabed = seabed
+
+    def follow_targets(self, wind, dt):
+        for boat in self.boats:
+            boat.follow_target(wind, dt)
+    
+    def update_filtered_states(self, wind, dt, update_gnss, update_compass, prob_gnss=1, prob_compass=1):
+        for boat in self.boats:
+            try:
+                if np.random.rand() >= prob_gnss:
+                    update_gnss = False
+                if np.random.rand() >= prob_compass:
+                    update_compass = False
+                boat.update_filtered_state(wind, dt, update_gnss, update_compass)
+            except:
+                print('ekf not available')
+    
+    def measure_sonars(self):
+        for boat in self.boats:
+            boat.measure_sonar(self.seabed, boat.ekf.x)
     
     def sync_boat_measures(self, debug=False):
         # EXCHANGE MESSAGES

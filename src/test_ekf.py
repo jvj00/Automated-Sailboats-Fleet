@@ -4,7 +4,7 @@ from entities import Boat, Wind, Wing, Rudder, Stepper, StepperController, World
 from environment import SeabedMap
 from pid import PID
 import logger
-from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
+from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer, Sonar
 import numpy as np
 from utils import *
 
@@ -21,6 +21,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     speedometer_perp = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
     compass = Compass(AbsoluteError(3*np.pi/180))
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+    sonar = Sonar(RelativeError(0.01))
 
     # actuators initialization
     rudder_controller = StepperController(Stepper(100, 0.1), PID(0.5, 0, 0), np.pi * 0.15)
@@ -31,7 +32,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     seabed = SeabedMap(0,0,0,0)
 
     ## boat initialization    
-    boat = Boat(100, 10, seabed, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_perp, None, EKF())
+    boat = Boat(100, 10, seabed, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_perp, sonar, None, EKF())
     boat.position = np.array([0.0, 0.0])
     boat.velocity = np.array([0.0, 0.0])
     boat.heading = polar_to_cartesian(1, 0)
@@ -50,7 +51,6 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     boat.ekf.set_initial_state_variance(boat.get_state_variance())
     boat.ekf.set_constants(ekf_constants)
 
-    boat.set_target(np.array([-100, 0]))
     
     boats: list[Boat] = []
     boats.append(boat)
