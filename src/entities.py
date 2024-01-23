@@ -202,7 +202,7 @@ class Boat(RigidBody):
     # enable simulation data to use boat and wind data from the simulation
     # enable measured_data to use boat and wind measured data
     # set both to False to use filtered data coming from the kalman filter, if available
-    def follow_target(self, wind: Wind, dt, boats: list['Boat'] = None, simulated_data = False, measured_data = False, motor_only = False, wing_only = False):
+    def follow_target(self, wind: Wind, dt, simulated_data = False, measured_data = False, motor_only = False):
         if self.target is None:
             return
 
@@ -214,51 +214,44 @@ class Boat(RigidBody):
         if simulated_data:
             boat_position = self.position
             boat_angle = compute_angle(self.heading)
+            boat_velocity = self.velocity
             # convert wind data (absolute) to relative to the boat
-            wind_speed, wind_angle = cartesian_to_polar(wind.velocity - self.velocity)
+            wind_velocity = wind.velocity - self.velocity
+            wind_speed, wind_angle = cartesian_to_polar(wind_velocity)
             wind_angle = mod2pi(wind_angle - compute_angle(self.heading))
         
         elif measured_data:
             if self.compass is not None and self.gnss is not None and self.anemometer is not None:
                 boat_position = self.measure_gnss()
                 boat_angle = self.measure_compass()
+                boat_speed_x = self.measure_speedometer_par()
+                boat_speed_y = self.measure_speedometer_perp()
+                boat_velocity = np.array([boat_speed_x, boat_speed_y])
                 wind_speed, wind_angle = self.measure_anemometer(wind)
-            
+                wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
         else:
             if self.filtered_state is not None:
                 boat_position = np.array([self.filtered_state[0], self.filtered_state[1]])
                 boat_angle = self.filtered_state[2]
                 wind_speed, wind_angle = self.measure_anemometer(wind)
-            
-        if boat_position is None or boat_angle is None or wind_speed is None or wind_angle is None:
+                wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
+                boat_speed_x = self.measure_speedometer_par()
+                boat_speed_y = self.measure_speedometer_perp()
+                boat_velocity = np.array([boat_speed_x, boat_speed_y])
+        
+        if boat_position is None or boat_angle is None or wind_speed is None or wind_angle is None or boat_angle is None:
             Logger.error('Cannot follow target due to missing values')
             return
 
         if self.rudder is not None:
-            # avoiding_collisions = False
-            # if boats is not None:
-            #     for b in boats:
-            #         offset = 2
-            #         # if the two boats are close enough, compute the angle bewteen their directions, and
-            #         # move the rudder 
-            #         radius = (b.length + self.length) * 0.5 + offset
-            #         center = b.position
-            #         start = self.position
-            #         end = self.heading * 5
-            #         if check_intersection(center, radius, start, end):
-            #             angle = compute_angle_between(b.heading, self.heading)
-            #             self.rudder.controller.set_target(angle)
-            #             avoiding_collisions = True
-            
-            # if not avoiding_collisions:
-                # set the angle of rudder equal to the angle between the direction of the boat and
-                # the target point
-                filtered_heading = polar_to_cartesian(1, boat_angle)
-                target_direction = self.target - boat_position
-                angle_from_target = mod2pi(-compute_angle_between(filtered_heading, target_direction))
-                self.rudder.controller.set_target(angle_from_target)
-                self.rudder.controller.move(dt)
-
+            # set the angle of rudder equal to the angle between the direction of the boat and
+            # the target point
+            filtered_heading = polar_to_cartesian(1, boat_angle)
+            target_direction = self.target - boat_position
+            angle_from_target = mod2pi(-compute_angle_between(filtered_heading, target_direction))
+            self.rudder.controller.set_target(angle_from_target)
+            self.rudder.controller.move(dt)
+        
         # if the boat is upwind (controvento), switch to motor mode
         # in this case, in order to reduce the wing thrust as much as possible,
         # the wing must be placed parallel to the wind
@@ -266,17 +259,23 @@ class Boat(RigidBody):
             self.trigger_motor = True
         elif is_angle_between(wind_angle, 0, np.pi * 1/3) or is_angle_between(wind_angle, np.pi * 5/3, np.pi * 2):
             self.trigger_motor = False
+        
+        not_enough_wind = compute_magnitude(boat_velocity + wind.velocity) < 1
+        
+        self.trigger_motor |= not_enough_wind
 
         if self.trigger_motor or motor_only:
+
             if self.wing is not None:
                 wing_angle = self.wing.controller.get_angle()
                 if np.abs(wing_angle - mod2pi(wind_angle + np.pi * 0.5)) > np.abs(wing_angle - mod2pi(wind_angle - np.pi * 0.5)):
                     wing_angle = mod2pi(wind_angle - np.pi * 0.5)
-                    print("POS")
+                    # print("POS")
                 else:
                     wing_angle = mod2pi(wind_angle + np.pi * 0.5)
-                    print("NEG")
+                    # print("NEG")
                 self.wing.controller.set_target(wing_angle)
+            
             if self.motor_controller is not None:
                 self.motor_controller.set_power(self.motor_controller.motor.max_power)
         else:
@@ -331,5 +330,16 @@ class World:
             b.apply_friction(self.gravity_z, dt)
 
 
-# w = World(9.81, Wind(1.225), SeabedMap(min_x=-100, max_x=100, min_y=-100, max_y=100, resolution=5))
-# w.seabed.create_seabed(min_z=20, max_z=100, max_slope=1, prob_go_up=0.2, plot=True)
+# TODO
+# takes a list of boats and creates, for each group of boats, its route
+# each group goes to specific rows
+def compute_targets(boats: list[Boat], map: SeabedMap, groups_n: int):
+    targets = []
+    x_cells = int((map.max_x - map.min_x) / map.resolution)
+    y_cells = int((map.max_y - map.min_y) / map.resolution)
+
+    for row in range(x_cells):
+        for col in range(y_cells):
+            center_x = col * map.resolution + map.resolution / 2
+            center_y = row * map.resolution + map.resolution / 2
+            targets.append(np.array([center_x, center_y]))
