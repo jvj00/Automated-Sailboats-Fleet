@@ -3,7 +3,7 @@ from environment import SeabedMap, SeabedBoatMap
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
-from metrics import Metrics, GlobalMetrics
+from tools.metrics import Metrics, GlobalMetrics
 from typing import Optional
 
 class Fleet:

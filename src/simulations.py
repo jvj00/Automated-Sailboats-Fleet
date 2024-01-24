@@ -26,7 +26,7 @@ import copy
 
 
 
-from pid import PID
+from controllers.pid import PID
 from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, mod2pi, modpi, polar_to_cartesian
 
 from tools.logger import Logger

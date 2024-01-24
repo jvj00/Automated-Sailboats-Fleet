@@ -20,10 +20,10 @@ from surfaces.rudder import Rudder
 from surfaces.wing import Wing
 from tools.disegnino import Drawer
 from environment import SeabedMap
-from pid import PID
+from controllers.pid import PID
 from tools.logger import Logger
 from environment import SeabedMap, SeabedBoatMap
-from fleet import Fleet
+from entities.fleet import Fleet
 from tools.utils import check_intersection_circle_circle, polar_to_cartesian
 
 # takes a list of boats and creates, for each group of boats, its route

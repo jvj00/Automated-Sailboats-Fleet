@@ -1,6 +1,6 @@
 from typing import Optional
 from actuators.stepper import Stepper, StepperDirection
-from pid import PID
+from controllers.pid import PID
 from tools.utils import angle_from_steps, mod2pi, modpi, steps_from_angle, value_from_gaussian
 import numpy as np
 

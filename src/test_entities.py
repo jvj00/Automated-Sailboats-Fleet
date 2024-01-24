@@ -6,7 +6,7 @@ from controllers.motor_controller import MotorController
 from controllers.stepper_controller import StepperController
 from entities.boat import Boat
 from entities.rigid_body import RigidBody
-from pid import PID
+from controllers.pid import PID
 from surfaces.rudder import Rudder
 from surfaces.wing import Wing
 from tools.utils import cartesian_to_polar, normalize, polar_to_cartesian

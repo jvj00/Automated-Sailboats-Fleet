@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from tools.logger import Logger
-from pid import PID
+from controllers.pid import PID
 
 # class StepperControllerTest(unittest.TestCase):
 

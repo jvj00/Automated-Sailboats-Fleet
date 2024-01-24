@@ -22,12 +22,12 @@ from surfaces.rudder import Rudder
 from surfaces.wing import Wing
 from tools.disegnino import Drawer
 from environment import SeabedMap
-from pid import PID
+from controllers.pid import PID
 from tools.logger import Logger
 from environment import SeabedMap, SeabedBoatMap
-from fleet import Fleet
+from entities.fleet import Fleet
 from tools.utils import *
-from metrics import Metrics, GlobalMetrics
+from tools.metrics import Metrics, GlobalMetrics
 from main import create_targets_from_map
 
 

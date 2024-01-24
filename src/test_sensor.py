@@ -10,7 +10,7 @@ from environment import SeabedMap
 from errors.absolute_error import AbsoluteError
 from errors.mixed_error import MixedError
 from errors.relative_error import RelativeError
-from pid import PID
+from controllers.pid import PID
 from sensors.anemometer import Anemometer
 from sensors.compass import Compass
 from sensors.gnss import GNSS
