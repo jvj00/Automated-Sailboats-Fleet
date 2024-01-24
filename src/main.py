@@ -138,6 +138,7 @@ if __name__ == '__main__':
 
     for time_elapsed in range(10000):
 
+        
         for b in boats:
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
@@ -151,7 +152,7 @@ if __name__ == '__main__':
             update_gnss = True
             update_compass = True
             fleet.sync_boat_measures(debug=True)
-            # fleet.plot_boat_maps()
+            fleet.plot_boat_maps()
         else:
             update_gnss = False
             update_compass = False
@@ -170,8 +171,8 @@ if __name__ == '__main__':
 
         fleet.measure_sonars()
 
-        for b in boats:
-            print(b.get_filtered_state()-b.get_state())
+        for idx, b in enumerate(fleet.boats):
+            print(idx, b.get_filtered_state()-b.get_state())
 
         # update drawing
         drawer.clear()
