@@ -3,6 +3,8 @@ from environment import SeabedMap, SeabedBoatMap
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
+from metrics import Metrics, GlobalMetrics
+from typing import Optional
 
 class Fleet:
     def __init__(self, boats: List[Boat], seabed: SeabedMap, prob_of_connection=1):
@@ -14,13 +16,15 @@ class Fleet:
         for boat in self.boats:
             boat.follow_target(wind, dt)
     
-    def update_filtered_states(self, wind, dt, update_gnss, update_compass, prob_gnss=1, prob_compass=1):
+    def update_filtered_states(self, wind, dt, update_gnss, update_compass, prob_gnss=1, prob_compass=1, time=None, metrics=Optional[GlobalMetrics]):
         for boat in self.boats:
             try:
                 if np.random.rand() >= prob_gnss:
                     update_gnss = False
                 if np.random.rand() >= prob_compass:
                     update_compass = False
+                if metrics is not None and time is not None:
+                    metrics.get_metrics(boat.uuid).add_update(time, update_gnss, update_compass)
                 boat.update_filtered_state(wind, dt, update_gnss, update_compass)
             except:
                 print('ekf not available')
