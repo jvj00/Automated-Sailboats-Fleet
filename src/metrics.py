@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from utils import *
+from entities import Boat
 
 class Metrics:
     def __init__(self) -> None:
@@ -52,7 +53,7 @@ class Metrics:
         if motor_on:
             self.motor_on.append(time)
 
-    def plot_metrics(self, dx=1800, dy=900, dpi=100) -> None:
+    def plot_metrics(self, dx=1800, dy=900, dpi=100, save_name=None, plot=True) -> None:
         plt.figure(figsize=(dx/dpi, dy/dpi), dpi=dpi)
         mngr = plt.get_current_fig_manager()
         mngr.window.setGeometry(int((1920-dx)/2), int((1080-dy)/2), dx, dy)
@@ -86,5 +87,23 @@ class Metrics:
         plt.legend()
 
         plt.tight_layout()
-        plt.show()
+        if save_name is not None:
+            try:
+                plt.savefig(save_name)
+            except:
+                print('Error saving metrics')
+        if plot:
+            plt.show()
 
+class GlobalMetrics:
+    def __init__(self, boats) -> None:
+        self.metrics = {}
+        for boat in boats:
+            self.metrics[str(boat.uuid)] = Metrics()
+    
+    def get_metrics(self, uuid) -> Metrics:
+        return self.metrics[str(uuid)]
+    
+    def plot_metrics(self, dx=1800, dy=900, dpi=100, save_path=None) -> None:
+        for metric in self.metrics:
+            self.metrics[metric].plot_metrics(dx, dy, dpi, save_path+"boat_"+metric+".png", plot=False)
