@@ -2,16 +2,31 @@
 import time
 from typing import Any
 import unittest
-from actuators import Motor, MotorController, Rudder, Stepper, StepperController, Wing
+from actuators.motor import Motor
+from actuators.stepper import Stepper
+from controllers.motor_controller import MotorController
+from controllers.stepper_controller import StepperController
+from entities.boat import Boat
+from entities.wind import Wind
+from entities.world import World
+from errors.absolute_error import AbsoluteError
+from errors.mixed_error import MixedError
+from errors.relative_error import RelativeError
+from sensors.anemometer import Anemometer
+from sensors.compass import Compass
+from sensors.gnss import GNSS
+from sensors.speedometer import Speedometer
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
 from tools.disegnino import Drawer
-from entities import Boat, Wind, World
 from environment import SeabedMap
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
+
+
 from pid import PID
-from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
 from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, mod2pi, modpi, polar_to_cartesian
 
 from tools.logger import Logger
@@ -41,8 +56,6 @@ def simulate(
     # keeps, for each boat, the index of its current target
     current_targets_idx = [0 for _ in range(len(targets))]
 
-    target_radius = 5
-    
     # set the first target of each boat
     for i in range(len(boats)): 
         target = targets[i][0]
@@ -63,7 +76,7 @@ def simulate(
                     continue
 
             # check if the boat has reached the target        
-            if check_intersection_circle_circle(boats[i].position, boats[i].length * 0.5, targets[i][current_targets_idx[i]], target_radius):
+            if check_intersection_circle_circle(boats[i].position, boats[i].length * 0.5, targets[i][current_targets_idx[i]], boats[i].length * 0.5):
                 current_targets_idx[i] += 1
                 if current_targets_idx[i] == len(targets[i]):
                     continue
@@ -160,7 +173,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 96)
+        self.assertAlmostEqual(time_elapsed, 96.0)
     
     def test_slalom_medium_simulated(self):
 
