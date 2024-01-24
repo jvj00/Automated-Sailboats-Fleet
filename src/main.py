@@ -37,7 +37,7 @@ def create_targets_from_map(map: SeabedMap, boats: list[Boat], boats_per_group_n
             for b in boats_per_group[row_idx]:
                 key = str(b.uuid)
                 if key not in targets_dict:
-                    targets_dict[key] = [target]
+                    targets_dict[key] = [np.copy(target)]
                 else:
                     targets_dict[key].append(target)
 
@@ -136,9 +136,9 @@ if __name__ == '__main__':
     update_gnss = False
     update_compass = False
 
-    for time_elapsed in range(10000):
+    for i in range(10000):
+        time_elapsed = i * dt
 
-        
         for b in boats:
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
@@ -152,16 +152,10 @@ if __name__ == '__main__':
             update_gnss = True
             update_compass = True
             fleet.sync_boat_measures(debug=True)
-            fleet.plot_boat_maps()
+            # fleet.plot_boat_maps()
         else:
             update_gnss = False
             update_compass = False
-        
-        # if time_elapsed % 30 == 0:
-        #     x_pos = np.random.uniform(-0.5, 0.5)
-        #     y_pos = np.random.uniform(-0.5, 0.5)
-        #     for b in boats:
-        #         b.set_target(np.array([world_width * x_pos, world_height * y_pos]))
 
         fleet.follow_targets(world.wind, dt)
 
@@ -171,8 +165,8 @@ if __name__ == '__main__':
 
         fleet.measure_sonars()
 
-        for idx, b in enumerate(fleet.boats):
-            print(idx, b.get_filtered_state()-b.get_state())
+        # for idx, b in enumerate(fleet.boats):
+        #     print(b.get_filtered_state()-b.get_state())
 
         # update drawing
         drawer.clear()
@@ -183,6 +177,6 @@ if __name__ == '__main__':
             drawer.draw_target(boats[0].target)
         drawer.draw_axis()
 
-        plt.pause(0.01)
+        plt.pause(dt)
     
     plt.show()
