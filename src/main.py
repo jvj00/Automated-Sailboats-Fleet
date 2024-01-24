@@ -25,15 +25,15 @@ def create_targets_from_map(map: SeabedMap, boats: list[Boat], boats_per_group_n
 
     rows_idx = 0
 
-    for row in np.arange(map.min_x, map.max_x, map.resolution):
+    for row in np.arange(map.min_y, map.max_y, map.resolution):
         
         row_idx = rows_idx % groups_n
         
-        for col in range(map.min_y, map.max_y, map.resolution):
+        for col in range(map.min_x, map.max_x, map.resolution):
             center_x = col + map.resolution / 2
             center_y = row + map.resolution / 2
             target = np.array([center_x, center_y])
-        
+
             for b in boats_per_group[row_idx]:
                 key = str(b.uuid)
                 if key not in targets_dict:
@@ -45,7 +45,7 @@ def create_targets_from_map(map: SeabedMap, boats: list[Boat], boats_per_group_n
     
     for key in targets_dict:
         targets = targets_dict[key]
-        grouped_lists = [targets[i : i + y_cells] for i in range(0, len(targets), y_cells)]
+        grouped_lists = [targets[i : i + x_cells] for i in range(0, len(targets), x_cells)]
 
         for i in range(1, len(grouped_lists), 2):
             grouped_lists[i] = grouped_lists[i][::-1]
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     world_width = 400
     world_height = 200
     # seadbed initialization
-    seabed = SeabedMap(int(-world_height*0.3),int(world_width*0.3),int(-world_height*0.3),int(world_height*0.3), resolution=15)
+    seabed = SeabedMap(int(-world_width*0.3),int(world_width*0.3),int(-world_height*0.3),int(world_height*0.3), resolution=15)
     seabed.create_seabed(20, 200, max_slope=2, prob_go_up=0.1, plot=False)
 
     ## wind initialization
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         sonar = Sonar(RelativeError(0.01))
 
         # actuators initialization
-        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
+        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.20)
         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
         motor_controller = MotorController(Motor(1000, 0.85, 1024))
 
@@ -112,22 +112,19 @@ if __name__ == '__main__':
     fleet = Fleet(boats, seabed, prob_of_connection=0.8)
 
     # boat as key, targets as value
-    targets_dict = create_targets_from_map(seabed, boats, 2)
+    targets_dict = create_targets_from_map(seabed, boats, 1)
+
     # boat as key, current target index as value
     targets_idx = {}
     
     for b in boats:
         uuid = str(b.uuid)
-        targets_idx[uuid] = 0
-        target = targets_dict[uuid][targets_idx[uuid]]
+        # set the initial position of the boat to the first target 
+        target = targets_dict[uuid][0]
         b.position = target
-        b.set_target(target)
-
-    for i in range(len(boats)):
-        color = "#%06x" % np.random.randint(0, 0xFFFFFF)
-        drawer.draw_axis()
-        drawer.draw_route(targets_dict[str(boats[i].uuid)], color)
-
+        # and update the index of the current target to the next
+        targets_idx[uuid] = 1
+    
     velocities = []
     wind_velocities = []
     positions = []
@@ -146,7 +143,7 @@ if __name__ == '__main__':
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
 
-            if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 3):
+            if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 5):
                 targets_idx[uuid] += 1
                 print(targets_dict[uuid][targets_idx[uuid]])
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])

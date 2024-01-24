@@ -134,7 +134,7 @@ class Drawer:
         for y in np.arange(0, self.win.height, y_step):
             value = scale(self.win.height, self.world_height, y) - (self.world_height * 0.5)
             p = Point(self.win.width * 0.5 + offset_from_y_axis, y)
-            txt = Text(p, str(np.floor(value)))
+            txt = Text(p, str(np.floor(-value)))
             txt.setSize(8)
             txt.draw(self.win)
             y_position += y
