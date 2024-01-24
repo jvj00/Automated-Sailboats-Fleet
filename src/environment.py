@@ -37,7 +37,7 @@ class SeabedMap:
             plt.show()
     
     def get_seabed_height(self, x, y):
-        if self.seabed == []:
+        if len(self.seabed) == 0:
             raise Exception('No seabed defined')
         else:
             if x < self.min_x or x > self.max_x or y < self.min_y or y > self.max_y:
@@ -46,7 +46,7 @@ class SeabedMap:
                 return self.seabed[int((x - self.min_x)/self.resolution)][int((y - self.min_y)/self.resolution)]
     
     def set_seabed_height(self, x, y, z):
-        if self.seabed == []:
+        if len(self.seabed) == 0:
             raise Exception('No seabed defined')
         else:
             if x < self.min_x or x > self.max_x or y < self.min_y or y > self.max_y:

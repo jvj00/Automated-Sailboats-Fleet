@@ -145,7 +145,6 @@ if __name__ == '__main__':
 
             if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 5):
                 targets_idx[uuid] += 1
-                print(targets_dict[uuid][targets_idx[uuid]])
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
 
         if time_elapsed % 10 == 0:

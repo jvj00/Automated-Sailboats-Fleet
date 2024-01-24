@@ -309,7 +309,7 @@ class Boat(RigidBody):
             meas = self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
             self.map.insert_measure(filtered_pos[0], filtered_pos[1], meas)
         except Exception as e:
-            # Logger.error(e)
+            Logger.error(e)
             meas = 0
         return meas
     def measure_rudder(self):
