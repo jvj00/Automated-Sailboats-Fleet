@@ -315,16 +315,12 @@ class Boat(RigidBody):
             self.map.insert_measure(filtered_pos[0], filtered_pos[1], self.measurement_data.sonar)
             return self.measurement_data.sonar
         except Exception as e:
-            Logger.error(e)
-        
-        return 0
-    
-    def measure_rudder(self) -> float:
-        self.measurement_data.rudder = self.rudder.controller.measure_angle()
-        return self.measurement_data.rudder
-    
-    def measure_wing(self) -> float:
-        self.measurement_data.wing = self.wing.controller.measure_angle()
-        return self.measurement_data.wing
+            Logger.warning(e)
+            meas = 0
+        return meas
+    def measure_rudder(self):
+        return self.rudder.controller.measure_angle()    
+    def measure_wing(self):
+        return self.wing.controller.measure_angle()
 
 

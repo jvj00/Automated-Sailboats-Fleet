@@ -33,14 +33,16 @@ class Drawer:
             item.undraw()
         self.win.update()
     
-    def draw_polygon(self, vertices, pivot, angle, color, undraw=True):
+    def draw_polygon(self, vertices, pivot, angle, color, color_outline=None, undraw=True):
         vertices = rotate_polygon(vertices, angle, pivot)
         vertices_canvas = [array_to_point(p) for p in map(lambda p: self.to_canvas(p), vertices)]
         draw = Polygon(vertices_canvas)
         if undraw:
             self.undraw.append(draw)
         draw.setFill(color)
-        draw.setOutline(color)
+        if color_outline is None:
+            color_outline = color
+        draw.setOutline(color_outline)
         draw.draw(self.win)
     
     def draw_triangle(self, width: int, height: int, center, pivot, angle, color, undraw=True):
@@ -48,7 +50,7 @@ class Drawer:
         lb = np.array([center[0] - width * 0.5, center[1] - (height * 0.5)])
         rb = np.array([center[0] + width * 0.5, center[1] - (height * 0.5)])
         vertices = [top, rb, lb]
-        self.draw_polygon(vertices, pivot, angle, color, undraw)
+        self.draw_polygon(vertices, pivot, angle, color, undraw=undraw)
 
     def draw_rectangle(self, width: int, height: int, center, pivot, angle, color, undraw=True):
         ul = np.array([center[0] - (width * 0.5), center[1] + (height * 0.5)])
@@ -56,7 +58,7 @@ class Drawer:
         dr = np.array([center[0] + (width * 0.5), center[1] - (height * 0.5)])
         dl = np.array([center[0] - (width * 0.5), center[1] - (height * 0.5)])
         vertices = [ul, ur, dr, dl]
-        self.draw_polygon(vertices, pivot, angle, color, undraw)
+        self.draw_polygon(vertices, pivot, angle, color, undraw=undraw)
 
     def draw_map(self, map: SeabedMap):
         ul = np.array([map.min_x, map.min_y])
@@ -65,6 +67,18 @@ class Drawer:
         dl = np.array([map.min_x, map.max_y])
         vertices = [ul, ur, dr, dl]
         self.draw_polygon(vertices, [0, 0], 0, color_rgb(119,255,243), undraw=False)
+        for i in range(map.len_x):
+            for j in range(map.len_y):
+                if map.seabed[i][j] > 0:
+                    x = map.min_x + (i * map.resolution)
+                    y = map.min_y + (j * map.resolution)
+                    ul = np.array([x, y])
+                    ur = np.array([x+map.resolution, y])
+                    dr = np.array([x+map.resolution, y+map.resolution])
+                    dl = np.array([x, y+map.resolution])
+                    vertices = [ul, ur, dr, dl]
+                    self.draw_polygon(vertices, [0, 0], 0, color_rgb(119,255,243), color_outline=color_rgb(0,0,0), undraw=False)
+                    
     
     def draw_wind(self, wind: Wind, center):
         width = 5
