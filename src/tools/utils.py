@@ -147,3 +147,8 @@ def angle_from_steps(steps, resolution):
 
 def steps_from_angle(angle, resolution):
     return np.floor((angle / (2 * np.pi)) * resolution)
+
+def is_multiple(a, b):
+    a = int(a*1000)
+    b = int(b*1000)
+    return a % b == 0

@@ -1,10 +1,11 @@
-
 from graphics import *
 import numpy as np
+
 from entities.boat import Boat
 from entities.wind import Wind
-
-from tools.utils import cartesian_to_polar, compute_angle, compute_magnitude, polar_to_cartesian
+from entities.world import World
+from environment import SeabedMap
+from tools.utils import *
 
 def scale(from_, to_, value):
     return (to_/from_) * value
@@ -18,6 +19,7 @@ class Drawer:
         self.world_width = world_width
         self.world_height = world_height
         self.debug = False
+        self.undraw = []
     
     def to_canvas(self, position):
         x = scale(self.world_width, self.win.width, position[0])
@@ -27,32 +29,42 @@ class Drawer:
         return np.array([x, y])
     
     def clear(self):
-        for item in self.win.items:
+        for item in self.undraw:
             item.undraw()
         self.win.update()
     
-    def draw_polygon(self, vertices, pivot, angle, color):
+    def draw_polygon(self, vertices, pivot, angle, color, undraw=True):
         vertices = rotate_polygon(vertices, angle, pivot)
         vertices_canvas = [array_to_point(p) for p in map(lambda p: self.to_canvas(p), vertices)]
         draw = Polygon(vertices_canvas)
+        if undraw:
+            self.undraw.append(draw)
         draw.setFill(color)
         draw.setOutline(color)
         draw.draw(self.win)
     
-    def draw_triangle(self, width: int, height: int, center, pivot, angle, color):
+    def draw_triangle(self, width: int, height: int, center, pivot, angle, color, undraw=True):
         top = np.array([center[0], center[1] + (height * 0.5)])
         lb = np.array([center[0] - width * 0.5, center[1] - (height * 0.5)])
         rb = np.array([center[0] + width * 0.5, center[1] - (height * 0.5)])
         vertices = [top, rb, lb]
-        self.draw_polygon(vertices, pivot, angle, color)
+        self.draw_polygon(vertices, pivot, angle, color, undraw)
 
-    def draw_rectangle(self, width: int, height: int, center, pivot, angle, color):
+    def draw_rectangle(self, width: int, height: int, center, pivot, angle, color, undraw=True):
         ul = np.array([center[0] - (width * 0.5), center[1] + (height * 0.5)])
         ur = np.array([center[0] + (width * 0.5), center[1] + (height * 0.5)])
         dr = np.array([center[0] + (width * 0.5), center[1] - (height * 0.5)])
         dl = np.array([center[0] - (width * 0.5), center[1] - (height * 0.5)])
         vertices = [ul, ur, dr, dl]
-        self.draw_polygon(vertices, pivot, angle, color)
+        self.draw_polygon(vertices, pivot, angle, color, undraw)
+
+    def draw_map(self, map: SeabedMap):
+        ul = np.array([map.min_x, map.min_y])
+        ur = np.array([map.max_x, map.min_y])
+        dr = np.array([map.max_x, map.max_y])
+        dl = np.array([map.min_x, map.max_y])
+        vertices = [ul, ur, dr, dl]
+        self.draw_polygon(vertices, [0, 0], 0, color_rgb(119,255,243), undraw=False)
     
     def draw_wind(self, wind: Wind, center):
         width = 5
@@ -93,20 +105,24 @@ class Drawer:
             # draw = Circle(Point(collision_box_center[0], collision_box_center[1]), radius)
             # draw.draw(self.win)
     
-    def draw_vector(self, start, vec, color, gain=1):
+    def draw_vector(self, start, vec, color, gain=1, undraw=True):
         end = start + (vec * gain)
         start_canvas = self.to_canvas(start)
         end_canvas = self.to_canvas(end)
         draw = Line(array_to_point(start_canvas), array_to_point(end_canvas))
+        if undraw:
+            self.undraw.append(draw)
         draw.setFill(color)
         draw.setOutline(color)
         draw.draw(self.win)
     
-    def draw_route(self, points, color):
+    def draw_route(self, points, color, undraw=True):
         for i in range(len(points) - 1):
             start_canvas = self.to_canvas(points[i])
             end_canvas = self.to_canvas(points[i+1])
             draw = Line(array_to_point(start_canvas), array_to_point(end_canvas))
+            if undraw:
+                self.undraw.append(draw)
             draw.setFill(color)
             draw.setOutline(color)
             draw.draw(self.win)
@@ -144,6 +160,7 @@ class Drawer:
     def draw_target(self, position):
         position_canvas = self.to_canvas(position)
         draw = Circle(Point(position_canvas[0], position_canvas[1]), 10)
+        self.undraw.append(draw)
         draw.draw(self.win)
     
         

@@ -1,20 +1,34 @@
-from matplotlib import pyplot as plt
-import numpy as np
-from ekf import EKF
-from actuators import Motor, Stepper, StepperController, MotorController
-from disegnino import Drawer
-from entities import Boat, Wind, Wing, Rudder, World
-from environment import SeabedMap
-from pid import PID
-from logger import Logger
-from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer, Sonar
-from environment import SeabedMap, SeabedBoatMap
-from fleet import Fleet
-from utils import *
-from metrics import Metrics, GlobalMetrics
-from main import create_targets_from_map
 import os
 from datetime import datetime
+from matplotlib import pyplot as plt
+import numpy as np
+from actuators.motor import Motor
+from actuators.stepper import Stepper
+from controllers.motor_controller import MotorController
+from controllers.stepper_controller import StepperController
+from ekf import EKF
+from entities.boat import Boat
+from entities.wind import Wind
+from entities.world import World
+from errors.absolute_error import AbsoluteError
+from errors.mixed_error import MixedError
+from errors.relative_error import RelativeError
+from sensors.anemometer import Anemometer
+from sensors.compass import Compass
+from sensors.gnss import GNSS
+from sensors.sonar import Sonar
+from sensors.speedometer import Speedometer
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
+from tools.disegnino import Drawer
+from environment import SeabedMap
+from pid import PID
+from tools.logger import Logger
+from environment import SeabedMap, SeabedBoatMap
+from fleet import Fleet
+from tools.utils import *
+from metrics import Metrics, GlobalMetrics
+from main import create_targets_from_map
 
 
 def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf):
@@ -58,7 +72,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
         motor_controller = MotorController(Motor(1000, 0.85, 1024))
 
         ## boat initialization
-        boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, None, EKF())
+        boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, EKF())
         boat.velocity = np.zeros(2)
         boat.heading = polar_to_cartesian(1, 0)
 
@@ -151,7 +165,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     dir='../saved_metrics/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     metrics.plot_metrics(save_path=dir)
-    fleet.plot_boat_maps()
+    fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
     world_width = 200

@@ -80,7 +80,7 @@ class Fleet:
                 print(f'Boat {debug_index}: {round(np.count_nonzero(boat.map.partial_map)*1000/boat.map.partial_map.size)/10}% of map with average error of {error} m')
                 debug_index+=1
     
-    def plot_boat_maps(self):
+    def plot_boat_maps(self, save_path=None, plot=True):
         dx = 1800
         dy = 900
         dpi = 100
@@ -116,4 +116,9 @@ class Fleet:
                     ax_err.plot_surface(x, y, np.abs(boat.map.partial_map - self.seabed.seabed).T, color=(0.0,0.7,0.0,0.5), edgecolor='green', lw=0.5, rstride=1, cstride=1)
                     ax.set_aspect('equal', adjustable='box')
                     ax_err.set_aspect('equal', adjustable='box')
-            plt.show()
+            if save_path is not None:
+                fig.savefig(save_path + 'boat_maps.png', dpi=dpi)
+                fig_err.savefig(save_path + 'boat_maps_error.png', dpi=dpi)
+            if plot:
+                plt.show()
+            plt.close()

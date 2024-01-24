@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tools.utils import *
-from entities import Boat
+from entities.boat import Boat
 
 class Metrics:
     def __init__(self) -> None:
@@ -94,6 +94,7 @@ class Metrics:
                 print('Error saving metrics')
         if plot:
             plt.show()
+        plt.close()
 
 class GlobalMetrics:
     def __init__(self, boats) -> None:
