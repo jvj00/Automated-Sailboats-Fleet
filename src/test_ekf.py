@@ -1,14 +1,28 @@
-from actuators import Motor, MotorController
+from actuators.motor import Motor
+from actuators.stepper import Stepper
+from controllers.motor_controller import MotorController
+from controllers.stepper_controller import StepperController
 from ekf import EKF
-from entities import Boat, Wind, Wing, Rudder, Stepper, StepperController, World
+from entities.boat import Boat
+from entities.wind import Wind
+from entities.world import World
 from environment import SeabedMap
+from errors.absolute_error import AbsoluteError
+from errors.mixed_error import MixedError
+from errors.relative_error import RelativeError
 from pid import PID
-import logger
-from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer, Sonar
+from sensors.anemometer import Anemometer
+from sensors.compass import Compass
+from sensors.gnss import GNSS
+from sensors.sonar import Sonar
+from sensors.speedometer import Speedometer
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
+import tools.logger as logger
 import numpy as np
-from utils import *
+from tools.utils import *
 
-from utils import compute_angle, polar_to_cartesian
+from tools.utils import compute_angle, polar_to_cartesian
 
 def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_every_sec=5, compass_prob=1, print_debug=False, plot=True):
     
@@ -32,7 +46,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     seabed = SeabedMap(0,0,0,0)
 
     ## boat initialization    
-    boat = Boat(100, 10, seabed, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_perp, sonar, None, EKF())
+    boat = Boat(100, 10, seabed, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_perp, sonar, EKF())
     boat.position = np.array([0.0, 0.0])
     boat.velocity = np.array([0.0, 0.0])
     boat.heading = polar_to_cartesian(1, 0)
@@ -55,7 +69,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     boats: list[Boat] = []
     boats.append(boat)
 
-    from disegnino import Drawer
+    from tools.disegnino import Drawer
     drawer = Drawer(800, 800, 400, 400)
 
     # PLOT VARS

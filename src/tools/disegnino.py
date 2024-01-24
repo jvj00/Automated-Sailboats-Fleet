@@ -1,8 +1,9 @@
 from graphics import *
 import numpy as np
+from entities.boat import Boat
+from entities.wind import Wind
 
-from entities import Wind, Wing, compute_angle, Boat
-from utils import cartesian_to_polar, compute_magnitude, polar_to_cartesian
+from tools.utils import cartesian_to_polar, compute_angle, compute_magnitude, polar_to_cartesian
 
 def scale(from_, to_, value):
     return (to_/from_) * value

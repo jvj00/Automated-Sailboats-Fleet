@@ -1,58 +1,22 @@
-from ekf import EKF
-from actuators import MotorController, Rudder, Stepper, StepperController, Wing
-from logger import Logger
-import numpy as np
-from utils import *
-from pid import PID
-from sensor import GNSS, UWB, Compass, Anemometer, Speedometer, Sonar
 from typing import Optional
-from environment import SeabedMap, SeabedBoatMap
-from uuid import uuid4
+from controllers.motor_controller import MotorController
+from ekf import EKF
+from entities.rigid_body import RigidBody
+from entities.wind import Wind
 
-class RigidBody:
-    def __init__(self, mass):
-        self.uuid = uuid4()
-        self.mass = mass
-        self.position = np.zeros(2)
-        self.velocity = np.zeros(2)
-        self.acceleration = np.zeros(2)
+from environment import SeabedBoatMap, SeabedMap
+from sensors.anemometer import Anemometer
+from sensors.compass import Compass
+from sensors.gnss import GNSS
+from sensors.sonar import Sonar
+from sensors.speedometer import Speedometer
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
+from tools.logger import Logger
 
-        self.angular_acceleration = 0
-        self.angular_speed = 0
+import numpy as np
 
-        self.heading = polar_to_cartesian(1, 0)
-
-        self.friction_mu = 0.001
-
-    def rotate(self, dt):
-        _, curr_angle = cartesian_to_polar(self.heading)
-        curr_angle += self.angular_speed * dt
-        self.heading = polar_to_cartesian(1, curr_angle)
-    
-    def translate(self, dt):
-        self.position += (0.5 * self.acceleration * (dt ** 2) + self.velocity * dt)
-    
-    # https://github.com/duncansykes/PhysicsForGames/blob/main/Physics_Project/Rigidbody.cpp
-    def apply_friction(self, gravity: float, dt):
-        friction_force = compute_friction_force(self.mass, gravity, self.friction_mu)
-        velocity_decrease = -(friction_force * self.velocity * dt)
-        # the velocity decrease must be always less than the current velocity
-        if compute_magnitude(velocity_decrease) > compute_magnitude(self.velocity):
-            self.velocity = np.zeros(2)
-        else:
-            self.velocity += velocity_decrease
-    
-    def apply_acceleration_to_velocity(self, dt):
-        self.velocity += (self.acceleration * dt)
-    
-class Wind:
-    def __init__(self, density: float):
-        self.density = density
-        self.velocity = np.zeros(2)
-
-class MotionMode:
-    Wing = 0,
-    Motor = 1
+from tools.utils import cartesian_to_polar, compute_acceleration, compute_angle, compute_angle_between, compute_magnitude, compute_motor_thrust, compute_turning_radius, compute_wind_force, is_angle_between, mod2pi, polar_to_cartesian
 
 class Boat(RigidBody):
     def __init__(
@@ -69,7 +33,6 @@ class Boat(RigidBody):
             speedometer_par: Optional[Speedometer] = None,
             speedometer_perp: Optional[Speedometer] = None,
             sonar: Optional[Sonar] = None,
-            uwb: Optional[UWB] = None,
             ekf: Optional[EKF] = None):
 
         super().__init__(mass)
@@ -103,10 +66,6 @@ class Boat(RigidBody):
         if sonar is None:
             Logger.warning('No sonar sensor provided')
         self.sonar = sonar
-
-        if uwb is None:
-            Logger.warning('No UWB sensor provided')
-        self.uwb = uwb
 
         if wing is None:
             Logger.warning('No wing provided')
@@ -318,15 +277,3 @@ class Boat(RigidBody):
         return self.wing.controller.measure_angle()
 
 
-class World:
-    def __init__(self, gravity, wind: Wind, seabed: Optional[SeabedMap] = None):
-        self.gravity_z = gravity
-        self.wind = wind
-        self.seabed = seabed
-    
-    def update(self, boats: list[Boat], dt):
-        for b in boats:
-            b.apply_forces(self.wind, dt)
-            b.move(dt)
-            b.apply_acceleration_to_velocity(dt)
-            b.apply_friction(self.gravity_z, dt)

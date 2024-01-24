@@ -3,7 +3,7 @@ import time
 from typing import Any
 import unittest
 from actuators import Motor, MotorController, Rudder, Stepper, StepperController, Wing
-from disegnino import Drawer
+from tools.disegnino import Drawer
 from entities import Boat, Wind, World
 from environment import SeabedMap
 import numpy as np
@@ -12,9 +12,9 @@ import copy
 
 from pid import PID
 from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer
-from utils import check_intersection_circle_circle, compute_angle_between, compute_distance, mod2pi, modpi, polar_to_cartesian
+from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, mod2pi, modpi, polar_to_cartesian
 
-from logger import Logger
+from tools.logger import Logger
 
 def check_collisions(boats: list[Boat]) -> bool:
     for a in boats:

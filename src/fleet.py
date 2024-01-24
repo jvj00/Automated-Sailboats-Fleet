@@ -1,4 +1,4 @@
-from entities import Boat
+from entities.boat import Boat
 from environment import SeabedMap, SeabedBoatMap
 from typing import List
 import numpy as np

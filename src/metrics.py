@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import *
+from tools.utils import *
 
 class Metrics:
     def __init__(self) -> None:

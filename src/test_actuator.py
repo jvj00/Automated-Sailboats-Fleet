@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
-from actuators import Stepper, StepperDirection, StepperController
-from logger import Logger
+from tools.logger import Logger
 from pid import PID
 
 # class StepperControllerTest(unittest.TestCase):

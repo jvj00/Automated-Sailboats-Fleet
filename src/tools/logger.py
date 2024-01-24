@@ -1,4 +1,4 @@
-from utils import now
+from tools.utils import now
 
 class colors:
     HEADER = '\033[95m'
