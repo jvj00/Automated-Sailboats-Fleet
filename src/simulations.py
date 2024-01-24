@@ -27,25 +27,30 @@ def check_collisions(boats: list[Boat]) -> bool:
 def simulate(
         boats: list[Boat],
         world: World,
-        targets: list[list[Any]],
-        dt,
-        simulation_time,
-        simulated_data = False,
-        measured_data = False,
-        motor_only = False,
-        collision_avoidance = False):
+        targets: list[list[np.ndarray]],
+        dt: float,
+        simulation_time: float,
+        simulated_data: bool = False,
+        measured_data: bool = False,
+        motor_only: bool = False,
+    ):
     
-    states = [[] for _ in range(len(boats))]
+    # keeps, for each boat, its state at each instant dt
+    states: list[list[Boat]] = [[] for _ in range(len(boats))]
 
+    # keeps, for each boat, the index of its current target
     current_targets_idx = [0 for _ in range(len(targets))]
-    target_radius = 5
-    collisions = 0
 
+    target_radius = 5
+    
+    # set the first target of each boat
     for i in range(len(boats)): 
-        target = targets[i][current_targets_idx[i]]
+        target = targets[i][0]
         boats[i].set_target(target)
     
     for time_elapsed in np.arange(0, simulation_time, dt):
+
+        # check if every boat has covered every target
         completed = True
 
         for i in range(len(boats)):
@@ -56,8 +61,9 @@ def simulate(
 
             if current_targets_idx[i] == len(targets[i]):
                     continue
-            
-            if compute_distance(targets[i][current_targets_idx[i]], boats[i].position) <= target_radius:
+
+            # check if the boat has reached the target        
+            if check_intersection_circle_circle(boats[i].position, boats[i].length * 0.5, targets[i][current_targets_idx[i]], target_radius):
                 current_targets_idx[i] += 1
                 if current_targets_idx[i] == len(targets[i]):
                     continue
@@ -66,10 +72,6 @@ def simulate(
             boats[i].follow_target(world.wind, dt, simulated_data, measured_data, motor_only)
 
         world.update(boats, dt)
-
-        if check_collisions(boats):
-            Logger.error('collision')
-            collisions += 1
 
         if completed:
             break
@@ -81,7 +83,7 @@ def simulate(
     for i in range(len(boats)):
         completed &= (current_targets_idx[i] == len(targets[i]))
     
-    return completed, time_elapsed, states, collisions
+    return completed, time_elapsed, states
 
 
 class TestMotorOnly(unittest.TestCase):
@@ -105,7 +107,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 70.3)
@@ -129,7 +131,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 91.0)
@@ -155,7 +157,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 96)
@@ -180,7 +182,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 200
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 171.4)
@@ -205,7 +207,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 450
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 347.3)
@@ -237,7 +239,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 70.0), 20)
@@ -269,7 +271,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 90.0), 20)
@@ -302,7 +304,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 200
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 90), 20)
@@ -334,7 +336,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 300
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 160), 20)
@@ -366,7 +368,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 500
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 350), 20)
@@ -393,7 +395,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 70.6)
@@ -418,7 +420,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 91.1)
@@ -446,7 +448,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 71.2)
@@ -474,7 +476,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 150
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 128.5)
@@ -502,7 +504,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 400
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 319.5)
@@ -535,7 +537,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 70.0), 20)
@@ -568,7 +570,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 90.0), 20)
@@ -604,7 +606,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 150
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 70), 20)
@@ -639,7 +641,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 200
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 135), 20)
@@ -675,7 +677,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 500
 
-        completed, time_elapsed, routes, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 325), 20)
