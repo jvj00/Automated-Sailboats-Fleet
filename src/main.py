@@ -73,6 +73,7 @@ if __name__ == '__main__':
     win_height = world_height * 3
     drawer = Drawer(win_width, win_height, world_width, world_height)
     drawer.debug = True
+    drawer.draw_axis()
 
     # boats initialization
     boats: list[Boat] = []
@@ -174,8 +175,8 @@ if __name__ == '__main__':
         drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
         if boats[0].target is not None:
             drawer.draw_target(boats[0].target)
-        drawer.draw_axis()
+        
 
-        plt.pause(dt)
+        plt.pause(0.001)
     
     plt.show()
