@@ -2,7 +2,7 @@ from random import gauss
 from datetime import datetime
 import numpy as np
 
-from environment import SeabedMap
+from entities.environment import SeabedMap
 
 ## VECTOR OPERATIONS
 def normalize(vec):

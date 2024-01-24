@@ -1,17 +1,17 @@
 from typing import Optional
 from controllers.motor_controller import MotorController
-from ekf import EKF
+from estimation_algs.ekf import EKF
 from entities.rigid_body import RigidBody
 from entities.wind import Wind
 
-from environment import SeabedBoatMap, SeabedMap
+from entities.environment import SeabedBoatMap, SeabedMap
 from sensors.anemometer import Anemometer
 from sensors.compass import Compass
 from sensors.gnss import GNSS
 from sensors.sonar import Sonar
 from sensors.speedometer import Speedometer
-from surfaces.rudder import Rudder
-from surfaces.wing import Wing
+from components.rudder import Rudder
+from components.wing import Wing
 from tools.logger import Logger
 
 import numpy as np

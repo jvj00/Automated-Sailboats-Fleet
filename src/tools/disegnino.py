@@ -4,7 +4,7 @@ import numpy as np
 from entities.boat import Boat
 from entities.wind import Wind
 from entities.world import World
-from environment import SeabedMap
+from entities.environment import SeabedMap
 from tools.utils import *
 
 def scale(from_, to_, value):

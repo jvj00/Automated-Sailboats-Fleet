@@ -3,10 +3,10 @@ from actuators.motor import Motor
 from actuators.stepper import Stepper
 from controllers.motor_controller import MotorController
 from controllers.stepper_controller import StepperController
-from ekf import EKF
+from estimation_algs.ekf import EKF
 from entities.boat import Boat
 from entities.wind import Wind
-from environment import SeabedMap
+from entities.environment import SeabedMap
 from errors.absolute_error import AbsoluteError
 from errors.mixed_error import MixedError
 from errors.relative_error import RelativeError
@@ -16,8 +16,8 @@ from sensors.compass import Compass
 from sensors.gnss import GNSS
 from sensors.sonar import Sonar
 from sensors.speedometer import Speedometer
-from surfaces.rudder import Rudder
-from surfaces.wing import Wing
+from components.rudder import Rudder
+from components.wing import Wing
 import numpy as np
 
 from tools.utils import polar_to_cartesian

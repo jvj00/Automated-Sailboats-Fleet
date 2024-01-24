@@ -16,10 +16,10 @@ from sensors.anemometer import Anemometer
 from sensors.compass import Compass
 from sensors.gnss import GNSS
 from sensors.speedometer import Speedometer
-from surfaces.rudder import Rudder
-from surfaces.wing import Wing
+from components.rudder import Rudder
+from components.wing import Wing
 from tools.disegnino import Drawer
-from environment import SeabedMap
+from entities.environment import SeabedMap
 import numpy as np
 import matplotlib.pyplot as plt
 import copy

@@ -1,7 +1,7 @@
 from typing import Optional
 from entities.boat import Boat
 from entities.wind import Wind
-from environment import SeabedMap
+from entities.environment import SeabedMap
 
 
 class World:
