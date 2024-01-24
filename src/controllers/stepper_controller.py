@@ -1,60 +1,8 @@
 from typing import Optional
-import numpy as np
-from logger import Logger
+from actuators.stepper import Stepper, StepperDirection
 from pid import PID
-from utils import *
-
-class StepperDirection:
-    Clockwise = 1
-    CounterClockwise = -1
-
-# resolution is the number of steps per revolution
-# higher resolution comes with a smaller angle
-# reference angles match with a normal clock
-class Stepper:
-    def __init__(self, resolution: int, max_speed: float):
-        # [step/revolution]
-        self.resolution = resolution
-        # [revolution/s]
-        self.max_speed = max_speed
-    
-    def get_error(self):
-        return (2 * np.pi) / self.resolution
-    
-    def get_sigma(self): # consider 3 sigma rule: encapsulate 99.7% of the values in 3 sigma
-        return self.get_error() / 3.0
-    
-    def get_variance(self):
-        return self.get_sigma()**2
-
-class Motor:
-    def __init__(self, max_power, efficiency, resolution):
-        self.max_power = max_power
-        self.efficiency = efficiency
-        self.resolution = resolution
-    def get_error(self):
-        return self.max_power / self.resolution
-    
-    def get_sigma(self): # consider 3 sigma rule: encapsulate 99.7% of the values in 3 sigma
-        return self.get_error() / 3.0
-    
-    def get_variance(self):
-        return self.get_sigma()**2
-
-class MotorController:
-    def __init__(self, motor: Motor):
-        self.motor = motor
-        self.power = 0
-    
-    def set_power(self, power):
-        self.power = power if power < self.motor.max_power else self.motor.max_power
-
-    def get_power(self):
-        return self.power
-    
-    def measure_power(self):
-        return value_from_gaussian(self.power, self.motor.get_sigma())
-
+from tools.utils import angle_from_steps, mod2pi, modpi, steps_from_angle, value_from_gaussian
+import numpy as np
 
 # controls the movement of a stepper
 # the PID takes the current angle of the stepper as input, and return a speed
@@ -118,19 +66,3 @@ class StepperController:
     # not between 0 and 2pi
     def set_target(self, angle: float):
         self.pid.set_target(modpi(angle))
-
-class Wing:
-    def __init__(self, area: float, controller: StepperController):
-        self.area = area
-        self.controller = controller
-
-class Rudder:
-    def __init__(self, controller: StepperController):
-        self.controller = controller
-
-
-def angle_from_steps(steps, resolution):
-    return (steps / resolution) * (2 * np.pi)
-
-def steps_from_angle(angle, resolution):
-    return np.floor((angle / (2 * np.pi)) * resolution)

@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 from environment import SeabedMap
 
-from utils import check_intersection_circle_line, compute_angle, compute_angle_between, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
+from tools.utils import check_intersection_circle_line, compute_angle, compute_angle_between, compute_turning_radius, is_angle_between, polar_to_cartesian, normalize
 
 class TestComputeAngle(unittest.TestCase):
 

@@ -1,10 +1,15 @@
 import unittest
 import numpy as np
-from actuators import Motor, MotorController, Stepper, StepperController
-from entities import RigidBody, Wing, Rudder, Wind, Boat, compute_wind_force
-from environment import SeabedMap
+from actuators.motor import Motor
+from actuators.stepper import Stepper
+from controllers.motor_controller import MotorController
+from controllers.stepper_controller import StepperController
+from entities.boat import Boat
+from entities.rigid_body import RigidBody
 from pid import PID
-from utils import cartesian_to_polar, normalize, polar_to_cartesian
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
+from tools.utils import cartesian_to_polar, normalize, polar_to_cartesian
 
 class TestRigidBody(unittest.TestCase):
 
@@ -112,8 +117,7 @@ class TestBoat(unittest.TestCase):
     wing = Wing(10, StepperController(Stepper(100, 1), PID()))
     rudder = Rudder(StepperController(Stepper(100, 1), PID()))
     motor_controller = MotorController(Motor(100, 0.9, 2**10))
-    seabed = SeabedMap(0,0,0,0)
-    boat = Boat(10, 10, None, wing, rudder, motor_controller, seabed)
+    boat = Boat(10, 10, None, wing, rudder, motor_controller)
     
     def test_rotate_aligned_rudder(self):
         self.boat.rudder.controller.set_angle(0.0)
@@ -132,83 +136,5 @@ class TestBoat(unittest.TestCase):
         self.assertAlmostEqual(self.boat.rudder.controller.get_angle(), 5.4663712)
         self.assertAlmostEqual(self.boat.angular_speed, -0.24899840390785477)
 
-# class EntitiesTest(unittest.TestCase):
-#     wind_velocity = np.zeros(2)
-#     wind_density = 1.281
-#     boat_velocity = np.zeros(2)
-#     boat_heading = polar_to_cartesian(1, np.pi * 0.5)
-#     wing_heading = polar_to_cartesian(1, np.pi * 0.5)
-#     wing_area = 10
-#     drag = 0.5
-    
-    # boat, wind and wing have the same heading, with angle = PI/2
-    # def test_compute_wind_force_max_y(self):
-    #     self.wind_velocity = np.array([10.0, 0.0])
-    #     f = compute_wind_force(self.wind_velocity,
-    #                            self.wind_density,
-    #                            self.boat_velocity,
-    #                            self.boat_heading,
-    #                            self.wing_heading,
-    #                            self.wing_area,
-    #                            self.drag
-    #     )
-    #     self.assertAlmostEqual(f[0], 0)
-    #     self.assertAlmostEqual(f[1], 128)
-    
-    # # boat, wind and wing have the same heading, with angle = 0
-    # def test_compute_wind_force_max_x(self):
-    #     self.wind.velocity = np.array([10, 0])
-    #     self.boat.heading = np.array([1, 0])
-    #     f = compute_wind_force(self.wind, self.boat)
-    #     self.assertEqual(f[0], 128)
-    #     self.assertEqual(f[1], 0)
-    
-    # # boat, wind have the same heading, with angle = 0
-    # # wing has an opposite heading of PI
-    # # the result must be the same as above
-    # def test_compute_wind_force_max_x_opposite(self):
-    #     self.wind.velocity = np.array([10, 0])
-    #     self.boat.heading = np.array([1, 0])
-    #     self.boat.wing.stepper.set_angle(np.pi)
-    #     f = compute_wind_force(self.wind, self.boat)
-    #     self.assertEqual(f[0], 128)
-    #     self.assertEqual(f[1], 0)
-    
-    # # wind and wing have the same heading, with angle = 0
-    # # boat has a perpendicular heading with respect to the wind/wing, with angle = PI/2
-    # # the produced force must be 0
-    # def test_compute_wind_force_boat_perp(self):
-    #     self.wind.velocity = np.array([10, 0])
-    #     self.boat.heading = np.array([0, 1])
-    #     f = compute_wind_force(self.wind, self.boat)
-    #     self.assertEqual(f[0], 0)
-    #     self.assertEqual(f[1], 0)
-    
-    # # wind and boat have the same heading, with angle = 0
-    # # wing has a perpendicular heading with respect to the wind/boat, with angle = PI/2
-    # # the produced force must be 0, as above
-    # def test_compute_wind_force_wing_perp(self):
-    #     self.wind.velocity = np.array([10, 0])
-    #     self.boat.heading = np.array([1, 0])
-    #     self.boat.wing.stepper.set_angle(np.pi * 0.5)
-    #     f = compute_wind_force(self.wind, self.boat)
-    #     self.assertAlmostEqual(f[0], 0)
-    #     self.assertAlmostEqual(f[1], 0)
-    
-    # def test_compute_wind_force_boat_steady_no_wind(self):
-    #     self.wind.velocity = np.zeros(2)
-    #     self.boat.heading = np.array([1, 0])
-    #     f = compute_wind_force(self.wind, self.boat)
-    #     self.assertAlmostEqual(f[0], 0)
-    #     self.assertAlmostEqual(f[1], 0)
-    
-    # def test_compute_wind_force_boat_moving_no_wind(self):
-    #     self.wind.velocity = np.zeros(2)
-    #     self.boat.heading = np.array([1, 0])
-    #     self.boat.velocity = normalize(np.array([5.0, 2.0]))
-    #     f = compute_wind_force(self.wind, self.boat)
-    #     self.assertAlmostEqual(f[0], 0)
-    #     self.assertAlmostEqual(f[1], 0)
-    
 if __name__ == '__main__':
     unittest.main()

@@ -1,11 +1,26 @@
 import unittest
-import numpy as np
-from actuators import Motor, MotorController, StepperController
-from entities import Wing, Rudder, Stepper, Boat, Wind
+from actuators.motor import Motor
+from actuators.stepper import Stepper
+from controllers.motor_controller import MotorController
+from controllers.stepper_controller import StepperController
+from ekf import EKF
+from entities.boat import Boat
+from entities.wind import Wind
 from environment import SeabedMap
+from errors.absolute_error import AbsoluteError
+from errors.mixed_error import MixedError
+from errors.relative_error import RelativeError
 from pid import PID
-from sensor import Anemometer, Speedometer, Compass, UWB, GNSS, RelativeError, AbsoluteError, MixedError
-from utils import polar_to_cartesian
+from sensors.anemometer import Anemometer
+from sensors.compass import Compass
+from sensors.gnss import GNSS
+from sensors.sonar import Sonar
+from sensors.speedometer import Speedometer
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
+import numpy as np
+
+from tools.utils import polar_to_cartesian
 
 test_repetition = 10000
 
@@ -132,27 +147,6 @@ class CompassTest(unittest.TestCase):
         
         # FIXME values are far from 0.004 by nearly 1
         self.assertLess(outliers_direction/test_repetition, 0.004)
-
-class UWBSensorTest(unittest.TestCase):
-
-    sensor = UWB(AbsoluteError(0.2))
-
-    def test_outliers(self):
-        boat_target = Boat(100, 5, Wing(15, Stepper(100, 0.05)), Rudder(Stepper(100, 0.2)), motor_controller, seabed)
-        boat.position = np.array([np.random.rand()*100, np.random.rand()*100])
-        boat_target.position = np.array([np.random.rand()*100, np.random.rand()*100])
-        list_truth = []
-        list_meas = []
-        outliers_distance = 0
-        
-        for i in range(test_repetition):
-            truth, meas = self.sensor.measure_with_truth(boat.position, boat_target.position)
-            if np.abs(meas - truth) > self.sensor.err_distance.error:
-                outliers_distance += 1
-            list_truth.append(truth)
-            list_meas.append(meas)
-
-        self.assertLess(outliers_distance/test_repetition, 0.004)
 
 class GNSSSensorTest(unittest.TestCase):
         

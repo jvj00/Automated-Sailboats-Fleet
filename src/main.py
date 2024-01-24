@@ -1,16 +1,30 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from actuators.motor import Motor
+from actuators.stepper import Stepper
+from controllers.motor_controller import MotorController
+from controllers.stepper_controller import StepperController
 from ekf import EKF
-from actuators import Motor, Stepper, StepperController, MotorController
-from disegnino import Drawer
-from entities import Boat, Wind, Wing, Rudder, World
+from entities.boat import Boat
+from entities.wind import Wind
+from entities.world import World
+from errors.absolute_error import AbsoluteError
+from errors.mixed_error import MixedError
+from errors.relative_error import RelativeError
+from sensors.anemometer import Anemometer
+from sensors.compass import Compass
+from sensors.gnss import GNSS
+from sensors.sonar import Sonar
+from sensors.speedometer import Speedometer
+from surfaces.rudder import Rudder
+from surfaces.wing import Wing
+from tools.disegnino import Drawer
 from environment import SeabedMap
 from pid import PID
-from logger import Logger
-from sensor import GNSS, AbsoluteError, Anemometer, Compass, MixedError, RelativeError, Speedometer, Sonar
+from tools.logger import Logger
 from environment import SeabedMap, SeabedBoatMap
 from fleet import Fleet
-from utils import check_intersection_circle_circle, polar_to_cartesian
+from tools.utils import check_intersection_circle_circle, polar_to_cartesian
 
 # takes a list of boats and creates, for each group of boats, its route
 # each group goes to specific rows
@@ -69,15 +83,18 @@ if __name__ == '__main__':
     
     # world initialization
     world = World(9.81, wind, seabed)
-    win_width = world_width * 3
-    win_height = world_height * 3
+    win_width = world_width * 4
+    win_height = world_height * 4
     drawer = Drawer(win_width, win_height, world_width, world_height)
-    drawer.debug = True
+    drawer.debug = False
     drawer.draw_axis()
 
     # boats initialization
     boats: list[Boat] = []
-    boats_n = 2
+    boats_n = 4
+
+    spawn_area_x_limits = (-120, -80)
+    spawn_area_y_limits = (-90, -50)
 
     for i in range(boats_n):
 
@@ -95,13 +112,17 @@ if __name__ == '__main__':
         motor_controller = MotorController(Motor(1000, 0.85, 1024))
 
         ## boat initialization
-        boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, None, EKF())
+        boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, EKF())
+        position_x = np.random.uniform(spawn_area_x_limits[0], spawn_area_x_limits[1])
+        position_y = np.random.uniform(spawn_area_y_limits[0], spawn_area_y_limits[1])
+        boat.position = np.array([position_x, position_y])
         boat.velocity = np.zeros(2)
         boat.heading = polar_to_cartesian(1, 0)
 
         # boat ekf setup
         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
-
+        boat.ekf.set_initial_state(boat.measure_state())
+        boat.ekf.set_initial_state_variance(boat.get_state_variance())
         boat.ekf.set_constants(ekf_constants)
         
         boats.append(boat)
@@ -117,13 +138,8 @@ if __name__ == '__main__':
     
     for b in boats:
         uuid = str(b.uuid)
-        # set the initial position of the boat to the first target 
-        target = targets_dict[uuid][0]
-        b.position = target
-        b.ekf.set_initial_state(b.measure_state())
-        b.ekf.set_initial_state_variance(b.get_state_variance())
-        # and update the index of the current target to the next
-        targets_idx[uuid] = 1
+        targets_idx[uuid] = 0
+        b.set_target(targets_dict[uuid][0])
     
     velocities = []
     wind_velocities = []
@@ -144,7 +160,7 @@ if __name__ == '__main__':
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
 
-            if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 5):
+            if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 2):
                 targets_idx[uuid] += 1
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
 
@@ -171,7 +187,10 @@ if __name__ == '__main__':
         # update drawing
         drawer.clear()
         for b in boats:
+            uuid = str(b.uuid)
             drawer.draw_boat(b)
+            drawer.draw_target(targets_dict[uuid][targets_idx[uuid]])
+            # drawer.draw_route(targets_dict[str(b.uuid)], 'red')
         drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
         if boats[0].target is not None:
             drawer.draw_target(boats[0].target)

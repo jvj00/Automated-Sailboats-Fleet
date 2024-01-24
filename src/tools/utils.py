@@ -142,7 +142,8 @@ def check_intersection_circle_line(center, radius, start, end):
 def check_intersection_circle_circle(center_a, radius_a, center_b, radius_b) -> bool:
     return compute_magnitude(center_a - center_b) < radius_a + radius_b
 
-def is_multiple(a, b):
-    a = int(a*1000)
-    b = int(b*1000)
-    return a % b == 0
+def angle_from_steps(steps, resolution):
+    return (steps / resolution) * (2 * np.pi)
+
+def steps_from_angle(angle, resolution):
+    return np.floor((angle / (2 * np.pi)) * resolution)
