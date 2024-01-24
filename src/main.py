@@ -95,15 +95,12 @@ if __name__ == '__main__':
 
         ## boat initialization
         boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, None, EKF())
-        boat_position = np.zeros(2)
         boat.velocity = np.zeros(2)
         boat.heading = polar_to_cartesian(1, 0)
 
         # boat ekf setup
         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
 
-        boat.ekf.set_initial_state(boat.measure_state())
-        boat.ekf.set_initial_state_variance(boat.get_state_variance())
         boat.ekf.set_constants(ekf_constants)
         
         boats.append(boat)
@@ -112,7 +109,7 @@ if __name__ == '__main__':
     fleet = Fleet(boats, seabed, prob_of_connection=0.8)
 
     # boat as key, targets as value
-    targets_dict = create_targets_from_map(seabed, boats, 1)
+    targets_dict = create_targets_from_map(seabed, boats, 2)
 
     # boat as key, current target index as value
     targets_idx = {}
@@ -122,6 +119,8 @@ if __name__ == '__main__':
         # set the initial position of the boat to the first target 
         target = targets_dict[uuid][0]
         b.position = target
+        b.ekf.set_initial_state(b.measure_state())
+        b.ekf.set_initial_state_variance(b.get_state_variance())
         # and update the index of the current target to the next
         targets_idx[uuid] = 1
     
@@ -152,7 +151,7 @@ if __name__ == '__main__':
             update_gnss = True
             update_compass = True
             fleet.sync_boat_measures(debug=True)
-            fleet.plot_boat_maps()
+            # fleet.plot_boat_maps()
         else:
             update_gnss = False
             update_compass = False
@@ -171,8 +170,8 @@ if __name__ == '__main__':
 
         fleet.measure_sonars()
 
-        # for b in boats:
-        #     print(b.get_filtered_state()-b.get_state())
+        for b in boats:
+            print(b.get_filtered_state()-b.get_state())
 
         # update drawing
         drawer.clear()

@@ -149,7 +149,7 @@ class Boat(RigidBody):
         ).T
 
     def get_state_variance(self):
-        state = self.get_state()
+        state = self.measure_state()
         return np.diag(
             [
                 self.gnss.err_position_x.get_variance(state[0]),
