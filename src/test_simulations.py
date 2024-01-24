@@ -24,20 +24,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
-
-
 from controllers.pid import PID
 from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, mod2pi, modpi, polar_to_cartesian
 
 from tools.logger import Logger
-
-def check_collisions(boats: list[Boat]) -> bool:
-    for a in boats:
-        for b in boats:
-            if str(a.uuid) != str(b.uuid):
-                if check_intersection_circle_circle(a.position, a.length * 0.5, b.position, b.length * 0.5):
-                    return True
-    return False
 
 def simulate(
         boats: list[Boat],
@@ -48,6 +38,8 @@ def simulate(
         simulated_data: bool = False,
         measured_data: bool = False,
         motor_only: bool = False,
+        drawer: Drawer = None,
+        
     ):
     
     # keeps, for each boat, its state at each instant dt
@@ -81,6 +73,13 @@ def simulate(
                 if current_targets_idx[i] == len(targets[i]):
                     continue
                 boats[i].set_target(targets[i][current_targets_idx[i]])
+            
+            if measured_data:
+                boats[i].measure_anemometer(world.wind)
+                boats[i].measure_compass()
+                boats[i].measure_speedometer_par()
+                boats[i].measure_speedometer_perp()
+                boats[i].measure_gnss()
 
             boats[i].follow_target(world.wind, dt, simulated_data, measured_data, motor_only)
 
@@ -89,12 +88,23 @@ def simulate(
         if completed:
             break
 
-        # input()
-    
     completed = True
 
     for i in range(len(boats)):
         completed &= (current_targets_idx[i] == len(targets[i]))
+    
+    if drawer is not None:
+        drawer.draw_axis()
+        drawer.draw_wind(world.wind, np.array([drawer.world_width * 0.4, drawer.world_height * 0.4]))
+
+        for i in range(len(boats)):
+            drawer.draw_boat(boats[i])
+            drawer.draw_target(targets[i])
+            for t in targets[i]:
+                drawer.draw_target(t)
+        
+        while True:
+            pass
     
     return completed, time_elapsed, states
 

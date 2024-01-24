@@ -19,7 +19,6 @@ class EKF:
     def compute_filtered_state(self, boat_sensors, true_boat_data, true_wind_data, dt, update_gnss=True, update_compass=True):
         if self.x is None or self.P is None or self.constants is None:
             raise Exception('Initial state, variance or constants not provided')
-
         # retrieve coefficients
         boat_mass, boat_length, boat_friction_mu, boat_drag_damping, wing_area, wind_density, gravity, motor_efficiency = self.constants
         

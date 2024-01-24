@@ -149,37 +149,61 @@ if __name__ == '__main__':
     times = []
 
     dt = 0.1
-    
-    update_gnss = False
-    update_compass = False
+
+    gnss_period = 10
+    anemometer_period = 1
+    speedometer_x_period = 1
+    speedometer_y_period = 1
+    compass_period = 10
+    sonar_period = 1
+    rudder_period = 1
+    wing_period = 1
+    boat_measures_period = 10
 
     for i in range(10000):
         time_elapsed = i * dt
 
         for b in boats:
+
+            if time_elapsed % gnss_period == 0:
+                b.measure_gnss()
+            
+            if time_elapsed % anemometer_period == 0:
+                b.measure_anemometer(world.wind)
+            
+            if time_elapsed % speedometer_x_period == 0:
+                b.measure_speedometer_par()
+            
+            if time_elapsed % speedometer_y_period == 0:
+                b.measure_speedometer_perp()
+            
+            if time_elapsed % compass_period == 0:
+                b.measure_compass()
+            
+            if time_elapsed % rudder_period == 0:
+                b.measure_rudder()
+            
+            if time_elapsed % wing_period == 0:
+                b.measure_wing()
+
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
 
             if check_intersection_circle_circle(b.position, b.length * 0.5, boat_target, 2):
                 targets_idx[uuid] += 1
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
-
-        if time_elapsed % 10 == 0:
-            update_gnss = True
-            update_compass = True
+            
+        if time_elapsed % boat_measures_period == 0:
             fleet.sync_boat_measures(debug=True)
-            # fleet.plot_boat_maps()
-        else:
-            update_gnss = False
-            update_compass = False
 
-        fleet.follow_targets(world.wind, dt)
+        fleet.follow_targets(world.wind, dt, filtered_data=True)
 
-        fleet.update_filtered_states(world.wind.velocity, dt, update_gnss, update_compass)
+        fleet.update_filtered_states(world.wind.velocity, dt, time_elapsed % gnss_period == 0, time_elapsed % compass_period == 0)
         
         world.update(boats, dt)
 
-        fleet.measure_sonars()
+        if time_elapsed % sonar_period == 0:
+            fleet.measure_sonars()
 
         # for idx, b in enumerate(fleet.boats):
         #     print(b.get_filtered_state()-b.get_state())
@@ -196,6 +220,6 @@ if __name__ == '__main__':
             drawer.draw_target(boats[0].target)
         
 
-        plt.pause(0.001)
+        plt.pause(0.01)
     
     plt.show()

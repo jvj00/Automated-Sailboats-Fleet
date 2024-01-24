@@ -18,6 +18,18 @@ import numpy as np
 
 from tools.utils import cartesian_to_polar, compute_acceleration, compute_angle, compute_angle_between, compute_magnitude, compute_motor_thrust, compute_turning_radius, compute_wind_force, is_angle_between, mod2pi, polar_to_cartesian
 
+class MeasurementData:
+
+    def __init__(self):
+        self.gnss = None
+        self.anemometer = None
+        self.speedometer_x = None
+        self.speedometer_y = None
+        self.compass = None
+        self.sonar = None
+        self.rudder = None
+        self.wing = None
+
 class Boat(RigidBody):
     def __init__(
             self,
@@ -80,8 +92,11 @@ class Boat(RigidBody):
         
         if map is None:
             Logger.warning('No map provided')
+        
         self.ekf = ekf
-    
+
+        self.measurement_data = MeasurementData()
+
     def update_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
         boat_sensors = self.speedometer_par, self.speedometer_perp, self.anemometer, self.rudder, self.wing, self.motor_controller, self.gnss, self.compass
         true_boat_data = self.velocity, self.heading, self.position
@@ -160,49 +175,70 @@ class Boat(RigidBody):
     def set_target(self, target):
         self.target = target
     
-    # enable simulation data to use boat and wind data from the simulation
-    # enable measured_data to use boat and wind measured data
-    # set both to False to use filtered data coming from the kalman filter, if available
-    def follow_target(self, wind: Wind, dt, simulated_data = False, measured_data = False, motor_only = False):
-        if self.target is None:
-            return
-
+    def get_data(self, wind: Wind, simulated: False, measured: False, filtered: False):
         boat_position = None
-        boat_angle = None
-        wind_speed = None
-        wind_angle = None
-        
-        if simulated_data:
+        boat_velocity = None
+        boat_heading = None
+        wind_velocity = None
+
+        if simulated:
             boat_position = self.position
-            boat_angle = compute_angle(self.heading)
+            boat_heading = self.heading
             boat_velocity = self.velocity
             # convert wind data (absolute) to relative to the boat
             wind_velocity = wind.velocity - self.velocity
             wind_speed, wind_angle = cartesian_to_polar(wind_velocity)
             wind_angle = mod2pi(wind_angle - compute_angle(self.heading))
+            wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
         
-        elif measured_data:
-            if self.compass is not None and self.gnss is not None and self.anemometer is not None:
-                boat_position = self.measure_gnss()
-                boat_angle = self.measure_compass()
-                boat_speed_x = self.measure_speedometer_par()
-                boat_speed_y = self.measure_speedometer_perp()
-                boat_velocity = np.array([boat_speed_x, boat_speed_y])
-                wind_speed, wind_angle = self.measure_anemometer(wind)
+        elif measured:
+            boat_position = self.measurement_data.gnss
+            
+            if self.measurement_data.compass is not None:
+                boat_heading = polar_to_cartesian(1, self.measurement_data.compass)
+            
+            if self.measurement_data.speedometer_x is not None and self.measurement_data.speedometer_y is not None:
+                boat_velocity = np.array([self.measurement_data.speedometer_x, self.measurement_data.speedometer_y])
+            
+            if self.measurement_data.anemometer is not None:
+                wind_speed, wind_angle = self.measurement_data.anemometer
                 wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
-        else:
+        
+        elif filtered:
             if self.get_filtered_state() is not None:
-                boat_position = np.array([self.get_filtered_state()[0], self.get_filtered_state()[1]])
-                boat_angle = self.get_filtered_state()[2]
-                wind_speed, wind_angle = self.measure_anemometer(wind)
-                wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
-                boat_speed_x = self.measure_speedometer_par()
-                boat_speed_y = self.measure_speedometer_perp()
-                boat_velocity = np.array([boat_speed_x, boat_speed_y])
+                state = self.get_filtered_state()
+                boat_position = np.array([state[0], state[1]])
+
+                boat_heading = polar_to_cartesian(1, state[2])
+                
+                if self.measurement_data.speedometer_x is not None and self.measurement_data.speedometer_y is not None:
+                    boat_velocity = np.array([self.measurement_data.speedometer_x, self.measurement_data.speedometer_y])
+            
+                if self.measurement_data.anemometer is not None:
+                    wind_speed, wind_angle = self.measurement_data.anemometer
+                    wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
         
-        if boat_position is None or boat_angle is None or wind_speed is None or wind_angle is None or boat_angle is None:
+        if boat_position is None or boat_velocity is None or boat_heading is None or wind_velocity is None:
+            return None
+        
+        return boat_position, boat_velocity, boat_heading, wind_velocity
+
+
+    # enable simulation data to use boat and wind data from the simulation
+    # enable measured_data to use boat and wind measured data
+    # set both to False to use filtered data coming from the kalman filter, if available
+    def follow_target(self, wind: Wind, dt, simulated_data = False, measured_data = False, filtered_data = False, motor_only = False):
+        if self.target is None:
+            return
+        
+        if self.get_data(wind, simulated_data, measured_data, filtered_data) is None:
             Logger.error('Cannot follow target due to missing values')
             return
+
+        boat_position, boat_velocity, boat_heading, wind_velocity = self.get_data(wind, simulated_data, measured_data, filtered_data)
+
+        boat_angle = compute_angle(boat_heading)
+        wind_angle = compute_angle(wind_velocity)
 
         if self.rudder is not None:
             # set the angle of rudder equal to the angle between the direction of the boat and
@@ -253,27 +289,42 @@ class Boat(RigidBody):
         # Logger.debug(f'Rudder angle: {self.rudder.controller.get_angle()}')
         # Logger.debug(f'Angle from destination: {angle_from_target}')
     
-    def measure_anemometer(self, wind):
-        return self.anemometer.measure(wind.velocity, self.velocity, self.heading)
-    def measure_speedometer_par(self):
-        return self.speedometer_par.measure(self.velocity, self.heading)
-    def measure_speedometer_perp(self):
-        return self.speedometer_perp.measure(self.velocity, self.heading)
-    def measure_compass(self):
-        return self.compass.measure(self.heading)
-    def measure_gnss(self):
-        return self.gnss.measure(self.position)
-    def measure_sonar(self, seabed: SeabedMap, filtered_pos):
+    def measure_anemometer(self, wind: Wind) -> (float, float):
+        self.measurement_data.anemometer = self.anemometer.measure(wind.velocity, self.velocity, self.heading)
+        return self.measurement_data.anemometer
+    
+    def measure_speedometer_par(self) -> float:
+        self.measurement_data.speedometer_x = self.speedometer_par.measure(self.velocity, self.heading)
+        return self.measurement_data.speedometer_x
+    
+    def measure_speedometer_perp(self) -> float:
+        self.measurement_data.speedometer_y = self.speedometer_perp.measure(self.velocity, self.heading)
+        return self.measurement_data.speedometer_y
+    
+    def measure_compass(self) -> float:
+        self.measurement_data.compass = self.compass.measure(self.heading)
+        return self.measurement_data.compass
+    
+    def measure_gnss(self) -> np.ndarray:
+        self.measurement_data.gnss = self.gnss.measure(self.position)
+        return self.measurement_data.gnss
+    
+    def measure_sonar(self, seabed: SeabedMap, filtered_pos) -> float:
         try:
-            meas = self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
-            self.map.insert_measure(filtered_pos[0], filtered_pos[1], meas)
+            self.measurement_data.sonar = self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
+            self.map.insert_measure(filtered_pos[0], filtered_pos[1], self.measurement_data.sonar)
+            return self.measurement_data.sonar
         except Exception as e:
             Logger.error(e)
-            meas = 0
-        return meas
-    def measure_rudder(self):
-        return self.rudder.controller.measure_angle()    
-    def measure_wing(self):
-        return self.wing.controller.measure_angle()
+        
+        return 0
+    
+    def measure_rudder(self) -> float:
+        self.measurement_data.rudder = self.rudder.controller.measure_angle()
+        return self.measurement_data.rudder
+    
+    def measure_wing(self) -> float:
+        self.measurement_data.wing = self.wing.controller.measure_angle()
+        return self.measurement_data.wing
 
 
