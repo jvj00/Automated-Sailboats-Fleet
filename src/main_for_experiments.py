@@ -36,6 +36,8 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     np.set_printoptions(suppress=True)
 
     # seadbed initialization
+    world_width /= 2
+    world_height /= 2
     seabed = SeabedMap(-world_width,world_width,-world_height,world_height, resolution=10)
     seabed.create_seabed(20, 300, max_slope=2, prob_go_up=0.1, plot=False)
 
@@ -148,7 +150,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
             fleet.sync_boat_measures()
 
         # setup actuators
-        fleet.follow_targets(world.wind, dt)
+        fleet.follow_targets(world.wind, dt, filtered_data=True)
 
         # compute state estimation
         if is_multiple(time_elapsed, dt_ekf):
@@ -181,8 +183,8 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
-    world_width = 60
-    world_height = 60
+    world_width = 120
+    world_height = 120
     dt = 0.1
     time_experiment = 1000
     boats_n = 3

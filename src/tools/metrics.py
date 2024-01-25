@@ -107,4 +107,7 @@ class GlobalMetrics:
     
     def plot_metrics(self, dx=1800, dy=900, dpi=100, save_path=None) -> None:
         for metric in self.metrics:
-            self.metrics[metric].plot_metrics(dx, dy, dpi, save_path+"boat_"+metric+".png", plot=False)
+            if save_path is not None:
+                self.metrics[metric].plot_metrics(dx, dy, dpi, save_path+"boat_"+metric+".png", plot=False)
+            else:
+                self.metrics[metric].plot_metrics(dx, dy, dpi, plot=True)
