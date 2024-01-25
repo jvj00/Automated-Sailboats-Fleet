@@ -167,14 +167,15 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 
         # compute state estimation
         if is_multiple(time_elapsed, dt_ekf):
-            fleet.update_filtered_states(world.wind, dt, update_gnss, update_compass, prob_gnss, prob_compass, time_elapsed, metrics)
+            fleet.update_filtered_states(world.wind, dt_ekf, update_gnss, update_compass, prob_gnss, prob_compass, time_elapsed, metrics)
         
         # update world
         world.update(boats, dt)
 
         # update metrics
         for b in boats:
-            metrics.get_metrics(b.uuid).add_state(time_elapsed, filtered=b.get_filtered_state(), truth=b.get_state(), covariance=b.ekf.P)
+            if is_multiple(time_elapsed, dt_ekf):
+                metrics.get_metrics(b.uuid).add_state(time_elapsed, filtered=b.get_filtered_state(), truth=b.get_state(), covariance=b.ekf.P)
             metrics.get_metrics(b.uuid).add_motor_on(time_elapsed, b.motor_controller.get_power() > 0)
 
         # update drawing
@@ -199,7 +200,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 if __name__ == '__main__':
     world_width = 120
     world_height = 120
-    time_experiment = 200
+    time_experiment = 50
     boats_n = 1
     boats_per_group_n = 1
     prob_of_connection = 0.8
@@ -208,7 +209,7 @@ if __name__ == '__main__':
     dt_compass = 10
     dt_sonar = 1
     dt_sync = 10
-    dt_ekf = 0.1
+    dt_ekf = 0.2
     prob_gnss = 0.9
     prob_compass = 0.9
 
