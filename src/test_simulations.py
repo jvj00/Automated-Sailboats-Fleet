@@ -12,6 +12,7 @@ from entities.world import World
 from errors.absolute_error import AbsoluteError
 from errors.mixed_error import MixedError
 from errors.relative_error import RelativeError
+from estimation_algs.ekf import EKF
 from sensors.anemometer import Anemometer
 from sensors.compass import Compass
 from sensors.gnss import GNSS
@@ -25,7 +26,7 @@ import matplotlib.pyplot as plt
 import copy
 
 from controllers.pid import PID
-from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, is_multiple, mod2pi, modpi, polar_to_cartesian
+from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, is_multiple, mod2pi, modpi, polar_to_cartesian, random_color
 
 from tools.logger import Logger
 
@@ -41,7 +42,9 @@ class BoatConfiguration:
         anemometer_period: float = 1,
         speedometer_period: float = 1,
         rudder_period: float = 1,
-        wing_period: float = 1
+        wing_period: float = 1,
+        follow_target_period: float = 1,
+        update_filtered_state_period: float = 1
     ):
         self.simulated_data = simulated_data
         self.measured_data = measured_data
@@ -53,6 +56,8 @@ class BoatConfiguration:
         self.speedometer_period = speedometer_period
         self.rudder_period = rudder_period
         self.wing_period = wing_period
+        self.follow_target_period = follow_target_period
+        self.update_filtered_state_period = update_filtered_state_period
 
 def simulate(
         boats: list[Boat],
@@ -85,6 +90,7 @@ def simulate(
         for i in range(len(boats)):
 
             b = boats[i]
+            c = configurations[i]
 
             states[i].append(copy.deepcopy(b))
     
@@ -100,29 +106,34 @@ def simulate(
                     continue
                 b.set_target(targets[i][current_targets_idx[i]])
             
-            if configurations[i].measured_data or configurations[i].filtered_data:
+            if c.measured_data or c.filtered_data:
 
-                if is_multiple(time_elapsed, configurations[i].gnss_period):
+                if is_multiple(time_elapsed, c.gnss_period):
                     b.measure_gnss()
                 
-                if is_multiple(time_elapsed, configurations[i].anemometer_period):
+                if is_multiple(time_elapsed, c.anemometer_period):
                     b.measure_anemometer(world.wind)
                 
-                if is_multiple(time_elapsed, configurations[i].speedometer_period):
+                if is_multiple(time_elapsed, c.speedometer_period):
                     b.measure_speedometer_par()
                     b.measure_speedometer_perp()
                 
-                if is_multiple(time_elapsed, configurations[i].compass_period):
+                if is_multiple(time_elapsed, c.compass_period):
                     b.measure_compass()
-                
-            b.follow_target(
-                world.wind,
-                dt,
-                configurations[i].simulated_data,
-                configurations[i].measured_data,
-                configurations[i].filtered_data,
-                configurations[i].motor_only
-            )
+            
+            if is_multiple(time_elapsed, c.follow_target_period):
+                b.follow_target(
+                    world.wind,
+                    dt,
+                    c.simulated_data,
+                    c.measured_data,
+                    c.filtered_data,
+                    c.motor_only
+                )
+
+            if c.filtered_data and is_multiple(time_elapsed, c.update_filtered_state_period):
+                b.update_filtered_state(world.wind.velocity, dt, is_multiple(time_elapsed, c.gnss_period), is_multiple(time_elapsed, c.compass_period))
+
 
         world.update(boats, dt)
 
@@ -734,7 +745,7 @@ class TestWingMotor(unittest.TestCase):
         self.assertLess(np.abs(time_elapsed - 325), 20)
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
 
     # wind initialization
     wind = Wind(1.291)
@@ -752,23 +763,40 @@ if __name__ == '__main__':
     gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
     # boat initialization
-    boat = Boat(40, 5, None, Wing(8, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
-
+    boat = Boat(40, 5, None, Wing(8, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
+    
     boat.position = np.array([0.0, 0.0])
     boat.velocity = np.array([0.0, 0.0])
     boat.heading = polar_to_cartesian(1, 0)
     wind.velocity = np.array([13.0, 8.0])
 
-    boats = [boat]
+    boat2 = copy.deepcopy(boat)
+    boat3 = copy.deepcopy(boat)
+    
+    boats = [boat, boat2, boat3]
 
     targets = [
+        [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
+        [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
     ]
 
-    dt = 0.5
+    colors = ['red', 'blue', 'green']
+
+    dt = 0.2
     simulation_time = 300
 
-    completed, time_elapsed, states = simulate(boats, world, targets, dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
+    completed, time_elapsed, states = simulate(
+        boats,
+        world,
+        targets,
+        dt,
+        simulation_time,
+        [
+            BoatConfiguration(False, True, False, False, 3, 3, 3, 3, 3, 3, dt),
+            BoatConfiguration(True, False, False, False, dt, dt, dt, dt, dt, dt, dt)
+        ]
+    )
 
     # setup drawer
     win_width = 1400
@@ -785,7 +813,7 @@ if __name__ == '__main__':
 
     for i in range(len(boats)):
         route = [s.position for s in states[i]]
-        drawer.draw_route(route, 'red')
+        drawer.draw_route(route, colors[i])
         for t in targets[i]:
             drawer.draw_target(t)
     
