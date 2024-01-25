@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from matplotlib import pyplot as plt
 import numpy as np
+import json
 from actuators.motor import Motor
 from actuators.stepper import Stepper
 from controllers.motor_controller import MotorController
@@ -28,6 +29,7 @@ from entities.environment import SeabedMap, SeabedBoatMap
 from estimation_algs.fleet import Fleet
 from tools.utils import *
 from tools.metrics import Metrics, GlobalMetrics
+from tools.configurator import Config
 from main import create_targets_from_map
 
 def create_random_targets_from_map(seabed, boats, time_experiment):
@@ -42,15 +44,15 @@ def create_random_targets_from_map(seabed, boats, time_experiment):
             targets_dict[key].append(np.copy(target))
     return targets_dict
 
-def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf, rt, random_target=False):
-    
+def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target, save_folder):
+
     np.set_printoptions(suppress=True)
 
     # seadbed initialization
     world_width = int(world_width/2)
     world_height = int(world_height/2)
     seabed = SeabedMap(-world_width,world_width,-world_height,world_height, resolution=10)
-    seabed.create_seabed(20, 300, max_slope=2, prob_go_up=0.1, plot=False)
+    seabed.create_seabed(20, 300, max_slope=3, prob_go_up=0.1, plot=False)
 
     # wind initialization
     wind = Wind(1.291)
@@ -133,31 +135,36 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 
         # read sensors
         for b in boats:
-            if update_gnss and np.random.rand() < prob_gnss:
+            update_compass = False
+            update_gnss = False
+
+            if is_multiple(time_elapsed, dt_gnss) and np.random.rand() < prob_gnss:
                 b.measure_gnss()
-                metrics.get_metrics(b.uuid).add_update(time_elapsed, True, False)
+                update_gnss = True
             
-            if is_multiple(time_elapsed, dt_ekf):
+            if  is_multiple(time_elapsed, dt_compass) and np.random.rand() < prob_compass:
+                b.measure_compass()
+                update_compass = True                
+
+            if is_multiple(time_elapsed, dt_other_sensors):
                 b.measure_anemometer(world.wind)
             
-            if is_multiple(time_elapsed, dt_ekf):
+            if is_multiple(time_elapsed, dt_other_sensors):
                 b.measure_speedometer_par()
             
-            if is_multiple(time_elapsed, dt_ekf):
+            if is_multiple(time_elapsed, dt_other_sensors):
                 b.measure_speedometer_perp()
             
-            if update_compass and np.random.rand() < prob_compass:
-                b.measure_compass()
-                metrics.get_metrics(b.uuid).add_update(time_elapsed, False, True)
-            
-            if is_multiple(time_elapsed, dt_ekf):
+            if is_multiple(time_elapsed, dt_other_sensors):
                 b.measure_rudder()
             
-            if is_multiple(time_elapsed, dt_ekf):
+            if is_multiple(time_elapsed, dt_other_sensors):
                 b.measure_wing()
             
-            if is_multiple(time_elapsed, dt_ekf):
+            if is_multiple(time_elapsed, dt_other_sensors):
                 b.measure_motor()
+
+            metrics.get_metrics(b.uuid).add_update(time_elapsed, update_gnss, update_compass)
 
         # update targets
         for b in boats:            
@@ -184,8 +191,6 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
         wind.velocity += wind_derivative * dt
 
         # update sensors and sync
-        update_gnss = is_multiple(time_elapsed, dt_gnss)
-        update_compass = is_multiple(time_elapsed, dt_compass)
         if is_multiple(time_elapsed, dt_sonar):
             fleet.measure_sonars()
         if is_multiple(time_elapsed, dt_sync):
@@ -196,7 +201,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 
         # compute state estimation
         if is_multiple(time_elapsed, dt_ekf):
-            fleet.update_filtered_states(dt_ekf, update_gnss, update_compass, prob_gnss, prob_compass, time_elapsed, metrics)
+            fleet.update_filtered_states(dt_ekf, update_gnss, update_compass)
         
         # update world
         world.update(boats, dt)
@@ -213,36 +218,23 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
             drawer.draw_boat(b)
             if b.target is not None:
                 drawer.draw_target(b.target)
-        drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
+        drawer.draw_wind(world.wind)
+        drawer.write_description('Time (s): ' + str(time_elapsed))
 
         # wait to simulate a real time execution
         if rt:
             plt.pause(dt)
     
     Logger.info('Experiment ended in ' + str(time_elapsed+dt) + ' seconds')
-    dir='../saved_metrics/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
+    dir=save_folder+'/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     metrics.write_metrics(save_path=dir)
     metrics.plot_metrics(save_path=dir)
     # fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
-    world_width = 120
-    world_height = 120
-    time_experiment = 50
-    boats_n = 1
-    boats_per_group_n = 1
-    prob_of_connection = 0.8
-    dt = 0.1
-    dt_gnss = 20
-    dt_compass = 10
-    dt_sonar = 1
-    dt_sync = 10
-    dt_ekf = 0.1
-    prob_gnss = 0.9
-    prob_compass = 0.9
+    config = Config()
+    config.load('config.json')
 
-    rt = False
-    random_target = True
-
-    experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf, rt, random_target=random_target)
+    if config.config:
+        experiment(config.world_width, config.world_height, config.dt, config.duration, config.boats, config.boats_per_group, config.prob_of_radio_connection, config.prob_gnss, config.prob_compass, config.dt_gnss, config.dt_compass, config.dt_prediction_sensors, config.dt_sonar, config.dt_sync, config.dt_ekf, config.real_time, config.random_target, config.save_folder)

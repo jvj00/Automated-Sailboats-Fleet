@@ -80,9 +80,10 @@ class Drawer:
                     self.draw_polygon(vertices, [0, 0], 0, color_rgb(119,255,243), color_outline=color_rgb(0,0,0), undraw=False)
                     
     
-    def draw_wind(self, wind: Wind, center):
+    def draw_wind(self, wind: Wind):
         width = 5
         height = 15
+        center = np.array([int(self.world_width*0.25), int(self.world_height/2)-10])
         color = color_rgb(15,15,15)
         angle = compute_angle(wind.velocity) - (np.pi * 0.5)
         self.draw_triangle(width, height, center, center, angle, color)
@@ -176,6 +177,13 @@ class Drawer:
         draw = Circle(Point(position_canvas[0], position_canvas[1]), 10)
         self.undraw.append(draw)
         draw.draw(self.win)
+    
+    def write_description(self, text, undraw=True):
+        txt = Text(Point(int(0.25*self.win.width), 30), text)
+        txt.setSize(12)
+        if undraw:
+            self.undraw.append(txt)
+        txt.draw(self.win)
     
         
 def rotate_polygon(vertices, angle, pivot):
