@@ -98,9 +98,9 @@ class Boat(RigidBody):
 
         self.measurement_data = MeasurementData()
 
-    def update_filtered_state(self, wind: Wind, dt, update_gnss, update_compass):
+    def update_filtered_state(self, dt, update_gnss, update_compass):
         boat_sensors = self.speedometer_par, self.speedometer_perp, self.anemometer, self.rudder, self.wing, self.motor_controller, self.gnss, self.compass
-        boat_measurements = self.measure_speedometer_par(), self.measure_speedometer_perp(), self.measure_anemometer(wind), self.measure_rudder(), self.measure_wing(), self.measure_motor(), self.measure_gnss(), self.measure_compass()
+        boat_measurements = self.measurement_data.speedometer_x, self.measurement_data.speedometer_y, self.measurement_data.anemometer, self.measurement_data.rudder, self.measurement_data.wing, self.measurement_data.motor, self.measurement_data.gnss, self.measurement_data.compass
         filtered_state, filtered_variance = self.ekf.compute_filtered_state(boat_sensors, boat_measurements, dt, update_gnss, update_compass)
         return filtered_state, filtered_variance
     

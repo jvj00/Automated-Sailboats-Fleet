@@ -167,7 +167,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 
         # compute state estimation
         if is_multiple(time_elapsed, dt_ekf):
-            fleet.update_filtered_states(world.wind, dt, update_gnss, update_compass, prob_gnss, prob_compass, time_elapsed, metrics)
+            fleet.update_filtered_states(dt, update_gnss, update_compass, prob_gnss, prob_compass, time_elapsed, metrics)
         
         # update world
         world.update(boats, dt)

@@ -158,6 +158,7 @@ if __name__ == '__main__':
     sonar_period = 1
     rudder_period = 1
     wing_period = 1
+    motor_period = 1
     boat_measures_period = 10
 
     for i in range(10000):
@@ -185,6 +186,9 @@ if __name__ == '__main__':
             
             if is_multiple(time_elapsed, wing_period):
                 b.measure_wing()
+            
+            if is_multiple(time_elapsed, motor_period):
+                b.measure_motor()
 
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
@@ -198,7 +202,7 @@ if __name__ == '__main__':
 
         fleet.follow_targets(world.wind, dt, filtered_data=True)
 
-        fleet.update_filtered_states(world.wind, dt, is_multiple(time_elapsed, gnss_period), is_multiple(time_elapsed, compass_period))
+        fleet.update_filtered_states(dt, is_multiple(time_elapsed, gnss_period), is_multiple(time_elapsed, compass_period))
         
         world.update(boats, dt)
 
