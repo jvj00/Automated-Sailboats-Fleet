@@ -80,12 +80,12 @@ class Metrics:
         plt.title('Error Direction')
         for ud in self.updates_compass:
             plt.axvline(x=ud, linestyle='--', linewidth=0.3, color='k')
-        plt.plot(self.time, self.error_theta, label='Error Theta')
+        plt.plot(self.time, self.error_theta, label='Error Theta', color='g')
         plt.legend()
 
         plt.subplot(2, 2, 4)
         plt.title('Variance Direction')
-        plt.plot(self.time, self.cov_theta, label='Variance Theta')
+        plt.plot(self.time, self.cov_theta, label='Variance Theta', color='g')
         plt.legend()
 
         plt.tight_layout()
@@ -115,7 +115,7 @@ class Metrics:
         if save_name is not None:
             df.to_csv(save_name, index=False, sep=';')
         else:
-            Logger.info('Metrics for boat ' + str(name) + ':', df)
+            Logger.info('Metrics for boat ' + str(name) + ':' + str(df))
 
 class GlobalMetrics:
     def __init__(self, boats) -> None:
