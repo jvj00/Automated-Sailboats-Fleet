@@ -165,25 +165,25 @@ if __name__ == '__main__':
 
         for b in boats:
 
-            if time_elapsed % gnss_period == 0:
+            if np.fmod(time_elapsed, gnss_period) == 0:
                 b.measure_gnss()
             
-            if time_elapsed % anemometer_period == 0:
+            if np.fmod(time_elapsed, anemometer_period) == 0:
                 b.measure_anemometer(world.wind)
             
-            if time_elapsed % speedometer_x_period == 0:
+            if np.fmod(time_elapsed, speedometer_x_period) == 0:
                 b.measure_speedometer_par()
             
-            if time_elapsed % speedometer_y_period == 0:
+            if np.fmod(time_elapsed, speedometer_y_period) == 0:
                 b.measure_speedometer_perp()
             
-            if time_elapsed % compass_period == 0:
+            if np.fmod(time_elapsed, compass_period) == 0:
                 b.measure_compass()
             
-            if time_elapsed % rudder_period == 0:
+            if np.fmod(time_elapsed, rudder_period) == 0:
                 b.measure_rudder()
             
-            if time_elapsed % wing_period == 0:
+            if np.fmod(time_elapsed, wing_period) == 0:
                 b.measure_wing()
 
             uuid = str(b.uuid)
@@ -193,16 +193,16 @@ if __name__ == '__main__':
                 targets_idx[uuid] += 1
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
             
-        if time_elapsed % boat_measures_period == 0:
+        if np.fmod(time_elapsed, boat_measures_period) == 0:
             fleet.sync_boat_measures(debug=True)
 
         fleet.follow_targets(world.wind, dt, filtered_data=True)
 
-        fleet.update_filtered_states(world.wind.velocity, dt, time_elapsed % gnss_period == 0, time_elapsed % compass_period == 0)
+        fleet.update_filtered_states(world.wind.velocity, dt, np.fmod(time_elapsed, gnss_period) == 0, np.fmod(time_elapsed, compass_period) == 0)
         
         world.update(boats, dt)
 
-        if time_elapsed % sonar_period == 0:
+        if np.fmod(time_elapsed, sonar_period) == 0:
             fleet.measure_sonars()
 
         # for idx, b in enumerate(fleet.boats):

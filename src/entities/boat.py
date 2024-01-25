@@ -290,23 +290,28 @@ class Boat(RigidBody):
         # Logger.debug(f'Angle from destination: {angle_from_target}')
     
     def measure_anemometer(self, wind: Wind) -> (float, float):
-        self.measurement_data.anemometer = self.anemometer.measure(wind.velocity, self.velocity, self.heading)
+        if self.anemometer is not None:
+            self.measurement_data.anemometer = self.anemometer.measure(wind.velocity, self.velocity, self.heading)
         return self.measurement_data.anemometer
     
     def measure_speedometer_par(self) -> float:
-        self.measurement_data.speedometer_x = self.speedometer_par.measure(self.velocity, self.heading)
+        if self.speedometer_par is not None:
+            self.measurement_data.speedometer_x = self.speedometer_par.measure(self.velocity, self.heading)
         return self.measurement_data.speedometer_x
     
     def measure_speedometer_perp(self) -> float:
-        self.measurement_data.speedometer_y = self.speedometer_perp.measure(self.velocity, self.heading)
+        if self.speedometer_perp is not None:
+            self.measurement_data.speedometer_y = self.speedometer_perp.measure(self.velocity, self.heading)
         return self.measurement_data.speedometer_y
     
     def measure_compass(self) -> float:
-        self.measurement_data.compass = self.compass.measure(self.heading)
+        if self.compass is not None:
+            self.measurement_data.compass = self.compass.measure(self.heading)
         return self.measurement_data.compass
     
     def measure_gnss(self) -> np.ndarray:
-        self.measurement_data.gnss = self.gnss.measure(self.position)
+        if self.gnss is not None:
+            self.measurement_data.gnss = self.gnss.measure(self.position)
         return self.measurement_data.gnss
     
     def measure_sonar(self, seabed: SeabedMap, filtered_pos) -> float:
@@ -318,9 +323,15 @@ class Boat(RigidBody):
             Logger.warning(e)
             meas = 0
         return meas
+
     def measure_rudder(self):
-        return self.rudder.controller.measure_angle()    
+        if self.rudder is not None:
+            self.measurement_data.rudder = self.rudder.controller.measure_angle()
+        return self.measurement_data.rudder
+    
     def measure_wing(self):
-        return self.wing.controller.measure_angle()
+        if self.wing is not None:
+            self.measurement_data.wing = self.wing.controller.measure_angle()
+        return self.measurement_data.wing
 
 

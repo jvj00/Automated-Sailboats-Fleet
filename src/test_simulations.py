@@ -25,9 +25,34 @@ import matplotlib.pyplot as plt
 import copy
 
 from controllers.pid import PID
-from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, mod2pi, modpi, polar_to_cartesian
+from tools.utils import check_intersection_circle_circle, compute_angle_between, compute_distance, is_multiple, mod2pi, modpi, polar_to_cartesian
 
 from tools.logger import Logger
+
+class BoatConfiguration:
+    def __init__(
+        self, 
+        simulated_data: bool = True,
+        measured_data: bool = False,
+        filtered_data: bool = False,
+        motor_only: bool = False,
+        gnss_period: float = 1,
+        compass_period: float = 1,
+        anemometer_period: float = 1,
+        speedometer_period: float = 1,
+        rudder_period: float = 1,
+        wing_period: float = 1
+    ):
+        self.simulated_data = simulated_data
+        self.measured_data = measured_data
+        self.filtered_data = filtered_data
+        self.motor_only = motor_only
+        self.gnss_period = gnss_period
+        self.compass_period = compass_period
+        self.anemometer_period = anemometer_period
+        self.speedometer_period = speedometer_period
+        self.rudder_period = rudder_period
+        self.wing_period = wing_period
 
 def simulate(
         boats: list[Boat],
@@ -35,11 +60,7 @@ def simulate(
         targets: list[list[np.ndarray]],
         dt: float,
         simulation_time: float,
-        simulated_data: bool = False,
-        measured_data: bool = False,
-        motor_only: bool = False,
-        drawer: Drawer = None,
-        
+        configurations: list[BoatConfiguration]
     ):
     
     # keeps, for each boat, its state at each instant dt
@@ -53,14 +74,19 @@ def simulate(
         target = targets[i][0]
         boats[i].set_target(target)
     
-    for time_elapsed in np.arange(0, simulation_time, dt):
+    time_elapsed = 0
+    
+    for i in range(int(simulation_time/dt)):
+        time_elapsed = round(i * dt, 2)
 
         # check if every boat has covered every target
         completed = True
 
         for i in range(len(boats)):
 
-            states[i].append(copy.deepcopy(boats[i]))
+            b = boats[i]
+
+            states[i].append(copy.deepcopy(b))
     
             completed &= (current_targets_idx[i] == len(targets[i]))
 
@@ -68,20 +94,35 @@ def simulate(
                     continue
 
             # check if the boat has reached the target        
-            if check_intersection_circle_circle(boats[i].position, boats[i].length * 0.5, targets[i][current_targets_idx[i]], boats[i].length * 0.5):
+            if check_intersection_circle_circle(b.position, b.length * 0.5, targets[i][current_targets_idx[i]], b.length * 0.5):
                 current_targets_idx[i] += 1
                 if current_targets_idx[i] == len(targets[i]):
                     continue
-                boats[i].set_target(targets[i][current_targets_idx[i]])
+                b.set_target(targets[i][current_targets_idx[i]])
             
-            if measured_data:
-                boats[i].measure_anemometer(world.wind)
-                boats[i].measure_compass()
-                boats[i].measure_speedometer_par()
-                boats[i].measure_speedometer_perp()
-                boats[i].measure_gnss()
+            if configurations[i].measured_data or configurations[i].filtered_data:
 
-            boats[i].follow_target(world.wind, dt, simulated_data, measured_data, motor_only)
+                if is_multiple(time_elapsed, configurations[i].gnss_period):
+                    b.measure_gnss()
+                
+                if is_multiple(time_elapsed, configurations[i].anemometer_period):
+                    b.measure_anemometer(world.wind)
+                
+                if is_multiple(time_elapsed, configurations[i].speedometer_period):
+                    b.measure_speedometer_par()
+                    b.measure_speedometer_perp()
+                
+                if is_multiple(time_elapsed, configurations[i].compass_period):
+                    b.measure_compass()
+                
+            b.follow_target(
+                world.wind,
+                dt,
+                configurations[i].simulated_data,
+                configurations[i].measured_data,
+                configurations[i].filtered_data,
+                configurations[i].motor_only
+            )
 
         world.update(boats, dt)
 
@@ -92,19 +133,6 @@ def simulate(
 
     for i in range(len(boats)):
         completed &= (current_targets_idx[i] == len(targets[i]))
-    
-    if drawer is not None:
-        drawer.draw_axis()
-        drawer.draw_wind(world.wind, np.array([drawer.world_width * 0.4, drawer.world_height * 0.4]))
-
-        for i in range(len(boats)):
-            drawer.draw_boat(boats[i])
-            drawer.draw_target(targets[i])
-            for t in targets[i]:
-                drawer.draw_target(t)
-        
-        while True:
-            pass
     
     return completed, time_elapsed, states
 
@@ -130,7 +158,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 70.3)
@@ -154,7 +182,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 91.0)
@@ -180,7 +208,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 96.0)
@@ -205,7 +233,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 200
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 171.4)
@@ -230,7 +258,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 450
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 347.3)
@@ -262,7 +290,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 70.0), 20)
@@ -294,7 +322,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 90.0), 20)
@@ -327,7 +355,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 200
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 90), 20)
@@ -359,7 +387,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 300
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 160), 20)
@@ -391,7 +419,7 @@ class TestMotorOnly(unittest.TestCase):
         dt = 0.1
         simulation_time = 500
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True, motor_only=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 350), 20)
@@ -418,7 +446,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 70.6)
@@ -443,7 +471,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 91.1)
@@ -471,7 +499,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 71.2)
@@ -499,7 +527,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 150
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 128.5)
@@ -527,7 +555,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 400
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, simulated_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertAlmostEqual(time_elapsed, 319.5)
@@ -560,7 +588,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 70.0), 20)
@@ -593,7 +621,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 100
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 90.0), 20)
@@ -629,7 +657,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 150
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 70), 20)
@@ -664,7 +692,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 200
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 135), 20)
@@ -700,7 +728,7 @@ class TestWingMotor(unittest.TestCase):
         dt = 0.1
         simulation_time = 500
 
-        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+        completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
         self.assertLess(np.abs(time_elapsed - 325), 20)
@@ -709,108 +737,71 @@ if __name__ == '__main__':
     unittest.main()
 
     # wind initialization
-    # wind = Wind(1.291)
-    # world = World(9.81, wind)
+    wind = Wind(1.291)
+    world = World(9.81, wind)
 
-    # rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
-    # wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
-    # motor_controller = MotorController(Motor(200, 0.85, 1024))
+    rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
+    wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
+    motor_controller = MotorController(Motor(200, 0.85, 1024))
 
-    # ## sensor intialization
-    # anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-    # speedometer_par = Speedometer(MixedError(0.01, 5))
-    # speedometer_per = Speedometer(MixedError(0.01, 5))
-    # compass = Compass(AbsoluteError(3*np.pi/180))
-    # gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+    # sensor intialization
+    anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+    speedometer_par = Speedometer(MixedError(0.01, 5))
+    speedometer_per = Speedometer(MixedError(0.01, 5))
+    compass = Compass(AbsoluteError(3*np.pi/180))
+    gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
-    # wing_area = 8
-    # ## boat initialization
-    # boat = Boat(40, 5, None, Wing(wing_area, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
+    # boat initialization
+    boat = Boat(40, 5, None, Wing(8, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per)
 
-    # boat.position = np.array([0.0, 0.0])
-    # boat.velocity = np.array([0.0, 0.0])
-    # boat.heading = polar_to_cartesian(1, 0)
-    # wind.velocity = np.array([13.0, 8.0])
+    boat.position = np.array([0.0, 0.0])
+    boat.velocity = np.array([0.0, 0.0])
+    boat.heading = polar_to_cartesian(1, 0)
+    wind.velocity = np.array([13.0, 8.0])
 
-    # targets = [np.array([50, 0]), np.array([100, 0]), np.array([150, 0]), np.array([200, 0])]
-    # dt = 0.1
-    # simulation_time = 100
+    boats = [boat]
 
-    # completed, time_elapsed, states, collisions = simulate([boat], world, [targets], dt, simulation_time, measured_data=True)
+    targets = [
+        [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
+    ]
 
-    # win_width = 1400
-    # win_height = 800
+    dt = 0.5
+    simulation_time = 300
 
-    # world_width = 700
-    # world_height = 300
-    # drawer = Drawer(win_width, win_height, world_width, world_height)
-    # drawer.debug = True
+    completed, time_elapsed, states = simulate(boats, world, targets, dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt, dt, dt)])
+
+    # setup drawer
+    win_width = 1400
+    win_height = 800
+
+    world_width = 700
+    world_height = 300
     
-    # drawer.draw_axis()
-    # route = [s.position for s in states[0]]
-
-    # drawer.draw_route(route, 'blue')
-
-    # while True:
-    #     pass
-
-    # drawer.draw_route(route_b, 'red')
+    drawer = Drawer(win_width, win_height, world_width, world_height)
     
-    # wind initialization
-    # wind = Wind(1.291)
-    # wind.velocity = np.array([10.0, -3.0])
-    # world = World(9.81, wind)
+    # draw
+    drawer.draw_axis()
+    drawer.draw_wind(world.wind, np.array([drawer.world_width * 0.4, drawer.world_height * 0.4]))
 
-    # rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.15)
-    # motor_controller = MotorController(Motor(200, 0.85, 1024))
-    # wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
-
-    # ## boat initialization
-    # boat_a = Boat(40, 5, Wing(10, wing_controller), Rudder(rudder_controller), motor_controller)
-
-    # boat_a.position = np.array([0.0, 0.0])
-    # boat_a.velocity = np.array([0.0, 0.0])
-    # boat_a.heading = polar_to_cartesian(1, 0)
-
-    # # targets_a = [np.array([-100.0, 0.0])]
-
-    # boat_b = Boat(40, 5, Wing(10, wing_controller), Rudder(copy.deepcopy(rudder_controller)), copy.deepcopy(motor_controller))
-
-    # boat_b.position = np.array([0.0, 10.0])
-    # boat_b.velocity = np.array([0.0, 0.0])
-    # boat_b.heading = polar_to_cartesian(1, 0)
+    for i in range(len(boats)):
+        route = [s.position for s in states[i]]
+        drawer.draw_route(route, 'red')
+        for t in targets[i]:
+            drawer.draw_target(t)
     
-    # # targets_b = [np.array([100.0, 0.0])]
+    # times = [t for t in np.arange(0, time_elapsed, dt)]
 
-    # targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
-
-    # dt = 0.1
-    # simulation_time = 100
-
-    # completed, time_elapsed, states, collisions = simulate([boat_a, boat_b], world, [targets, targets], dt, simulation_time, simulated_data=True, collision_avoidance=True)
-
-    # Logger.info(f'Collisions: {collisions}')
-
-    # win_width = 1400
-    # win_height = 800
-
-    # world_width = 700
-    # world_height = 300
-    # drawer = Drawer(win_width, win_height, world_width, world_height)
-    # drawer.debug = True
+    # plt.figure(1)
+    # plt.cla()
+    # plt.plot(time, list(map(lambda state: state.position[0], states[0])), label='Boat A X')
+    # plt.plot(time, list(map(lambda state: state.position[0], states[1])), label='Boat B X')
+    # plt.plot(time, list(map(lambda state: state.position[1], states[0])), label='Boat A Y')
+    # plt.plot(time, list(map(lambda state: state.position[1], states[1])), label='Boat B Y')
     
-    # # for p in states[0]:
-    #     # print(p)
-    # i = 0
-    # for t in np.arange(0, simulation_time, dt):
-    #     drawer.clear()
-    #     for t in targets:
-    #         drawer.draw_target(t)
-    #     drawer.draw_axis()
-    #     for b in states:
-    #         drawer.draw_boat(b[i])
-    #     time.sleep(0.01)
-    #     i+=1
+    while True:
+        pass
+
+
     
     # # route_a = list(map(lambda state: state.position, states[0]))
     # route_b = list(map(lambda state: state.position, states[1]))
