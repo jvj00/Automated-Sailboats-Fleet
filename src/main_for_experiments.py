@@ -29,6 +29,7 @@ from entities.environment import SeabedMap, SeabedBoatMap
 from estimation_algs.fleet import Fleet
 from tools.utils import *
 from tools.metrics import Metrics, GlobalMetrics
+from tools.configurator import Config
 from main import create_targets_from_map
 
 def create_random_targets_from_map(seabed, boats, time_experiment):
@@ -232,57 +233,8 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     # fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
-    world_width = 120
-    world_height = 120
-    time_experiment = 200
-    boats_n = 1
-    boats_per_group_n = 1
-    prob_of_connection = 0.8
-    dt = 0.1
-    dt_gnss = 10
-    dt_compass = 10
-    dt_other_sensors = 0.1
-    dt_sonar = 1
-    dt_sync = 10
-    dt_ekf = 0.1
-    prob_gnss = 0.9
-    prob_compass = 0.9
+    config = Config()
+    config.load('config.json')
 
-    rt = False
-    random_target = True
-
-    #import from config file if exist
-    if os.path.isfile('config.json'):
-        try:
-            with open('config.json') as json_file:
-                data = json.load(json_file)
-
-                world_width = data['world']['width']
-                world_height = data['world']['height']
-
-                time_experiment = data['experiment']['duration']
-                dt = data['experiment']['dt']
-                boats_n = data['experiment']['boats']
-                boats_per_group_n = data['experiment']['boats_per_group']
-                rt = data['experiment']['real_time']
-                random_target = data['experiment']['random_target']
-                save_folder = data['experiment']['save_folder']
-
-                dt_gnss = data['components']['dt_gnss']
-                dt_compass = data['components']['dt_compass']
-                dt_other_sensors = data['components']['dt_prediction_sensors']
-                dt_sonar = data['components']['dt_sonar']
-                prob_gnss = data['components']['prob_gnss']
-                prob_compass = data['components']['prob_compass']
-                prob_of_connection = data['components']['prob_of_radio_connection']
-
-                dt_sync = data['algorithms']['dt_sync']
-                dt_ekf = data['algorithms']['dt_ekf']
-        except Exception as e:
-            Logger.error('Error while reading config file with error:\n'+str(e)+'\nExiting...')
-            exit()
-    else:
-        Logger.error('No config file found.\nExiting...')
-        exit()
-
-    experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target, save_folder)
+    if config.config:
+        experiment(config.world_width, config.world_height, config.dt, config.duration, config.boats, config.boats_per_group, config.prob_of_radio_connection, config.prob_gnss, config.prob_compass, config.dt_gnss, config.dt_compass, config.dt_prediction_sensors, config.dt_sonar, config.dt_sync, config.dt_ekf, config.real_time, config.random_target, config.save_folder)
