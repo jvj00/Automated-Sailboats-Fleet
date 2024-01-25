@@ -131,11 +131,11 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
         
         time_elapsed = round(i * dt, 2)
 
-        # update targets
+        # read sensors
         for b in boats:
-
             if update_gnss and np.random.rand() < prob_gnss:
                 b.measure_gnss()
+                metrics.get_metrics(b.uuid).add_update(time_elapsed, True, False)
             
             if is_multiple(time_elapsed, dt_ekf):
                 b.measure_anemometer(world.wind)
@@ -148,6 +148,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
             
             if update_compass and np.random.rand() < prob_compass:
                 b.measure_compass()
+                metrics.get_metrics(b.uuid).add_update(time_elapsed, False, True)
             
             if is_multiple(time_elapsed, dt_ekf):
                 b.measure_rudder()
@@ -157,7 +158,9 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
             
             if is_multiple(time_elapsed, dt_ekf):
                 b.measure_motor()
-            
+
+        # update targets
+        for b in boats:            
             uuid = str(b.uuid)
             if check_intersection_circle_circle(b.position, b.length * 0.5, targets_dict[uuid][targets_idx[uuid]], 5):
                 targets_idx[uuid] += 1
@@ -235,7 +238,7 @@ if __name__ == '__main__':
     dt_compass = 10
     dt_sonar = 1
     dt_sync = 10
-    dt_ekf = 0.2
+    dt_ekf = 0.1
     prob_gnss = 0.9
     prob_compass = 0.9
 
