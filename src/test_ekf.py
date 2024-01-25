@@ -109,7 +109,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         drawer.clear()
         for b in boats:
             drawer.draw_boat(b)
-        drawer.draw_wind(world.wind, np.array([200 * 0.3, 200 * 0.3]))
+        drawer.draw_wind(world.wind)
         if boats[0].target is not None:
             drawer.draw_target(boats[0].target)
         drawer.draw_axis()

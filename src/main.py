@@ -219,7 +219,7 @@ if __name__ == '__main__':
             drawer.draw_boat(b)
             drawer.draw_target(targets_dict[uuid][targets_idx[uuid]])
             # drawer.draw_route(targets_dict[str(b.uuid)], 'red')
-        drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
+        drawer.draw_wind(world.wind)
         if boats[0].target is not None:
             drawer.draw_target(boats[0].target)
         

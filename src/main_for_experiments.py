@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from matplotlib import pyplot as plt
 import numpy as np
+import json
 from actuators.motor import Motor
 from actuators.stepper import Stepper
 from controllers.motor_controller import MotorController
@@ -42,7 +43,7 @@ def create_random_targets_from_map(seabed, boats, time_experiment):
             targets_dict[key].append(np.copy(target))
     return targets_dict
 
-def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target=False):
+def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target, save_folder):
 
     np.set_printoptions(suppress=True)
 
@@ -216,14 +217,15 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
             drawer.draw_boat(b)
             if b.target is not None:
                 drawer.draw_target(b.target)
-        drawer.draw_wind(world.wind, np.array([world_width * 0.3, world_height * 0.3]))
+        drawer.draw_wind(world.wind)
+        drawer.write_description('Time (s): ' + str(time_elapsed))
 
         # wait to simulate a real time execution
         if rt:
             plt.pause(dt)
     
     Logger.info('Experiment ended in ' + str(time_elapsed+dt) + ' seconds')
-    dir='../saved_metrics/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
+    dir=save_folder+'/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     metrics.write_metrics(save_path=dir)
     metrics.plot_metrics(save_path=dir)
@@ -249,4 +251,38 @@ if __name__ == '__main__':
     rt = False
     random_target = True
 
-    experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target=random_target)
+    #import from config file if exist
+    if os.path.isfile('config.json'):
+        try:
+            with open('config.json') as json_file:
+                data = json.load(json_file)
+
+                world_width = data['world']['width']
+                world_height = data['world']['height']
+
+                time_experiment = data['experiment']['duration']
+                dt = data['experiment']['dt']
+                boats_n = data['experiment']['boats']
+                boats_per_group_n = data['experiment']['boats_per_group']
+                rt = data['experiment']['real_time']
+                random_target = data['experiment']['random_target']
+                save_folder = data['experiment']['save_folder']
+
+                dt_gnss = data['components']['dt_gnss']
+                dt_compass = data['components']['dt_compass']
+                dt_other_sensors = data['components']['dt_prediction_sensors']
+                dt_sonar = data['components']['dt_sonar']
+                prob_gnss = data['components']['prob_gnss']
+                prob_compass = data['components']['prob_compass']
+                prob_of_connection = data['components']['prob_of_radio_connection']
+
+                dt_sync = data['algorithms']['dt_sync']
+                dt_ekf = data['algorithms']['dt_ekf']
+        except Exception as e:
+            Logger.error('Error while reading config file with error:\n'+str(e)+'\nExiting...')
+            exit()
+    else:
+        Logger.error('No config file found.\nExiting...')
+        exit()
+
+    experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target, save_folder)

@@ -833,7 +833,7 @@ if __name__ == '__main__':
     
     # draw
     drawer.draw_axis()
-    drawer.draw_wind(world.wind, np.array([drawer.world_width * 0.4, drawer.world_height * 0.4]))
+    drawer.draw_wind(world.wind)
 
     for i in range(len(boats)):
         route = [s.position for s in states[i]]
