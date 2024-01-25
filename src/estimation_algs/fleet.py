@@ -14,6 +14,9 @@ class Fleet:
 
     def follow_targets(self, wind_data, dt, simulated_data = False, measured_data = False, filtered_data = False):
         for boat in self.boats:
+            boat.measure_speedometer_par()
+            boat.measure_speedometer_perp()
+            boat.measure_anemometer(wind_data)
             boat.follow_target(wind_data, dt, simulated_data, measured_data, filtered_data)
     
     def update_filtered_states(self, wind_data, dt, update_gnss, update_compass, prob_gnss=1, prob_compass=1, time=None, metrics=Optional[GlobalMetrics]):
@@ -109,6 +112,10 @@ class Fleet:
                         error = round(error / count *100)/100
                     ax = fig.add_subplot(fig_row, fig_col, idx+1, projection='3d')
                     ax_err = fig_err.add_subplot(fig_row, fig_col, idx+1, projection='3d')
+                    fig.set_figheight(18)
+                    fig.set_figwidth(18)
+                    fig_err.set_figheight(18)
+                    fig_err.set_figwidth(18)
                     ax.set_title(f'Boat {idx+1}: {round(np.count_nonzero(boat.map.partial_map)*1000/boat.map.partial_map.size)/10}% of map with avg error of {error} m')
                     ax_err.set_title(f'Boat {idx+1}')
                     x, y = np.meshgrid(range(boat.map.min_x, boat.map.max_x, boat.map.resolution), range(boat.map.min_y, boat.map.max_y, boat.map.resolution))

@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from tools.utils import *
+from tools.logger import Logger
 from entities.boat import Boat
 
 class Metrics:
@@ -95,6 +97,25 @@ class Metrics:
         if plot:
             plt.show()
         plt.close()
+    
+    def write_metrics(self, name, save_name=None):
+        max_err_x = round(np.max(np.abs(self.error_x)), 2)
+        max_err_y = round(np.max(np.abs(self.error_y)), 2)
+        max_err_theta = round(np.max(np.abs(self.error_theta)), 4)
+        avg_err_x = round(np.mean(np.abs(self.error_x)), 2)
+        avg_err_y = round(np.mean(np.abs(self.error_y)), 2)
+        avg_err_theta = round(np.mean(np.abs(self.error_theta)), 4)
+        avg_cov_x = round(np.mean(self.cov_x), 2)
+        avg_cov_y = round(np.mean(self.cov_y), 2)
+        avg_cov_theta = round(np.mean(self.cov_theta), 4)
+        up_gnss = len(self.updates_gnss)
+        up_compass = len(self.updates_compass)
+        perc_motor_on = round(len(self.motor_on)/len(self.time)*100, 1)
+        df = pd.DataFrame([[max_err_x, avg_err_x, avg_cov_x, max_err_y, avg_err_y, avg_cov_y, max_err_theta, avg_err_theta, avg_cov_theta, up_gnss, up_compass, perc_motor_on]], columns=['max_err_x', 'avg_err_x', 'avg_cov_x', 'max_err_y', 'avg_err_y', 'avg_cov_y', 'max_err_theta', 'avg_err_theta', 'avg_cov_theta', 'updates_gnss', 'updates_compass', 'perc_motor_on'])
+        if save_name is not None:
+            df.to_csv(save_name, index=False, sep=';')
+        else:
+            Logger.info('Metrics for boat ' + str(name) + ':', df)
 
 class GlobalMetrics:
     def __init__(self, boats) -> None:
@@ -107,4 +128,14 @@ class GlobalMetrics:
     
     def plot_metrics(self, dx=1800, dy=900, dpi=100, save_path=None) -> None:
         for metric in self.metrics:
-            self.metrics[metric].plot_metrics(dx, dy, dpi, save_path+"boat_"+metric+".png", plot=False)
+            if save_path is not None:
+                self.metrics[metric].plot_metrics(dx, dy, dpi, save_path+"boat_"+metric+".png", plot=False)
+            else:
+                self.metrics[metric].plot_metrics(dx, dy, dpi, plot=True)
+    
+    def write_metrics(self, save_path=None):
+        for metric in self.metrics:
+            if save_path is not None:
+                self.metrics[metric].write_metrics(metric, save_path+"boat_"+metric+".csv")
+            else:
+                self.metrics[metric].write_metrics(metric)
