@@ -194,7 +194,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     dir='../saved_metrics/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     metrics.write_metrics(save_path=dir)
-    metrics.plot_metrics(save_path=None)
+    metrics.plot_metrics(save_path=dir)
     # fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
