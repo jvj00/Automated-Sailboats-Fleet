@@ -24,7 +24,7 @@ from controllers.pid import PID
 from tools.logger import Logger
 from entities.environment import SeabedMap, SeabedBoatMap
 from estimation_algs.fleet import Fleet
-from tools.utils import check_intersection_circle_circle, polar_to_cartesian
+from tools.utils import check_intersection_circle_circle, is_multiple, polar_to_cartesian
 
 # takes a list of boats and creates, for each group of boats, its route
 # each group goes to specific rows
@@ -165,25 +165,25 @@ if __name__ == '__main__':
 
         for b in boats:
 
-            if np.fmod(time_elapsed, gnss_period) == 0:
+            if is_multiple(time_elapsed, gnss_period):
                 b.measure_gnss()
             
-            if np.fmod(time_elapsed, anemometer_period) == 0:
+            if is_multiple(time_elapsed, anemometer_period):
                 b.measure_anemometer(world.wind)
             
-            if np.fmod(time_elapsed, speedometer_x_period) == 0:
+            if is_multiple(time_elapsed, speedometer_x_period):
                 b.measure_speedometer_par()
             
-            if np.fmod(time_elapsed, speedometer_y_period) == 0:
+            if is_multiple(time_elapsed, speedometer_y_period):
                 b.measure_speedometer_perp()
             
-            if np.fmod(time_elapsed, compass_period) == 0:
+            if is_multiple(time_elapsed, compass_period):
                 b.measure_compass()
             
-            if np.fmod(time_elapsed, rudder_period) == 0:
+            if is_multiple(time_elapsed, rudder_period):
                 b.measure_rudder()
             
-            if np.fmod(time_elapsed, wing_period) == 0:
+            if is_multiple(time_elapsed, wing_period):
                 b.measure_wing()
 
             uuid = str(b.uuid)
@@ -193,16 +193,16 @@ if __name__ == '__main__':
                 targets_idx[uuid] += 1
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
             
-        if np.fmod(time_elapsed, boat_measures_period) == 0:
+        if is_multiple(time_elapsed, boat_measures_period):
             fleet.sync_boat_measures(debug=True)
 
         fleet.follow_targets(world.wind, dt, filtered_data=True)
 
-        fleet.update_filtered_states(world.wind.velocity, dt, np.fmod(time_elapsed, gnss_period) == 0, np.fmod(time_elapsed, compass_period) == 0)
+        fleet.update_filtered_states(world.wind.velocity, dt, is_multiple(time_elapsed, gnss_period), is_multiple(time_elapsed, compass_period))
         
         world.update(boats, dt)
 
-        if np.fmod(time_elapsed, sonar_period) == 0:
+        if is_multiple(time_elapsed, sonar_period):
             fleet.measure_sonars()
 
         # for idx, b in enumerate(fleet.boats):
