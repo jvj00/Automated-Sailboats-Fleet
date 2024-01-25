@@ -36,8 +36,8 @@ def create_random_targets_from_map(seabed, boats, time_experiment):
         key = str(b.uuid)
         targets_dict[key] = []
         for _ in range(time_experiment):
-            x = np.random.rand() * 0.9 * ((seabed.max_x - seabed.min_x) + seabed.min_x)
-            y = np.random.rand() * 0.9 * ((seabed.max_y - seabed.min_y) + seabed.min_y)
+            x = 0.9 * (np.random.rand() * (seabed.max_x - seabed.min_x) + seabed.min_x)
+            y = 0.9 * (np.random.rand() * (seabed.max_y - seabed.min_y) + seabed.min_y)
             target = np.array([x, y])
             targets_dict[key].append(np.copy(target))
     return targets_dict
@@ -193,24 +193,25 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     dir='../saved_metrics/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     metrics.write_metrics(save_path=dir)
-    metrics.plot_metrics(save_path=dir)
-    fleet.plot_boat_maps(save_path=dir, plot=False)
+    metrics.plot_metrics(save_path=None)
+    # fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
     world_width = 120
     world_height = 120
-    dt = 0.1
     time_experiment = 200
     boats_n = 1
     boats_per_group_n = 1
     prob_of_connection = 0.8
-    prob_gnss = 0.9
-    prob_compass = 0.9
+    dt = 0.1
     dt_gnss = 20
     dt_compass = 10
     dt_sonar = 1
     dt_sync = 10
     dt_ekf = 0.1
+    prob_gnss = 0.9
+    prob_compass = 0.9
+
     rt = False
     random_target = True
 
