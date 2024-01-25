@@ -30,20 +30,31 @@ from tools.utils import *
 from tools.metrics import Metrics, GlobalMetrics
 from main import create_targets_from_map
 
+def create_random_targets_from_map(seabed, boats, time_experiment):
+    targets_dict = {}
+    for b in boats:
+        key = str(b.uuid)
+        targets_dict[key] = []
+        for _ in range(time_experiment):
+            x = np.random.rand() * 0.9 * ((seabed.max_x - seabed.min_x) + seabed.min_x)
+            y = np.random.rand() * 0.9 * ((seabed.max_y - seabed.min_y) + seabed.min_y)
+            target = np.array([x, y])
+            targets_dict[key].append(np.copy(target))
+    return targets_dict
 
-def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf, rt):
+def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf, rt, random_target=False):
     
     np.set_printoptions(suppress=True)
 
     # seadbed initialization
-    world_width /= 2
-    world_height /= 2
+    world_width = int(world_width/2)
+    world_height = int(world_height/2)
     seabed = SeabedMap(-world_width,world_width,-world_height,world_height, resolution=10)
     seabed.create_seabed(20, 300, max_slope=2, prob_go_up=0.1, plot=False)
 
     # wind initialization
     wind = Wind(1.291)
-    wind_mag = np.random.random() * 10 + 5
+    wind_mag = np.random.random() * 15 + 5
     wind_ang = np.random.random() * 2 * np.pi
     wind.velocity = polar_to_cartesian(wind_mag, wind_ang)
     wind_derivative = np.array([0.0, 0.0])
@@ -91,7 +102,10 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
     fleet = Fleet(boats, seabed, prob_of_connection=prob_of_connection)
 
     # boat as key, targets as value
-    targets_dict = create_targets_from_map(seabed, boats, boats_per_group_n)
+    if not random_target:
+        targets_dict = create_targets_from_map(seabed, boats, boats_per_group_n)
+    else:
+        targets_dict = create_random_targets_from_map(seabed, boats, time_experiment)
     targets_idx = {}
     for b in boats:
         uuid = str(b.uuid)
@@ -125,7 +139,6 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
                     targets_idx[uuid] = 0
                     end_boats[uuid]=True
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
-
         if [end_boats.get(uuid) for uuid in end_boats.keys()]==[True]*len(end_boats) and time_last==time_experiment: # if all boats have reached their targets
             time_last=time_elapsed
             Logger.info('All boats reached their targets at ' + str(time_elapsed) + ' seconds')
@@ -176,9 +189,10 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
         if rt:
             plt.pause(dt)
     
-    Logger.info('Experiment ended in ' + str(time_elapsed) + ' seconds')
+    Logger.info('Experiment ended in ' + str(time_elapsed+dt) + ' seconds')
     dir='../saved_metrics/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
+    metrics.write_metrics(save_path=dir)
     metrics.plot_metrics(save_path=dir)
     fleet.plot_boat_maps(save_path=dir, plot=False)
 
@@ -186,8 +200,8 @@ if __name__ == '__main__':
     world_width = 120
     world_height = 120
     dt = 0.1
-    time_experiment = 1000
-    boats_n = 3
+    time_experiment = 200
+    boats_n = 1
     boats_per_group_n = 1
     prob_of_connection = 0.8
     prob_gnss = 0.9
@@ -198,5 +212,6 @@ if __name__ == '__main__':
     dt_sync = 10
     dt_ekf = 0.1
     rt = False
+    random_target = True
 
-    experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf, rt)
+    experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_sonar, dt_sync, dt_ekf, rt, random_target=random_target)
