@@ -16,7 +16,7 @@ class EKF:
     def set_constants(self, constants):
         self.constants = constants
 
-    def compute_filtered_state(self, boat_sensors, true_boat_data, true_wind_data, dt, update_gnss=True, update_compass=True):
+    def compute_filtered_state(self, boat_sensors, boat_measurements, dt, update_gnss=True, update_compass=True):
         if self.x is None or self.P is None or self.constants is None:
             raise Exception('Initial state, variance or constants not provided')
         # retrieve coefficients
@@ -39,16 +39,8 @@ class EKF:
 
         # retrieve boat sensors
         speedometer_par, speedometer_perp, anemometer, rudder, wing, motor_controller, gnss, compass = boat_sensors
-        # retrieve true boat data (from simulation)
-        true_boat_velocity, true_boat_heading, true_boat_position = true_boat_data
-        true_wind_velocity = true_wind_data
-        # retrieve measurements from boat sensors
-        boat_speed_par = speedometer_par.measure(true_boat_velocity, true_boat_heading)
-        boat_speed_perp = speedometer_perp.measure(true_boat_velocity, true_boat_heading)
-        wind_speed, wind_angle = anemometer.measure(true_wind_velocity, true_boat_velocity, true_boat_heading)
-        rudder_angle = rudder.controller.measure_angle()
-        wing_angle = wing.controller.measure_angle()
-        motor_power = motor_controller.measure_power()
+        boat_speed_par, boat_speed_perp, wind_data, rudder_angle, wing_angle, motor_power, boat_position, boat_angle = boat_measurements
+        wind_speed, wind_angle = wind_data
 
         sensor_meas = np.array(
             [
@@ -102,10 +94,6 @@ class EKF:
         ## UPDATE STEP
 
         if update_gnss or update_compass:
-
-            ## EXTEROCEPTIVE MEASUREMENTS
-            boat_angle = compass.measure(true_boat_heading)
-            boat_position = gnss.measure(true_boat_position)
 
             if boat_angle-x_pred[2] > np.pi: # because Kalman Filter's update gain doesn't matter to angles (6.27 is much bigger than 0.01) 
                 x_pred[2]+=2*np.pi

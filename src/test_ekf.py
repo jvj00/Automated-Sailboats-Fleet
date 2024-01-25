@@ -92,7 +92,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         if (i*dt)%60 == 0:
             boat.set_target(np.array([np.random.randint(-200, 200), np.random.randint(-200, 200)]))
         boat.follow_target(world.wind, dt)
-        x, P = boat.update_filtered_state(world.wind.velocity, dt, update_gnss, update_compass)
+        x, P = boat.update_filtered_state(world.wind, dt, update_gnss, update_compass)
         world.update(boats, dt)
         
         t = boat.get_state()

@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
         fleet.follow_targets(world.wind, dt, filtered_data=True)
 
-        fleet.update_filtered_states(world.wind.velocity, dt, is_multiple(time_elapsed, gnss_period), is_multiple(time_elapsed, compass_period))
+        fleet.update_filtered_states(world.wind, dt, is_multiple(time_elapsed, gnss_period), is_multiple(time_elapsed, compass_period))
         
         world.update(boats, dt)
 

@@ -29,6 +29,7 @@ class MeasurementData:
         self.sonar = None
         self.rudder = None
         self.wing = None
+        self.motor = None
 
 class Boat(RigidBody):
     def __init__(
@@ -97,10 +98,10 @@ class Boat(RigidBody):
 
         self.measurement_data = MeasurementData()
 
-    def update_filtered_state(self, true_wind_data, dt, update_gnss, update_compass):
+    def update_filtered_state(self, wind: Wind, dt, update_gnss, update_compass):
         boat_sensors = self.speedometer_par, self.speedometer_perp, self.anemometer, self.rudder, self.wing, self.motor_controller, self.gnss, self.compass
-        true_boat_data = self.velocity, self.heading, self.position
-        filtered_state, filtered_variance = self.ekf.compute_filtered_state(boat_sensors, true_boat_data, true_wind_data, dt, update_gnss, update_compass)
+        boat_measurements = self.measure_speedometer_par(), self.measure_speedometer_perp(), self.measure_anemometer(wind), self.measure_rudder(), self.measure_wing(), self.measure_motor(), self.measure_gnss(), self.measure_compass()
+        filtered_state, filtered_variance = self.ekf.compute_filtered_state(boat_sensors, boat_measurements, dt, update_gnss, update_compass)
         return filtered_state, filtered_variance
     
     def get_filtered_state(self):
@@ -313,6 +314,11 @@ class Boat(RigidBody):
         if self.gnss is not None:
             self.measurement_data.gnss = self.gnss.measure(self.position)
         return self.measurement_data.gnss
+
+    def measure_motor(self) -> float:
+        if self.motor_controller is not None:
+            self.measurement_data.motor = self.motor_controller.measure_power()
+        return self.measurement_data.motor
     
     def measure_sonar(self, seabed: SeabedMap, filtered_pos) -> float:
         try:

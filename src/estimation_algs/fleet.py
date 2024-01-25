@@ -3,6 +3,7 @@ from entities.environment import SeabedMap, SeabedBoatMap
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
+from entities.wind import Wind
 from tools.metrics import Metrics, GlobalMetrics
 from typing import Optional
 
@@ -14,12 +15,12 @@ class Fleet:
 
     def follow_targets(self, wind_data, dt, simulated_data = False, measured_data = False, filtered_data = False):
         for boat in self.boats:
-            boat.measure_speedometer_par()
-            boat.measure_speedometer_perp()
-            boat.measure_anemometer(wind_data)
+            # boat.measure_speedometer_par()
+            # boat.measure_speedometer_perp()
+            # boat.measure_anemometer(wind_data)
             boat.follow_target(wind_data, dt, simulated_data, measured_data, filtered_data)
     
-    def update_filtered_states(self, wind_data, dt, update_gnss, update_compass, prob_gnss=1, prob_compass=1, time=None, metrics=Optional[GlobalMetrics]):
+    def update_filtered_states(self, wind: Wind, dt, update_gnss, update_compass, prob_gnss=1, prob_compass=1, time=None, metrics=Optional[GlobalMetrics]):
         for boat in self.boats:
             # try:
                 if np.random.rand() >= prob_gnss:
@@ -28,10 +29,9 @@ class Fleet:
                     update_compass = False
                 if metrics is not None and time is not None:
                     metrics.get_metrics(boat.uuid).add_update(time, update_gnss, update_compass)
-                boat.update_filtered_state(wind_data, dt, update_gnss, update_compass)
+                boat.update_filtered_state(wind, dt, update_gnss, update_compass)
             # except Exception as e:
-            #     print(e)
-            #     print('ekf not available')
+                # print('ekf not available')
     
     def measure_sonars(self):
         for boat in self.boats:
