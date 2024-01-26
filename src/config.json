@@ -14,7 +14,7 @@
     },
     "components":{
         "dt_gnss": 10,
-        "dt_compass": 10,
+        "dt_compass": 5,
         "dt_prediction_sensors": 0.1,
         "dt_sonar": 1,
         "prob_gnss": 0.9,

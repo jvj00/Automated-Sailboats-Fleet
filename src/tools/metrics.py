@@ -97,6 +97,47 @@ class Metrics:
         if plot:
             plt.show()
         plt.close()
+
+    def plot_metrics_rt(self, dx=1800, dy=900, dpi=100, n_boat=0) -> None:
+        if len(self.time) <= 1:
+            return
+        plt.figure(n_boat, figsize=(dx/dpi, dy/dpi), dpi=dpi)
+        mngr = plt.get_current_fig_manager()
+        mngr.window.setGeometry(int((1920-dx)/2), int((1080-dy)/2), dx, dy)
+
+        plt.subplot(2, 2, 1)
+        plt.title('Errors Position')
+        if len(self.updates_gnss)>0 and self.time[-1] == self.updates_gnss[-1]:
+            plt.axvline(x=self.time[-1], linestyle='--', linewidth=0.3, color='k')
+        if len(self.motor_on)>0 and self.time[-1] == self.motor_on[-1]:
+            plt.axvline(x=self.time[-1], linestyle='--', linewidth=0.1, color='g')
+        plt.plot(self.time[-2:], self.error_x[-2:], color='b', label='Error X')
+        plt.plot(self.time[-2:], self.error_y[-2:], color='orange', label='Error Y')
+        if len(self.time)==2:
+            plt.legend()
+
+        plt.subplot(2, 2, 2)
+        plt.title('Variance Position')
+        plt.plot(self.time[-2:], self.cov_x[-2:], color='b', label='Variance X')
+        plt.plot(self.time[-2:], self.cov_y[-2:], color='orange', label='Variance Y')
+        if len(self.time)==2:
+            plt.legend()
+
+        plt.subplot(2, 2, 3)
+        plt.title('Error Direction')
+        if len(self.updates_compass)>0 and self.time[-1] == self.updates_compass[-1]:
+            plt.axvline(x=self.time[-1], linestyle='--', linewidth=0.3, color='k')
+        plt.plot(self.time[-2:], self.error_theta[-2:], color='g', label='Error Theta')
+        if len(self.time)==2:
+            plt.legend()
+
+        plt.subplot(2, 2, 4)
+        plt.title('Variance Direction')
+        plt.plot(self.time[-2:], self.cov_theta[-2:], color='g', label='Variance Theta')
+        if len(self.time)==2:
+            plt.legend()
+
+        plt.tight_layout()
     
     def write_metrics(self, name, save_name=None):
         max_err_x = round(np.max(np.abs(self.error_x)), 2)
@@ -132,6 +173,10 @@ class GlobalMetrics:
                 self.metrics[metric].plot_metrics(dx, dy, dpi, save_path+"boat_"+metric+".png", plot=False)
             else:
                 self.metrics[metric].plot_metrics(dx, dy, dpi, plot=True)
+    
+    def plot_metrics_rt(self, dx=1800, dy=900, dpi=100) -> None:
+        for idx, metric in enumerate(self.metrics):
+            self.metrics[metric].plot_metrics_rt(dx, dy, dpi, idx)
     
     def write_metrics(self, save_path=None):
         for metric in self.metrics:
