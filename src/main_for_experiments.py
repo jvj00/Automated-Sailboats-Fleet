@@ -47,6 +47,8 @@ def create_random_targets_from_map(seabed, boats, time_experiment):
 def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_per_group_n, prob_of_connection, prob_gnss, prob_compass, dt_gnss, dt_compass, dt_other_sensors, dt_sonar, dt_sync, dt_ekf, rt, random_target, save_folder):
 
     np.set_printoptions(suppress=True)
+    if rt:
+        plt.ion()
 
     # seadbed initialization
     world_width = int(world_width/2)
@@ -133,6 +135,30 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
         
         time_elapsed = round(i * dt, 2)
 
+        # update targets
+        for b in boats:            
+            uuid = str(b.uuid)
+            if check_intersection_circle_circle(b.position, b.length * 0.5, targets_dict[uuid][targets_idx[uuid]], 5):
+                targets_idx[uuid] += 1
+                if targets_idx[uuid] >= len(targets_dict[uuid]):
+                    targets_idx[uuid] = 0
+                    end_boats[uuid]=True
+                b.set_target(targets_dict[uuid][targets_idx[uuid]])
+        if [end_boats.get(uuid) for uuid in end_boats.keys()]==[True]*len(end_boats) and time_last==time_experiment: # if all boats have reached their targets
+            time_last=time_elapsed
+            Logger.info('All boats reached their targets at ' + str(time_elapsed) + ' seconds')
+        if time_elapsed>time_last and is_multiple(time_elapsed, 1): # exchange data and collect last measures every seconds for 10 seconds after the end of the experiment
+            fleet.measure_sonars()
+            fleet.sync_boat_measures()
+        if time_elapsed>time_last+10: # stop the experiment after 10 seconds
+            break
+
+        # update wind conditions
+        wind_derivative_mag = value_from_gaussian(2*(1-compute_magnitude(wind.velocity)/15), 6)
+        wind_derivative_angle = compute_angle(wind.velocity) + value_from_gaussian(0, 0.8)
+        wind_derivative = polar_to_cartesian(wind_derivative_mag, wind_derivative_angle)
+        wind.velocity += wind_derivative * dt
+
         # read sensors
         for b in boats:
             update_compass = False
@@ -166,31 +192,7 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 
             metrics.get_metrics(b.uuid).add_update(time_elapsed, update_gnss, update_compass)
 
-        # update targets
-        for b in boats:            
-            uuid = str(b.uuid)
-            if check_intersection_circle_circle(b.position, b.length * 0.5, targets_dict[uuid][targets_idx[uuid]], 5):
-                targets_idx[uuid] += 1
-                if targets_idx[uuid] >= len(targets_dict[uuid]):
-                    targets_idx[uuid] = 0
-                    end_boats[uuid]=True
-                b.set_target(targets_dict[uuid][targets_idx[uuid]])
-        if [end_boats.get(uuid) for uuid in end_boats.keys()]==[True]*len(end_boats) and time_last==time_experiment: # if all boats have reached their targets
-            time_last=time_elapsed
-            Logger.info('All boats reached their targets at ' + str(time_elapsed) + ' seconds')
-        if time_elapsed>time_last and is_multiple(time_elapsed, 1): # exchange data and collect last measures every seconds for 10 seconds after the end of the experiment
-            fleet.measure_sonars()
-            fleet.sync_boat_measures()
-        if time_elapsed>time_last+10: # stop the experiment after 10 seconds
-            break
-
-        # update wind conditions
-        wind_derivative_mag = value_from_gaussian(2*(1-compute_magnitude(wind.velocity)/15), 6)
-        wind_derivative_angle = compute_angle(wind.velocity) + value_from_gaussian(0, 0.8)
-        wind_derivative = polar_to_cartesian(wind_derivative_mag, wind_derivative_angle)
-        wind.velocity += wind_derivative * dt
-
-        # update sensors and sync
+        # update sonar measures and sync
         if is_multiple(time_elapsed, dt_sonar):
             fleet.measure_sonars()
         if is_multiple(time_elapsed, dt_sync):
@@ -223,14 +225,18 @@ def experiment(world_width, world_height, dt, time_experiment, boats_n, boats_pe
 
         # wait to simulate a real time execution
         if rt:
-            plt.pause(dt)
+            metrics.plot_metrics_rt()
+            plt.pause(0.001)
+            plt.show()
     
+    if rt:
+        plt.ioff()
     Logger.info('Experiment ended in ' + str(time_elapsed+dt) + ' seconds')
     dir=save_folder+'/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     metrics.write_metrics(save_path=dir)
     metrics.plot_metrics(save_path=dir)
-    # fleet.plot_boat_maps(save_path=dir, plot=False)
+    fleet.plot_boat_maps(save_path=dir, plot=False)
 
 if __name__ == '__main__':
     config = Config()
