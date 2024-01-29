@@ -24,5 +24,23 @@
     "algorithms":{
         "dt_sync": 10,
         "dt_ekf": 0.1
+    },
+    "error":{
+        "anemometer":{
+            "speed": {"relative": 0.05},
+            "direction": {"absolute": 0.0174532925}
+        },
+        "speedometer":{"threshold": 5, "relative": 0.01},
+        "compass": {"absolute": 0.0523598776},
+        "gnss":{
+            "x": {"absolute": 1.5},
+            "y": {"absolute": 1.5}
+        },
+        "sonar": {"relative": 0.01}
+    },
+    "resolution":{
+        "rudder": {"steps_per_revolution": 100},
+        "wing": {"steps_per_revolution": 100},
+        "engine": {"pwm": 1024}
     }
 }

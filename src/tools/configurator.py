@@ -34,6 +34,19 @@ class Config:
 
                     self.dt_sync = data['algorithms']['dt_sync']
                     self.dt_ekf = data['algorithms']['dt_ekf']
+
+                    self.err_anemo_speed = data['error']['anemometer']['speed']['relative']
+                    self.err_anemo_direction = data['error']['anemometer']['direction']['absolute']
+                    self.err_speed_thresh = data['error']['speedometer']['threshold']
+                    self.err_speed_rel = data['error']['speedometer']['relative']
+                    self.err_compass = data['error']['compass']['absolute']
+                    self.err_gnss_x = data['error']['gnss']['x']['absolute']
+                    self.err_gnss_y = data['error']['gnss']['y']['absolute']
+                    self.err_sonar = data['error']['sonar']['relative']
+                    self.res_rudder = data['resolution']['rudder']['steps_per_revolution']
+                    self.res_wing = data['resolution']['wing']['steps_per_revolution']
+                    self.res_pwm_engine = data['resolution']['engine']['pwm']
+
                     self.config = True
             except Exception as e:
                 Logger.error('Error while reading config file with error:\n'+str(e)+'\nExiting...')
