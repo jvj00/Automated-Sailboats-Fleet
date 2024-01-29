@@ -10,12 +10,8 @@ class RigidBody:
         self.position = np.zeros(2)
         self.velocity = np.zeros(2)
         self.acceleration = np.zeros(2)
-
-        self.angular_acceleration = 0
         self.angular_speed = 0
-
         self.heading = polar_to_cartesian(1, 0)
-
         self.friction_mu = 0.001
 
     def rotate(self, dt):

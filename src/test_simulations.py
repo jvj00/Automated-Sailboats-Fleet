@@ -830,8 +830,8 @@ if __name__ == '__main__':
         simulation_time,
         [
             BoatConfiguration(True, False, False, False, follow_target_period=dt),
-            BoatConfiguration(False, True, False, False, 3, 3, 1, dt, 1, 0.8, 0.8, 0.8),
-            BoatConfiguration(False, False, True, False, 3, 3, 1, dt, 0.1, 0.8, 0.8, 0.8),
+            BoatConfiguration(False, True, False, False, 5, 5, 1, dt, 1, 0.8, 0.8, 0.8),
+            BoatConfiguration(False, False, True, False, 5, 5, 1, dt, 0.1, 0.8, 0.8, 0.8),
         ]
     )
 
@@ -856,6 +856,7 @@ if __name__ == '__main__':
     
     plt.figure(1)
     plt.cla()
+    plt.title('X Position')
 
     for i in range(len(boats)):
         boat_kind = 'simulated data' if i == 0 else ('measured data' if i == 1 else 'filtered data') 
@@ -866,6 +867,7 @@ if __name__ == '__main__':
 
     plt.figure(2)
     plt.cla()
+    plt.title('Y Position')
 
     for i in range(len(boats)):
         boat_kind = 'simulated data' if i == 0 else ('measured data' if i == 1 else 'filtered data') 
