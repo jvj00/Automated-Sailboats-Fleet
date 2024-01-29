@@ -161,17 +161,19 @@ def experiment(config: Config):
         wind.velocity += wind_derivative * dt
 
         # read sensors
+        update_compass = {}
+        update_gnss = {}
         for b in boats:
-            update_compass = False
-            update_gnss = False
+            update_compass[str(b.uuid)] = False
+            update_gnss[str(b.uuid)] = False
 
             if is_multiple(time_elapsed, config.dt_gnss) and np.random.rand() < config.prob_gnss:
                 b.measure_gnss()
-                update_gnss = True
+                update_gnss[str(b.uuid)] = True
             
             if  is_multiple(time_elapsed, config.dt_compass) and np.random.rand() < config.prob_compass:
                 b.measure_compass()
-                update_compass = True
+                update_compass[str(b.uuid)] = True
 
             if is_multiple(time_elapsed, config.dt_prediction_sensors):
                 b.measure_anemometer(world.wind)
@@ -191,7 +193,7 @@ def experiment(config: Config):
             if is_multiple(time_elapsed, config.dt_prediction_sensors):
                 b.measure_motor()
 
-            metrics.get_metrics(b.uuid).add_update(time_elapsed, update_gnss, update_compass)
+            metrics.get_metrics(b.uuid).add_update(time_elapsed, update_gnss[str(b.uuid)], update_compass[str(b.uuid)])
 
         # update sonar measures and sync
         if is_multiple(time_elapsed, config.dt_sonar):
@@ -204,7 +206,8 @@ def experiment(config: Config):
 
         # compute state estimation
         if is_multiple(time_elapsed, config.dt_ekf):
-            fleet.update_filtered_states(config.dt_ekf, update_gnss, update_compass)
+            for b in boats:
+                b.update_filtered_state(dt, update_gnss[str(b.uuid)], update_compass[str(b.uuid)])
         
         # update world
         world.update(boats, dt)

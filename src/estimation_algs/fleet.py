@@ -20,9 +20,6 @@ class Fleet:
             # boat.measure_anemometer(wind_data)
             boat.follow_target(wind_data, dt, simulated_data, measured_data, filtered_data)
     
-    def update_filtered_states(self, dt, update_gnss, update_compass):
-        for boat in self.boats:
-            boat.update_filtered_state(dt, update_gnss, update_compass)
     
     def measure_sonars(self):
         for boat in self.boats:
