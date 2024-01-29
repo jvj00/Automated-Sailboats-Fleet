@@ -6,11 +6,11 @@ class Compass:
     def __init__(self, err_angle: Error):
         self.err_angle = err_angle
     
-    def measure_with_truth(self, boat_heading):
+    def measure_with_truth(self, boat_heading, mult_var: float = 1.0):
         truth = compute_angle(boat_heading)
-        measured = mod2pi(value_from_gaussian(truth, self.err_angle.get_sigma(truth)))
+        measured = mod2pi(value_from_gaussian(truth, self.err_angle.get_sigma(truth) * mult_var))
         return truth, measured
 
-    def measure(self, boat_heading) -> float:
-        return self.measure_with_truth(boat_heading)[1]
+    def measure(self, boat_heading, mult_var: float = 1.0) -> float:
+        return self.measure_with_truth(boat_heading, mult_var)[1]
 
