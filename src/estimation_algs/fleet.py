@@ -43,6 +43,7 @@ class Fleet:
         # COMPUTE RESULT
         debug_index=0
         for boat in self.boats:
+            boat.map.filter_measure(boat.sonar.err_distance.get_sigma(200))
             for row in range(self.seabed.len_x):
                 for col in range(self.seabed.len_y):
                     # CASE ALL: data from old value, data from measurement, (possible) data from others

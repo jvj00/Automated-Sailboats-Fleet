@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 class SeabedMap:
     def __init__(self, min_x, max_x, min_y, max_y, resolution=5) -> None:
@@ -68,28 +69,31 @@ class SeabedBoatMap:
         self.partial_map = np.zeros((self.len_x, self.len_y))
         self.count_others = np.zeros((self.len_x, self.len_y))
         self.sum_others = np.zeros((self.len_x, self.len_y))
-        self.meas = []
+        self.meas = defaultdict(list)
     
-    def insert_measure(self, x, y, meas):
+    def insert_measure(self, x, y, m):
         if x < self.min_x or x > self.max_x or y < self.min_y or y > self.max_y:
             raise Exception('Boat out of the mapped seabed')
         else:
             row = int((x - self.min_x)/self.resolution)
             col = int((y - self.min_y)/self.resolution)
-            if self.get_measure(row, col) == 0:
-                self.meas.append((row, col, meas))
-                return True
-            else:
-                return False
+            self.meas[(row, col)].append(m)
+            
+    def filter_measure(self, threshold_sigma):        
+        for row, col in self.meas:
+            if len(self.meas[(row, col)]) > 1 and np.std(self.meas[(row, col)]) > threshold_sigma:
+                for m in self.meas[(row, col)]:
+                    if np.abs(m-np.mean(self.meas[(row, col)])) > np.std(self.meas[(row, col)]):
+                        self.meas[(row, col)].remove(m)
+            
 
     def get_measure(self, row, col):
-        for m in self.meas:
-            if m[0] == row and m[1] == col:
-                return m[2]
-        return 0
+        if len(self.meas[(row, col)]) == 0:
+            return 0
+        return np.mean(self.meas[(row, col)])
     
     def empty_measures(self):
-        self.meas = []
+        self.meas = defaultdict(list)
     
     def empty_others(self):
         self.count_others = np.zeros((self.len_x, self.len_y))
