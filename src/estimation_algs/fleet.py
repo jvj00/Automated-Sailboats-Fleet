@@ -12,13 +12,6 @@ class Fleet:
         self.boats = boats
         self.prob_of_connection = prob_of_connection
         self.seabed = seabed
-
-    def follow_targets(self, wind_data, dt, simulated_data = False, measured_data = False, filtered_data = False):
-        for boat in self.boats:
-            # boat.measure_speedometer_par()
-            # boat.measure_speedometer_perp()
-            # boat.measure_anemometer(wind_data)
-            boat.follow_target(wind_data, dt, simulated_data, measured_data, filtered_data)
     
     
     def measure_sonars(self):

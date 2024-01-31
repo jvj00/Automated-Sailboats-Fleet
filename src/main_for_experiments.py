@@ -123,8 +123,6 @@ def experiment(config: Config):
         # and update the index of the current target to the next
         targets_idx[uuid] = 1
 
-    update_gnss = False
-    update_compass = False
     metrics = GlobalMetrics(boats)
     time_last=config.duration
     end_boats={}
@@ -159,15 +157,16 @@ def experiment(config: Config):
         wind_derivative_mag = value_from_gaussian(2*(1-compute_magnitude(wind.velocity)/15), 6)
         wind_derivative_angle = compute_angle(wind.velocity) + value_from_gaussian(0, 0.8)
         wind_derivative = polar_to_cartesian(wind_derivative_mag, wind_derivative_angle)
-        wind.velocity += wind_derivative * dt
+        wind.velocity += wind_derivative * dt            
 
-        # read sensors
+        # read sensors & setup actuators
         update_compass = {}
         update_gnss = {}
         for b in boats:
             update_compass[str(b.uuid)] = False
             update_gnss[str(b.uuid)] = False
 
+            # read sensors
             if is_multiple(time_elapsed, config.dt_gnss) and np.random.rand() < config.prob_gnss:
                 b.measure_gnss()
                 update_gnss[str(b.uuid)] = True
@@ -185,6 +184,10 @@ def experiment(config: Config):
             if is_multiple(time_elapsed, config.dt_prediction_sensors):
                 b.measure_speedometer_perp()
             
+            # set actuators when i get states from sensors
+            b.follow_target(world.wind, dt, filtered_data=True)
+
+            # read actuators
             if is_multiple(time_elapsed, config.dt_prediction_sensors):
                 b.measure_rudder()
             
@@ -202,8 +205,6 @@ def experiment(config: Config):
         if is_multiple(time_elapsed, config.dt_sync):
             fleet.sync_boat_measures()
 
-        # setup actuators
-        fleet.follow_targets(world.wind, dt, filtered_data=True)
 
         # compute state estimation
         if is_multiple(time_elapsed, config.dt_ekf):

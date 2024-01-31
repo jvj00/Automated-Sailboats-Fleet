@@ -4,18 +4,18 @@
         "height": 120
     },
     "experiment":{
-        "duration": 20,
+        "duration": 300,
         "dt": 0.1,
         "boats": 1,
         "boats_per_group": 1,
-        "random_target": true,
+        "random_target": false,
         "real_time_graphs": false,
         "real_time_drawings": false,
         "save_folder": "../saved_metrics"
     },
     "components":{
-        "dt_gnss": 10,
-        "dt_compass": 5,
+        "dt_gnss": 30,
+        "dt_compass": 15,
         "dt_prediction_sensors": 0.1,
         "dt_sonar": 1,
         "prob_gnss": 0.9,
@@ -29,7 +29,7 @@
     "error":{
         "anemometer":{
             "speed": {"relative": 0.05},
-            "direction": {"absolute": 0.0174532925}
+            "direction": {"absolute": 0.017}
         },
         "speedometer":{"threshold": 5, "relative": 0.01},
         "compass": {"absolute": 0.0523598776},
