@@ -47,7 +47,7 @@ def create_random_targets_from_map(seabed, boats, time_experiment):
 def experiment(config: Config):
 
     np.set_printoptions(suppress=True)
-    if config.real_time:
+    if config.real_time_graphs:
         plt.ion()
 
     # seadbed initialization
@@ -68,10 +68,11 @@ def experiment(config: Config):
     win_width = world_width * 10
     win_height = world_height * 10
     dt = config.dt
-    drawer = Drawer(win_width, win_height, world_width*3, world_height*3)
-    drawer.debug = True
-    drawer.draw_map(seabed)
-    drawer.draw_axis()
+    if config.real_time_drawings:
+        drawer = Drawer(win_width, win_height, world_width*3, world_height*3)
+        drawer.debug = True
+        drawer.draw_map(seabed)
+        drawer.draw_axis()
 
     # boats initialization
     boats: list[Boat] = []
@@ -219,25 +220,28 @@ def experiment(config: Config):
             metrics.get_metrics(b.uuid).add_motor_on(time_elapsed, b.motor_controller.get_power() > 0)
 
         # update drawing
-        drawer.clear()
-        for b in boats:
-            drawer.draw_boat(b)
-            if b.target is not None:
-                drawer.draw_target(b.target)
-        drawer.draw_wind(world.wind)
-        drawer.write_description('Time (s): ' + str(time_elapsed))
+        if config.real_time_drawings:
+            drawer.clear()
+            for b in boats:
+                drawer.draw_boat(b)
+                if b.target is not None:
+                    drawer.draw_target(b.target)
+            drawer.draw_wind(world.wind)
+            drawer.write_description('Time (s): ' + str(time_elapsed))
 
         # wait to simulate a real time execution
-        if config.real_time:
+        if config.real_time_graphs:
             metrics.plot_metrics_rt()
             plt.pause(0.001)
             plt.show()
     
-    if config.real_time:
+    if config.real_time_graphs:
         plt.ioff()
     Logger.info('Experiment ended in ' + str(time_elapsed+dt) + ' seconds')
     dir=config.save_folder+'/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
+    with open(dir+'config.json', 'w') as f:
+        json.dump(config.file, f)
     metrics.write_metrics(save_path=dir)
     metrics.plot_metrics(save_path=dir)
     fleet.plot_boat_maps(save_path=dir, plot=False)

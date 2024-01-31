@@ -4,12 +4,13 @@
         "height": 120
     },
     "experiment":{
-        "duration": 200,
+        "duration": 20,
         "dt": 0.1,
-        "boats": 3,
+        "boats": 1,
         "boats_per_group": 1,
-        "random_target": false,
-        "real_time": false,
+        "random_target": true,
+        "real_time_graphs": false,
+        "real_time_drawings": false,
         "save_folder": "../saved_metrics"
     },
     "components":{

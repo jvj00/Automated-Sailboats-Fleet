@@ -12,6 +12,7 @@ class Config:
             try:
                 with open(path) as json_file:
                     data = json.load(json_file)
+                    self.file = data
 
                     self.world_width = data['world']['width']
                     self.world_height = data['world']['height']
@@ -20,7 +21,8 @@ class Config:
                     self.dt = data['experiment']['dt']
                     self.boats = data['experiment']['boats']
                     self.boats_per_group = data['experiment']['boats_per_group']
-                    self.real_time = data['experiment']['real_time']
+                    self.real_time_graphs = data['experiment']['real_time_graphs']
+                    self.real_time_drawings = data['experiment']['real_time_drawings']
                     self.random_target = data['experiment']['random_target']
                     self.save_folder = data['experiment']['save_folder']
 
