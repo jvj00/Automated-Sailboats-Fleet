@@ -146,8 +146,10 @@ def simulate(
                 )
 
             if c.filtered_data and is_multiple(time_elapsed, c.update_filtered_state_period):
-                b.update_filtered_state(c.update_filtered_state_period, is_multiple(time_elapsed, c.gnss_period), is_multiple(time_elapsed, c.compass_period))
-
+                try:
+                    b.update_filtered_state(c.update_filtered_state_period, is_multiple(time_elapsed, c.gnss_period), is_multiple(time_elapsed, c.compass_period))
+                except Exception as e:
+                    Logger.error(e)
 
         world.update(boats, dt)
 
@@ -765,75 +767,222 @@ class TestWingMotor(unittest.TestCase):
 if __name__ == '__main__':
     # unittest.main()
 
-    
-    ## wind initialization
-    wind = Wind(1.291)
-    wind.velocity = np.array([10.0, -10.0])
-    
-    # world initialization
-    world = World(9.81, wind)
-
-    # boats initialization
-    boats: list[Boat] = []
-    boats_n = 3
-
-    for i in range(boats_n):
-
-        ## sensor intialization
-        anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-        speedometer_par = Speedometer(MixedError(0.01, 5), offset_angle=0)
-        speedometer_per = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
-        compass = Compass(AbsoluteError(3*np.pi/180))
-        gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
-
-        # actuators initialization
-        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.20)
-        wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
-        motor_controller = MotorController(Motor(200, 0.85, 1024))
-
-        ## boat initialization
-        boat = Boat(80, 5, None, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
-        boat.position = np.zeros(2)
-        boat.velocity = np.zeros(2)
-        boat.heading = polar_to_cartesian(1, 0)
-
-        # boat ekf setup
-        ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
-        boat.ekf.set_initial_state(boat.measure_state())
-        boat.ekf.set_initial_state_variance(boat.get_state_variance())
-        boat.ekf.set_constants(ekf_constants)
+    for i in range(2):
+        ## wind initialization
+        wind = Wind(1.291)
+        wind.velocity = np.array([10.0, -10.0])
         
-        boats.append(boat)
+        # world initialization
+        world = World(9.81, wind)
 
-    targets = [
-        [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
-        [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
-        [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
-    ]
-        
-    # targets = [
-    #     [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])],
-    #     [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])],
-    #     [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])]
-    # ]
+        # boats initialization
+        boats: list[Boat] = []
+        boats_n = 3
 
-    colors = ['red', 'blue', 'green']
+        for i in range(boats_n):
 
-    dt = 0.1
-    simulation_time = 500
+            ## sensor intialization
+            anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+            speedometer_par = Speedometer(MixedError(0.01, 5), offset_angle=0)
+            speedometer_per = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
+            compass = Compass(AbsoluteError(3*np.pi/180))
+            gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
 
-    completed, time_elapsed, states = simulate(
-        boats,
-        world,
-        targets,
-        dt,
-        simulation_time,
-        [
-            BoatConfiguration(True, False, False, False, follow_target_period=dt),
-            BoatConfiguration(False, True, False, False, 5, 5, 1, dt, 1, 0.8, 0.8, 0.8),
-            BoatConfiguration(False, False, True, False, 5, 5, 1, dt, 0.1, 0.8, 0.8, 0.8),
+            # actuators initialization
+            rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.20)
+            wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
+            motor_controller = MotorController(Motor(200, 0.85, 1024))
+
+            # boat initialization
+            boat = Boat(80, 5, None, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
+            boat.position = np.zeros(2)
+            boat.velocity = np.zeros(2)
+            boat.heading = polar_to_cartesian(1, 0)
+
+            # boat ekf setup
+            ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
+            boat.ekf.set_initial_state(boat.measure_state())
+            boat.ekf.set_initial_state_variance(boat.get_state_variance())
+            boat.ekf.set_constants(ekf_constants)
+            
+            boats.append(boat)
+
+        targets = [
+            [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
+            [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
+            [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
         ]
-    )
+            
+        colors = ['red', 'blue', 'green']
+
+        dt = 0.1
+        simulation_time = 200
+        sensor_reading_prob = 1
+
+        # setup drawer
+        win_width = 1400
+        win_height = 800
+
+        world_width = 700
+        world_height = 300
+        
+        drawer = Drawer(win_width, win_height, world_width, world_height)
+        
+        # draw
+        drawer.draw_axis()
+
+        completed, time_elapsed, states = simulate(
+            boats,
+            world,
+            targets,
+            dt,
+            simulation_time,
+            [
+                BoatConfiguration(True, False, False, False, follow_target_period=dt),
+                BoatConfiguration(False, True, False, False, 10, 10, 1, dt, 0.1, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
+                BoatConfiguration(False, False, True, False, 10, 10, 1, dt, 0.1, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
+            ]
+        )
+
+        for i in range(len(boats)):
+            route = [s.position for s in states[i]]
+            drawer.draw_route(route, colors[i])
+
+
+        z_measured = list(zip(states[0], states[2]))
+
+        x_errors = [np.round(np.abs(state[0].position[0] - state[1].position[0]), 2) for state in z_measured]
+
+        x_errors_min = min(*x_errors)
+        x_errors_max = max(*x_errors)
+        x_errors_avg = sum(x_errors) / len(x_errors)
+
+        print(f'measured X error: min {x_errors_min} max {x_errors_max} avg {x_errors_avg}')
+
+        y_errors = [np.round(np.abs(state[0].position[1] - state[1].position[1]), 2) for state in z_measured]
+
+        y_errors_min = min(*y_errors)
+        y_errors_max = max(*y_errors)
+        y_errors_avg = sum(y_errors) / len(y_errors)
+
+        print(f'measured X error: min {y_errors_min} max {y_errors_max} avg {y_errors_avg}')
+
+
+    # min_gnss_compass_period = 1
+    # max_gnss_compass_period = 10
+    # other_sensors_period = 1
+    # ekf_update_period = 0.1
+
+    # x_errors: dict[int, list[float]] = {}
+    # y_errors: dict[int, list[float]] = {}
+    # th_errors: dict[int, list[float]] = {}
+    
+    # for gnss_compass_sensor_period in range(min_gnss_compass_period, max_gnss_compass_period + 1):
+
+    #     ## wind initialization
+    #     wind = Wind(1.291)
+    #     wind.velocity = np.array([10.0, -10.0])
+        
+    #     # world initialization
+    #     world = World(9.81, wind)
+
+    #     # boats initialization
+    #     boats: list[Boat] = []
+    #     boats_n = 3
+
+    #     for i in range(boats_n):
+
+    #         ## sensor intialization
+    #         anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+    #         speedometer_par = Speedometer(MixedError(0.01, 5), offset_angle=0)
+    #         speedometer_per = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
+    #         compass = Compass(AbsoluteError(3*np.pi/180))
+    #         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+
+    #         # actuators initialization
+    #         rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.20)
+    #         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
+    #         motor_controller = MotorController(Motor(200, 0.85, 1024))
+
+    #         # boat initialization
+    #         boat = Boat(80, 5, None, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
+    #         boat.position = np.zeros(2)
+    #         boat.velocity = np.zeros(2)
+    #         boat.heading = polar_to_cartesian(1, 0)
+
+    #         # boat ekf setup
+    #         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
+    #         boat.ekf.set_initial_state(boat.measure_state())
+    #         boat.ekf.set_initial_state_variance(boat.get_state_variance())
+    #         boat.ekf.set_constants(ekf_constants)
+            
+    #         boats.append(boat)
+
+    #     targets = [
+    #         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
+    #         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
+    #         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
+    #     ]
+
+    #     completed, time_elapsed, states = simulate(
+    #         boats,
+    #         world,
+    #         targets,
+    #         dt,
+    #         simulation_time,
+    #         [
+    #             BoatConfiguration(True, False, False, False, follow_target_period=dt),
+    #             BoatConfiguration(False, True, False, False, gnss_compass_sensor_period, gnss_compass_sensor_period, other_sensors_period, dt, ekf_update_period, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
+    #             BoatConfiguration(False, False, True, False, gnss_compass_sensor_period, gnss_compass_sensor_period, other_sensors_period, dt, ekf_update_period, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
+    #         ]
+    #     )
+
+    #     z_measured = list(zip(states[0], states[1]))
+        
+    #     x_errors = [np.round(np.abs(state[0].position[0] - state[1].position[0]), 2) for state in z_measured]
+    #     y_errors = [np.round(np.abs(state[0].position[1] - state[1].position[1]), 2) for state in z_measured]
+    #     th_errors = [np.round(np.abs(modpi(compute_angle(state[0].heading) - compute_angle(state[1].heading))), 2) for state in z_measured]
+
+    #     print(f'GNSS/compass period: {gnss_compass_sensor_period}')
+
+    #     x_errors_min = min(*x_errors)
+    #     x_errors_max = max(*x_errors)
+
+    #     print(f'measured X error: min {x_errors_min} max {x_errors_max}')
+
+    #     y_errors_min = min(*y_errors)
+    #     y_errors_max = max(*y_errors)
+
+    #     print(f'measured Y error: min {y_errors_min} max {y_errors_max}')
+
+    #     th_errors_min = min(*th_errors)
+    #     th_errors_max = max(*th_errors)
+
+    #     print(f'measured Angle error: min {th_errors_min} max {th_errors_max}')
+
+    #     z_filtered = list(zip(states[0], states[2]))
+
+    #     x_errors = [np.round(np.abs(state[0].position[0] - state[1].position[0]), 2) for state in z_filtered]
+    #     y_errors = [np.round(np.abs(state[0].position[1] - state[1].position[1]), 2) for state in z_filtered]
+    #     th_errors = [np.round(np.abs(modpi(compute_angle(state[0].heading)) - compute_angle(state[1].heading)), 2) for state in z_filtered]
+
+    #     x_errors_min = min(*x_errors)
+    #     x_errors_max = max(*x_errors)
+
+    #     print(f'filtered X error: min {x_errors_min} max {x_errors_max}')
+
+    #     y_errors_min = min(*y_errors)
+    #     y_errors_max = max(*y_errors)
+
+    #     print(f'filtered Y error: min {y_errors_min} max {y_errors_max}')
+
+    #     th_errors_min = min(*th_errors)
+    #     th_errors_max = max(*th_errors)
+
+    #     print(f'filtered Angle error: min {th_errors_min} max {th_errors_max}')
+
+    input()
+
 
     # setup drawer
     win_width = 1400
@@ -861,7 +1010,7 @@ if __name__ == '__main__':
     for i in range(len(boats)):
         boat_kind = 'simulated data' if i == 0 else ('measured data' if i == 1 else 'filtered data') 
         times = [t for t in np.arange(0, (len(states[i]))*dt, dt)]
-        plt.plot(times, [s.position[0] for s in states[i]], label=f'Boat {boat_kind} x')
+        plt.plot(times, [s.position[0] for s in states[i]], label=f'{boat_kind} x')
     
     plt.legend()
 
@@ -872,7 +1021,7 @@ if __name__ == '__main__':
     for i in range(len(boats)):
         boat_kind = 'simulated data' if i == 0 else ('measured data' if i == 1 else 'filtered data') 
         times = [t for t in np.arange(0, (len(states[i]))*dt, dt)]
-        plt.plot(times, [s.position[1] for s in states[i]], label=f'Boat {boat_kind} x')
+        plt.plot(times, [s.position[1] for s in states[i]], label=f'{boat_kind} x')
 
     plt.legend()
 
@@ -882,7 +1031,7 @@ if __name__ == '__main__':
     for i in range(0, len(boats)):
         boat_kind = 'simulated data' if i == 0 else ('measured data' if i == 1 else 'filtered data') 
         times = [t for t in np.arange(0, (len(states[i]))*dt, dt)]
-        plt.plot(times, [modpi(compute_angle(s.heading)) for s in states[i]], label=f'Boat {boat_kind} angle')
+        plt.plot(times, [modpi(compute_angle(s.heading)) for s in states[i]], label=f'{boat_kind} angle')
 
     plt.legend()
     plt.show()

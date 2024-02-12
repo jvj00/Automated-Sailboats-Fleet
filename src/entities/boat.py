@@ -99,9 +99,37 @@ class Boat(RigidBody):
         self.measurement_data = MeasurementData()
 
     def update_filtered_state(self, dt, update_gnss, update_compass):
+        boat_sensors = None
+        boat_measurements = None
+        
+        if self.speedometer_par is None or \
+            self.speedometer_perp is None or \
+            self.anemometer is None or \
+            self.rudder is None or \
+            self.wing is None or \
+            self.motor_controller is None or \
+            self.gnss is None or \
+            self.compass is None:
+                
+                raise Exception('Not enough values to update the ekf')
+        
         boat_sensors = self.speedometer_par, self.speedometer_perp, self.anemometer, self.rudder, self.wing, self.motor_controller, self.gnss, self.compass
+        
+        if self.measurement_data.speedometer_x is None or \
+            self.measurement_data.speedometer_y is None or \
+            self.measurement_data.anemometer is None or \
+            self.measurement_data.rudder is None or \
+            self.measurement_data.wing is None or \
+            self.measurement_data.motor is None or \
+            self.measurement_data.gnss is None or \
+            self.measurement_data.compass is None:
+                
+                raise Exception('Not enough values to update the ekf')
+
         boat_measurements = self.measurement_data.speedometer_x, self.measurement_data.speedometer_y, self.measurement_data.anemometer, self.measurement_data.rudder, self.measurement_data.wing, self.measurement_data.motor, self.measurement_data.gnss, self.measurement_data.compass
+
         filtered_state, filtered_variance = self.ekf.compute_filtered_state(boat_sensors, boat_measurements, dt, update_gnss, update_compass)
+        
         return filtered_state, filtered_variance
     
     def get_filtered_state(self):
@@ -209,15 +237,19 @@ class Boat(RigidBody):
             if self.get_filtered_state() is not None:
                 state = self.get_filtered_state()
                 boat_position = np.array([state[0], state[1]])
-
                 boat_heading = polar_to_cartesian(1, state[2])
                 
-                if self.measurement_data.speedometer_x is not None and self.measurement_data.speedometer_y is not None:
-                    boat_velocity = np.array([self.measurement_data.speedometer_x, self.measurement_data.speedometer_y])
+            else:
+                boat_position = self.measurement_data.gnss
+                if self.measurement_data.compass is not None:
+                    boat_heading = polar_to_cartesian(1, self.measurement_data.compass)
             
-                if self.measurement_data.anemometer is not None:
-                    wind_speed, wind_angle = self.measurement_data.anemometer
-                    wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
+            if self.measurement_data.speedometer_x is not None and self.measurement_data.speedometer_y is not None:
+                boat_velocity = np.array([self.measurement_data.speedometer_x, self.measurement_data.speedometer_y])
+        
+            if self.measurement_data.anemometer is not None:
+                wind_speed, wind_angle = self.measurement_data.anemometer
+                wind_velocity = polar_to_cartesian(wind_speed, wind_angle)
         
         if boat_position is None or boat_velocity is None or boat_heading is None or wind_velocity is None:
             return None
@@ -290,7 +322,7 @@ class Boat(RigidBody):
         # Logger.debug(f'Rudder angle: {self.rudder.controller.get_angle()}')
         # Logger.debug(f'Angle from destination: {angle_from_target}')
     
-    def measure_anemometer(self, wind: Wind) -> (float, float):
+    def measure_anemometer(self, wind: Wind) -> tuple[float, float]:
         if self.anemometer is not None:
             self.measurement_data.anemometer = self.anemometer.measure(wind.velocity, self.velocity, self.heading)
         return self.measurement_data.anemometer
