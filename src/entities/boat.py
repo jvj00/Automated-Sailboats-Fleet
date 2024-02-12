@@ -322,29 +322,29 @@ class Boat(RigidBody):
         # Logger.debug(f'Rudder angle: {self.rudder.controller.get_angle()}')
         # Logger.debug(f'Angle from destination: {angle_from_target}')
     
-    def measure_anemometer(self, wind: Wind) -> tuple[float, float]:
+    def measure_anemometer(self, wind: Wind, mult_var_speed: float = 1.0, mult_var_dir: float = 1.0) -> tuple[float, float]:
         if self.anemometer is not None:
-            self.measurement_data.anemometer = self.anemometer.measure(wind.velocity, self.velocity, self.heading)
+            self.measurement_data.anemometer = self.anemometer.measure(wind.velocity, self.velocity, self.heading, mult_var_speed, mult_var_dir)
         return self.measurement_data.anemometer
     
-    def measure_speedometer_par(self) -> float:
+    def measure_speedometer_par(self, mult_var: float = 1.0) -> float:
         if self.speedometer_par is not None:
-            self.measurement_data.speedometer_x = self.speedometer_par.measure(self.velocity, self.heading)
+            self.measurement_data.speedometer_x = self.speedometer_par.measure(self.velocity, self.heading, mult_var)
         return self.measurement_data.speedometer_x
     
-    def measure_speedometer_perp(self) -> float:
+    def measure_speedometer_perp(self, mult_var: float = 1.0) -> float:
         if self.speedometer_perp is not None:
-            self.measurement_data.speedometer_y = self.speedometer_perp.measure(self.velocity, self.heading)
+            self.measurement_data.speedometer_y = self.speedometer_perp.measure(self.velocity, self.heading, mult_var)
         return self.measurement_data.speedometer_y
     
-    def measure_compass(self) -> float:
+    def measure_compass(self, mult_var: float = 1.0) -> float:
         if self.compass is not None:
-            self.measurement_data.compass = self.compass.measure(self.heading)
+            self.measurement_data.compass = self.compass.measure(self.heading, mult_var)
         return self.measurement_data.compass
     
-    def measure_gnss(self) -> np.ndarray:
+    def measure_gnss(self, mult_var_x: float = 1.0, mult_var_y: float = 1.0) -> np.ndarray:
         if self.gnss is not None:
-            self.measurement_data.gnss = self.gnss.measure(self.position)
+            self.measurement_data.gnss = self.gnss.measure(self.position, mult_var_x, mult_var_y)
         return self.measurement_data.gnss
 
     def measure_motor(self) -> float:

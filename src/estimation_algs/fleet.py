@@ -12,17 +12,7 @@ class Fleet:
         self.boats = boats
         self.prob_of_connection = prob_of_connection
         self.seabed = seabed
-
-    def follow_targets(self, wind_data, dt, simulated_data = False, measured_data = False, filtered_data = False):
-        for boat in self.boats:
-            # boat.measure_speedometer_par()
-            # boat.measure_speedometer_perp()
-            # boat.measure_anemometer(wind_data)
-            boat.follow_target(wind_data, dt, simulated_data, measured_data, filtered_data)
     
-    def update_filtered_states(self, dt, update_gnss, update_compass):
-        for boat in self.boats:
-            boat.update_filtered_state(dt, update_gnss, update_compass)
     
     def measure_sonars(self):
         for boat in self.boats:
@@ -43,6 +33,7 @@ class Fleet:
         # COMPUTE RESULT
         debug_index=0
         for boat in self.boats:
+            boat.map.filter_measure(boat.sonar.err_distance.get_sigma(200))
             for row in range(self.seabed.len_x):
                 for col in range(self.seabed.len_y):
                     # CASE ALL: data from old value, data from measurement, (possible) data from others

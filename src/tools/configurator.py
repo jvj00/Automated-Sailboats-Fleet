@@ -12,6 +12,7 @@ class Config:
             try:
                 with open(path) as json_file:
                     data = json.load(json_file)
+                    self.file = data
 
                     self.world_width = data['world']['width']
                     self.world_height = data['world']['height']
@@ -20,7 +21,8 @@ class Config:
                     self.dt = data['experiment']['dt']
                     self.boats = data['experiment']['boats']
                     self.boats_per_group = data['experiment']['boats_per_group']
-                    self.real_time = data['experiment']['real_time']
+                    self.real_time_graphs = data['experiment']['real_time_graphs']
+                    self.real_time_drawings = data['experiment']['real_time_drawings']
                     self.random_target = data['experiment']['random_target']
                     self.save_folder = data['experiment']['save_folder']
 
@@ -34,6 +36,19 @@ class Config:
 
                     self.dt_sync = data['algorithms']['dt_sync']
                     self.dt_ekf = data['algorithms']['dt_ekf']
+
+                    self.err_anemo_speed = data['error']['anemometer']['speed']['relative']
+                    self.err_anemo_direction = data['error']['anemometer']['direction']['absolute']
+                    self.err_speed_thresh = data['error']['speedometer']['threshold']
+                    self.err_speed_rel = data['error']['speedometer']['relative']
+                    self.err_compass = data['error']['compass']['absolute']
+                    self.err_gnss_x = data['error']['gnss']['x']['absolute']
+                    self.err_gnss_y = data['error']['gnss']['y']['absolute']
+                    self.err_sonar = data['error']['sonar']['relative']
+                    self.res_rudder = data['resolution']['rudder']['steps_per_revolution']
+                    self.res_wing = data['resolution']['wing']['steps_per_revolution']
+                    self.res_pwm_engine = data['resolution']['engine']['pwm']
+
                     self.config = True
             except Exception as e:
                 Logger.error('Error while reading config file with error:\n'+str(e)+'\nExiting...')

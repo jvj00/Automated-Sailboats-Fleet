@@ -151,7 +151,7 @@ def steps_from_angle(angle, resolution):
 def is_multiple(a, b):
     a = int(a*1000)
     b = int(b*1000)
-    return a % b == 0
+    return a % b == 0 or (a+1) % b == 0 or (a-1) % b == 0
 
 def random_color():
     return "#%06x" % np.random.randint(0, 0xFFFFFF)
