@@ -7,6 +7,7 @@ from entities.boat import Boat
 
 class Metrics:
     def __init__(self) -> None:
+        self.first_rt = True
         # TIME
         self.time = []
         # STATES
@@ -100,6 +101,7 @@ class Metrics:
 
     def plot_metrics_rt(self, dx=1800, dy=900, dpi=100, n_boat=0) -> None:
         if len(self.time) <= 1:
+            self.first_rt = True
             return
         plt.figure(n_boat, figsize=(dx/dpi, dy/dpi), dpi=dpi)
         mngr = plt.get_current_fig_manager()
@@ -113,14 +115,14 @@ class Metrics:
             plt.axvline(x=self.time[-1], linestyle='--', linewidth=0.1, color='g')
         plt.plot(self.time[-2:], self.error_x[-2:], color='b', label='Error X')
         plt.plot(self.time[-2:], self.error_y[-2:], color='orange', label='Error Y')
-        if len(self.time)==2:
+        if self.first_rt:
             plt.legend()
 
         plt.subplot(2, 2, 2)
         plt.title('Variance Position')
         plt.plot(self.time[-2:], self.cov_x[-2:], color='b', label='Variance X')
         plt.plot(self.time[-2:], self.cov_y[-2:], color='orange', label='Variance Y')
-        if len(self.time)==2:
+        if self.first_rt:
             plt.legend()
 
         plt.subplot(2, 2, 3)
@@ -128,16 +130,17 @@ class Metrics:
         if len(self.updates_compass)>0 and self.time[-1] == self.updates_compass[-1]:
             plt.axvline(x=self.time[-1], linestyle='--', linewidth=0.3, color='k')
         plt.plot(self.time[-2:], self.error_theta[-2:], color='g', label='Error Theta')
-        if len(self.time)==2:
+        if self.first_rt:
             plt.legend()
 
         plt.subplot(2, 2, 4)
         plt.title('Variance Direction')
         plt.plot(self.time[-2:], self.cov_theta[-2:], color='g', label='Variance Theta')
-        if len(self.time)==2:
+        if self.first_rt:
             plt.legend()
 
         plt.tight_layout()
+        self.first_rt = False
     
     def write_metrics(self, name, save_name=None):
         max_err_x = round(np.max(np.abs(self.error_x)), 2)
