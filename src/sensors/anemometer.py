@@ -1,15 +1,19 @@
 from errors.error import Error
+from sensors.sensor import Sensor
 from tools.utils import compute_angle, compute_magnitude, mod2pi, value_from_gaussian
 
 # JRC WS-12 (set velocity error RELATIVE to 5% and direction error ABSOLUTE to 1*pi/180 rad)
-class Anemometer:
-    def __init__(self, err_speed: Error, err_angle: Error):
+class Anemometer(Sensor):
+    def __init__(self, err_speed: Error, err_angle: Error, update_probability: float = 1):
+        super().__init__(update_probability)
         self.err_speed = err_speed
         self.err_angle = err_angle
 
     def measure(self, wind_velocity, boat_velocity, boat_heading, mult_var_speed: float = 1.0, mult_var_angle: float = 1.0) -> tuple[float, float]:
-        _, measured = self.measure_with_truth(wind_velocity, boat_velocity, boat_heading, mult_var_speed, mult_var_angle)
-        return measured
+        if not self.can_measure():
+            return None
+        self.value = self.measure_with_truth(wind_velocity, boat_velocity, boat_heading, mult_var_speed, mult_var_angle)[1]
+        return self.value
 
     # use the correct value of the wind velocity to compute its apparent velocity, then add the error to it
     def measure_with_truth(self, wind_velocity, boat_velocity, boat_heading, mult_var_speed: float = 1.0, mult_var_angle: float = 1.0):

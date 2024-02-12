@@ -31,6 +31,7 @@ from tools.utils import *
 from tools.metrics import Metrics, GlobalMetrics
 from tools.configurator import Config
 from main import create_targets_from_map
+import sys
 
 def create_random_targets_from_map(seabed, boats, time_experiment):
     targets_dict = {}
@@ -47,12 +48,12 @@ def create_random_targets_from_map(seabed, boats, time_experiment):
 def experiment(config: Config):
 
     np.set_printoptions(suppress=True)
-    if config.real_time_graphs:
+    if config.simulation.real_time_charts_enabled:
         plt.ion()
 
     # seadbed initialization
-    world_width = int(config.world_width/2)
-    world_height = int(config.world_height/2)
+    world_width = int(config.simulation.world_width/2)
+    world_height = int(config.simulation.world_height/2)
     seabed = SeabedMap(-world_width,world_width,-world_height,world_height, resolution=10)
     seabed.create_seabed(20, 300, max_slope=3, prob_go_up=0.1, plot=False)
 
@@ -67,8 +68,8 @@ def experiment(config: Config):
     world = World(9.81, wind, seabed)
     win_width = world_width * 10
     win_height = world_height * 10
-    dt = config.dt
-    if config.real_time_drawings:
+    dt = config.simulation.update_period
+    if config.simulation.real_time_drawings_enabled:
         drawer = Drawer(win_width, win_height, world_width*3, world_height*3)
         drawer.debug = True
         drawer.draw_map(seabed)
@@ -77,20 +78,20 @@ def experiment(config: Config):
     # boats initialization
     boats: list[Boat] = []
 
-    for i in range(config.boats):
+    for i in range(config.simulation.boats):
 
         ## sensor intialization
-        anemometer = Anemometer(RelativeError(config.err_anemo_speed), AbsoluteError(config.err_anemo_direction))
-        speedometer_par = Speedometer(MixedError(config.err_speed_rel, config.err_speed_thresh), offset_angle=0)
-        speedometer_per = Speedometer(MixedError(config.err_speed_rel, config.err_speed_thresh), offset_angle=-np.pi/2)
-        compass = Compass(AbsoluteError(config.err_compass))
-        gnss = GNSS(AbsoluteError(config.err_gnss_x), AbsoluteError(config.err_gnss_y))
-        sonar = Sonar(RelativeError(config.err_sonar))
+        anemometer = Anemometer(RelativeError(config.sensors.anemometer.error[0]), AbsoluteError(config.sensors.anemometer.error[1]))
+        speedometer_par = Speedometer(MixedError(config.sensors.speedometer.error[0], config.sensors.speedometer.error[1]), offset_angle=0)
+        speedometer_per = Speedometer(MixedError(config.sensors.speedometer.error[0], config.sensors.speedometer.error[1]), offset_angle=-np.pi/2)
+        compass = Compass(AbsoluteError(config.sensors.compass.error))
+        gnss = GNSS(AbsoluteError(config.sensors.gnss.error[0]), AbsoluteError(config.sensors.gnss.error[1]))
+        sonar = Sonar(RelativeError(config.sensors.sonar.error))
 
         # actuators initialization
-        rudder_controller = StepperController(Stepper(config.res_rudder, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
-        wing_controller = StepperController(Stepper(config.res_wing, 0.3), PID(0.5, 0, 0))
-        motor_controller = MotorController(Motor(1000, 0.85, config.res_pwm_engine))
+        rudder_controller = StepperController(Stepper(config.actuators.rudder.resolution, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
+        wing_controller = StepperController(Stepper(config.actuators.wing.resolution, 0.3), PID(0.5, 0, 0))
+        motor_controller = MotorController(Motor(1000, 0.85, config.actuators.motor.resolution))
 
         ## boat initialization
         boat = Boat(100, 5, SeabedBoatMap(seabed), Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, sonar, EKF())
@@ -105,13 +106,14 @@ def experiment(config: Config):
         boats.append(boat)
 
     # fleet initialization
-    fleet = Fleet(boats, seabed, prob_of_connection=config.prob_of_radio_connection)
+    fleet = Fleet(boats, seabed, prob_of_connection=config.filters.fleet_update_probability)
 
     # boat as key, targets as value
-    if not config.random_target:
-        targets_dict = create_targets_from_map(seabed, boats, config.boats_per_group)
+    if not config.simulation.random_target_enabled:
+        targets_dict = create_targets_from_map(seabed, boats, int(np.floor(config.simulation.boats / config.simulation.groups)))
     else:
-        targets_dict = create_random_targets_from_map(seabed, boats, config.duration)
+        targets_dict = create_random_targets_from_map(seabed, boats, config.simulation.duration)
+    
     targets_idx = {}
     for b in boats:
         uuid = str(b.uuid)
@@ -124,14 +126,14 @@ def experiment(config: Config):
         targets_idx[uuid] = 1
 
     metrics = GlobalMetrics(boats)
-    time_last=config.duration
+    time_last=config.simulation.duration
     end_boats={}
     for b in boats:
         end_boats[str(b.uuid)]=False
         uuid = str(b.uuid)
         b.set_target(targets_dict[uuid][targets_idx[uuid]])
 
-    for i in range(int(config.duration/dt)):
+    for i in range(int(config.simulation.duration/dt)):
         
         time_elapsed = round(i * dt, 2)
 
@@ -144,11 +146,12 @@ def experiment(config: Config):
                     targets_idx[uuid] = 0
                     end_boats[uuid]=True
                 b.set_target(targets_dict[uuid][targets_idx[uuid]])
-        if [end_boats.get(uuid) for uuid in end_boats.keys()]==[True]*len(end_boats) and time_last==config.duration: # if all boats have reached their targets
+        if [end_boats.get(uuid) for uuid in end_boats.keys()]==[True]*len(end_boats) and time_last==config.simulation.duration: # if all boats have reached their targets
             time_last=time_elapsed
             Logger.info('All boats reached their targets at ' + str(time_elapsed) + ' seconds')
         if time_elapsed>time_last and is_multiple(time_elapsed, 1): # exchange data and collect last measures every seconds for 10 seconds after the end of the experiment
-            fleet.measure_sonars()
+            for b in boats:
+                b.measure_sonar(world.seabed)
             fleet.sync_boat_measures()
         if time_elapsed>time_last+10: # stop the experiment after 10 seconds
             break
@@ -167,47 +170,35 @@ def experiment(config: Config):
             update_gnss[str(b.uuid)] = False
 
             # read sensors
-            if is_multiple(time_elapsed, config.dt_gnss) and np.random.rand() < config.prob_gnss:
-                b.measure_gnss()
-                update_gnss[str(b.uuid)] = True
+            if is_multiple(time_elapsed, config.sensors.gnss.update_period):
+                if b.measure_gnss() is not None:
+                    update_gnss[str(b.uuid)] = True
             
-            if  is_multiple(time_elapsed, config.dt_compass) and np.random.rand() < config.prob_compass:
-                b.measure_compass()
-                update_compass[str(b.uuid)] = True
+            if  is_multiple(time_elapsed, config.sensors.compass.update_period):
+                if b.measure_compass() is not None:
+                    update_compass[str(b.uuid)] = True
 
-            if is_multiple(time_elapsed, config.dt_prediction_sensors):
+            if is_multiple(time_elapsed, config.sensors.anemometer.update_period):
                 b.measure_anemometer(world.wind)
             
-            if is_multiple(time_elapsed, config.dt_prediction_sensors):
+            if is_multiple(time_elapsed, config.sensors.speedometer.update_period):
                 b.measure_speedometer_par()
-            
-            if is_multiple(time_elapsed, config.dt_prediction_sensors):
                 b.measure_speedometer_perp()
+
+            if is_multiple(time_elapsed, config.sensors.sonar.update_period):
+                b.measure_sonar(world.seabed)
             
             # set actuators when i get states from sensors
             b.follow_target(world.wind, dt, filtered_data=True)
 
-            # read actuators
-            if is_multiple(time_elapsed, config.dt_prediction_sensors):
-                b.measure_rudder()
-            
-            if is_multiple(time_elapsed, config.dt_prediction_sensors):
-                b.measure_wing()
-            
-            if is_multiple(time_elapsed, config.dt_prediction_sensors):
-                b.measure_motor()
-
             metrics.get_metrics(b.uuid).add_update(time_elapsed, update_gnss[str(b.uuid)], update_compass[str(b.uuid)])
 
         # update sonar measures and sync
-        if is_multiple(time_elapsed, config.dt_sonar):
-            fleet.measure_sonars()
-        if is_multiple(time_elapsed, config.dt_sync):
+        if is_multiple(time_elapsed, config.filters.fleet_update_period):
             fleet.sync_boat_measures()
 
-
         # compute state estimation
-        if is_multiple(time_elapsed, config.dt_ekf):
+        if is_multiple(time_elapsed, config.filters.ekf_update_period):
             for b in boats:
                 b.update_filtered_state(dt, update_gnss[str(b.uuid)], update_compass[str(b.uuid)])
         
@@ -216,12 +207,12 @@ def experiment(config: Config):
 
         # update metrics
         for b in boats:
-            if is_multiple(time_elapsed, config.dt_ekf):
+            if is_multiple(time_elapsed, config.filters.ekf_update_period):
                 metrics.get_metrics(b.uuid).add_state(time_elapsed, filtered=b.get_filtered_state(), truth=b.get_state(), covariance=b.ekf.P)
             metrics.get_metrics(b.uuid).add_motor_on(time_elapsed, b.motor_controller.get_power() > 0)
 
         # update drawing
-        if config.real_time_drawings:
+        if config.simulation.real_time_drawings_enabled:
             drawer.clear()
             for b in boats:
                 drawer.draw_boat(b)
@@ -231,15 +222,15 @@ def experiment(config: Config):
             drawer.write_description('Time (s): ' + str(time_elapsed))
 
         # wait to simulate a real time execution
-        if config.real_time_graphs:
+        if config.simulation.real_time_charts_enabled:
             metrics.plot_metrics_rt()
-            plt.pause(0.001)
+            plt.pause(0.01)
             plt.show()
     
-    if config.real_time_graphs:
+    if config.simulation.real_time_charts_enabled:
         plt.ioff()
     Logger.info('Experiment ended in ' + str(time_elapsed+dt) + ' seconds')
-    dir=config.save_folder+'/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
+    dir=config.simulation.save_folder+'/test_'+datetime.now().strftime("%Y_%m_%d__%H_%M_%S")+'/'
     os.mkdir(dir)
     with open(dir+'config.json', 'w') as f:
         json.dump(config.file, f)
@@ -249,7 +240,17 @@ def experiment(config: Config):
 
 if __name__ == '__main__':
     config = Config()
-    config.load('config.json')
+    if len(sys.argv) < 2:
+        Logger.error("Missing configuration file")
+        exit(1)
+    
+    config_path = os.path.join(os.getcwd(), sys.argv[1])
+    
+    try:    
+        config.load(config_path)
+    except Exception as e:
+        Logger.error("Invalid configuration file")
+        exit(1)
 
-    if config.config:
-        experiment(config)
+    experiment(config)
+    

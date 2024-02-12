@@ -181,15 +181,6 @@ if __name__ == '__main__':
             if is_multiple(time_elapsed, compass_period):
                 b.measure_compass()
             
-            if is_multiple(time_elapsed, rudder_period):
-                b.measure_rudder()
-            
-            if is_multiple(time_elapsed, wing_period):
-                b.measure_wing()
-            
-            if is_multiple(time_elapsed, motor_period):
-                b.measure_motor()
-
             uuid = str(b.uuid)
             boat_target = targets_dict[uuid][targets_idx[uuid]]
 

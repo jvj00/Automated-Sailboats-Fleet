@@ -16,9 +16,21 @@ class EKF:
     def set_constants(self, constants):
         self.constants = constants
 
-    def compute_filtered_state(self, boat_sensors, boat_measurements, dt, update_gnss=True, update_compass=True):
+    def compute_filtered_state(self, boat_sensors, dt, update_gnss=True, update_compass=True):
         if self.x is None or self.P is None or self.constants is None:
             raise Exception('Initial state, variance or constants not provided')
+        
+        # retrieve boat sensors
+        speedometer_par, speedometer_perp, anemometer, gnss, compass, rudder, wing, motor_controller = boat_sensors
+        
+        if speedometer_par.get_value() is None or \
+            speedometer_perp.get_value() is None or \
+            anemometer.get_value() is None or \
+            gnss.get_value() is None or \
+            compass.get_value() is None:
+                
+                raise Exception('Not enough values to update the ekf')
+
         # retrieve coefficients
         boat_mass, boat_length, boat_friction_mu, boat_drag_damping, wing_area, wind_density, gravity, motor_efficiency = self.constants
         
@@ -36,11 +48,13 @@ class EKF:
         )
         
         ## PROPRIOCEPTIVE MEASUREMENTS
-
-        # retrieve boat sensors
-        speedometer_par, speedometer_perp, anemometer, rudder, wing, motor_controller, gnss, compass = boat_sensors
-        boat_speed_par, boat_speed_perp, wind_data, rudder_angle, wing_angle, motor_power, boat_position, boat_angle = boat_measurements
-        wind_speed, wind_angle = wind_data
+        
+        boat_speed_par = speedometer_par.get_value()
+        boat_speed_perp = speedometer_perp.get_value() 
+        wind_speed, wind_angle = anemometer.get_value()
+        rudder_angle = rudder.controller.measure_angle()
+        wing_angle = wing.controller.measure_angle()
+        motor_power = motor_controller.measure_power()
 
         sensor_meas = np.array(
             [
@@ -94,6 +108,8 @@ class EKF:
         ## UPDATE STEP
 
         if update_gnss or update_compass:
+            boat_angle = compass.get_value()
+            boat_position = gnss.get_value()
 
             if boat_angle-x_pred[2] > np.pi: # because Kalman Filter's update gain doesn't matter to angles (6.27 is much bigger than 0.01) 
                 x_pred[2]+=2*np.pi

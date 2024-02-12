@@ -13,11 +13,6 @@ class Fleet:
         self.prob_of_connection = prob_of_connection
         self.seabed = seabed
     
-    
-    def measure_sonars(self):
-        for boat in self.boats:
-            boat.measure_sonar(self.seabed, boat.ekf.x)
-    
     def sync_boat_measures(self, debug=False):
         # EXCHANGE MESSAGES
         for rcv in self.boats: #receiver

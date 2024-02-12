@@ -1,10 +1,12 @@
 from errors.error import Error
+from sensors.sensor import Sensor
 from tools.utils import compute_angle, compute_magnitude, value_from_gaussian
 import numpy as np
 
 # DX900+ (set velocity error MIXED with threshold of 5m/s and 1% of error)
-class Speedometer:
-    def __init__(self, err_speed: Error, offset_angle: float = 0):
+class Speedometer(Sensor):
+    def __init__(self, err_speed: Error, offset_angle: float = 0, update_probability: float = 1):
+        super().__init__(update_probability)
         self.err_speed = err_speed
         self.offset_angle = offset_angle
     
@@ -16,4 +18,7 @@ class Speedometer:
         return truth, measured
 
     def measure(self, boat_velocity, boat_heading, mult_var: float = 1.0) -> float:
-        return self.measure_with_truth(boat_velocity, boat_heading, mult_var)[1]
+        if not self.can_measure():
+            return None
+        self.value = self.measure_with_truth(boat_velocity, boat_heading, mult_var)[1]
+        return self.value

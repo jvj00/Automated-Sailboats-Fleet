@@ -65,10 +65,6 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     boat.ekf.set_initial_state_variance(boat.get_state_variance())
     boat.ekf.set_constants(ekf_constants)
 
-    
-    boats: list[Boat] = []
-    boats.append(boat)
-
     from tools.disegnino import Drawer
     drawer = Drawer(800, 800, 400, 400)
 
@@ -92,8 +88,13 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
         if (i*dt)%60 == 0:
             boat.set_target(np.array([np.random.randint(-200, 200), np.random.randint(-200, 200)]))
         boat.follow_target(world.wind, dt)
-        x, P = boat.update_filtered_state(dt, update_gnss, update_compass)
-        world.update(boats, dt)
+        try:
+            x, P = boat.update_filtered_state(dt, update_gnss, update_compass)
+        except Exception as e:
+            print(e)
+            continue
+        
+        world.update([boat], dt)
         
         t = boat.get_state()
         err_x.append(x[0] - t[0])
@@ -107,11 +108,10 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
             motor_on.append(i*dt)
         
         drawer.clear()
-        for b in boats:
-            drawer.draw_boat(b)
+        drawer.draw_boat(boat)
         drawer.draw_wind(world.wind)
-        if boats[0].target is not None:
-            drawer.draw_target(boats[0].target)
+        if boat.target is not None:
+            drawer.draw_target(boat.target)
         drawer.draw_axis()
 
         color = logger.colors.ORANGE
