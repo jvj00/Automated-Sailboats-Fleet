@@ -142,8 +142,12 @@ def experiment(config: Config):
         # set the initial position of the boat to the first target 
         target = targets_dict[uuid][0]
         b.position = target
+        b.gnss.update_probability = 1
+        b.compass.update_probability = 1
         b.ekf.set_initial_state(b.measure_state())
         b.ekf.set_initial_state_variance(b.get_state_variance())
+        b.gnss.update_probability = config.sensors.gnss.update_probability
+        b.compass.update_probability = config.sensors.compass.update_probability
         # and update the index of the current target to the next
         targets_idx[uuid] = 1
 
