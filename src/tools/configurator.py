@@ -27,6 +27,7 @@ class SimulationConfig:
         self.real_time_charts_enabled = real_time_charts_enabled
         self.real_time_drawings_enabled = real_time_drawings_enabled
         self.save_folder = save_folder
+        self.file = ""
 
 class FiltersConfig:
     def __init__(self, ekf_update_period = 0.1, fleet_update_period = 1, fleet_update_probability = 1):
@@ -73,6 +74,7 @@ class Config:
 
     def load(self, path):
         with open(path) as json_file:
+            self.file = path
             data = json.load(json_file)
             simulation = data['simulation']
             
