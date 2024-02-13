@@ -17,7 +17,7 @@ class GNSS(Sensor):
         measured_y = value_from_gaussian(truth_y, self.err_position_y.get_sigma(truth_y) * mult_var_y)
         return np.array([truth_x, truth_y]), np.array([measured_x, measured_y])
     
-    def measure(self, boat_position, mult_var_x: float = 1.0, mult_var_y: float = 1.0) -> np.array:
+    def measure(self, boat_position, mult_var_x: float = 1.0, mult_var_y: float = 1.0):
         if not self.can_measure():
             return None
         self.value = self.measure_with_truth(boat_position, mult_var_x, mult_var_y)[1]

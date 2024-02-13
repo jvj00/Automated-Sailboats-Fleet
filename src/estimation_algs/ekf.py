@@ -32,14 +32,11 @@ class EKF:
                 raise Exception('Not enough values to update the ekf')
 
         # retrieve coefficients
-        boat_mass, boat_length, boat_friction_mu, boat_drag_damping, wing_area, wind_density, gravity, motor_efficiency = self.constants
+        boat_mass, boat_length, boat_drag_damping, wing_area, wind_density, motor_efficiency = self.constants
         
         ## INIT MATRICES
         # coefficient matrix
         a_dt = compute_a(
-            gravity,
-            boat_mass,
-            boat_friction_mu,
             boat_drag_damping,
             wing_area,
             wind_density,
