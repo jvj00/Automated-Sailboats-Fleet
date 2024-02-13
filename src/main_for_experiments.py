@@ -81,12 +81,34 @@ def experiment(config: Config):
     for i in range(config.simulation.boats):
 
         ## sensor intialization
-        anemometer = Anemometer(RelativeError(config.sensors.anemometer.error[0]), AbsoluteError(config.sensors.anemometer.error[1]))
-        speedometer_par = Speedometer(MixedError(config.sensors.speedometer.error[0], config.sensors.speedometer.error[1]), offset_angle=0)
-        speedometer_per = Speedometer(MixedError(config.sensors.speedometer.error[0], config.sensors.speedometer.error[1]), offset_angle=-np.pi/2)
-        compass = Compass(AbsoluteError(config.sensors.compass.error))
-        gnss = GNSS(AbsoluteError(config.sensors.gnss.error[0]), AbsoluteError(config.sensors.gnss.error[1]))
-        sonar = Sonar(RelativeError(config.sensors.sonar.error))
+        anemometer = Anemometer(
+            RelativeError(config.sensors.anemometer.error[0]),
+            AbsoluteError(config.sensors.anemometer.error[1]),
+            config.sensors.anemometer.update_probability
+        )
+        speedometer_par = Speedometer(
+            MixedError(config.sensors.speedometer.error[0], config.sensors.speedometer.error[1]),
+            0,
+            config.sensors.speedometer.update_probability
+        )
+        speedometer_per = Speedometer(
+            MixedError(config.sensors.speedometer.error[0], config.sensors.speedometer.error[1]),
+            np.pi/2,
+            config.sensors.speedometer.update_probability
+        )
+        compass = Compass(
+            AbsoluteError(config.sensors.compass.error),
+            config.sensors.compass.update_probability
+        )
+        gnss = GNSS(
+            AbsoluteError(config.sensors.gnss.error[0]),
+            AbsoluteError(config.sensors.gnss.error[1]),
+            config.sensors.gnss.update_probability
+        )
+        sonar = Sonar(
+            RelativeError(config.sensors.sonar.error),
+            config.sensors.sonar.update_probability
+        )
 
         # actuators initialization
         rudder_controller = StepperController(Stepper(config.actuators.rudder.resolution, 0.3), PID(0.5, 0, 0), np.pi * 0.25)
