@@ -306,7 +306,8 @@ class Boat(RigidBody):
     def measure_sonar(self, seabed: SeabedMap) -> float:
         try:
             value = self.sonar.measure(seabed.get_seabed_height(self.position[0], self.position[1]))
-            self.map.insert_measure(self.get_filtered_state()[0], self.get_filtered_state()[1], value)
+            if value is not None:
+                self.map.insert_measure(self.get_filtered_state()[0], self.get_filtered_state()[1], value)
             return value
         except Exception as e:
             Logger.warning(e)
