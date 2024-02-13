@@ -119,19 +119,16 @@ def simulate(
             if c.measured_data or c.filtered_data:
             
                 if is_multiple(time_elapsed, c.gnss_period):
-                    if np.random.rand() < c.gnss_probability:
-                        b.measure_gnss()
+                    b.measure_gnss()
                 
                 if is_multiple(time_elapsed, c.compass_period):
-                    if np.random.rand() < c.compass_probability:
-                        b.measure_compass()
+                    b.measure_compass()
                 
                 if is_multiple(time_elapsed, c.other_sensors_period):
-                    if np.random.rand() < c.other_sensors_probability:
-                        b.measure_anemometer(world.wind)
-                        b.measure_speedometer_par()
-                        b.measure_speedometer_perp()
-                    
+                    b.measure_anemometer(world.wind)
+                    b.measure_speedometer_par()
+                    b.measure_speedometer_perp()
+                
             if is_multiple(time_elapsed, c.follow_target_period):
                 b.follow_target(
                     world.wind,
@@ -762,108 +759,149 @@ class TestWingMotor(unittest.TestCase):
         self.assertLess(np.abs(time_elapsed - 325), 20)
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
 
-    # for i in range(2):
-    #     ## wind initialization
-    #     wind = Wind(1.291)
-    #     wind.velocity = np.array([10.0, -10.0])
+    # wind initialization
+    wind = Wind(1.291)
+    wind.velocity = np.array([10.0, -10.0])
+    
+    # world initialization
+    world = World(9.81, wind)
+
+    # boats initialization
+    boats: list[Boat] = []
+    boats_n = 3
+
+    targets = []
+
+    for i in range(boats_n):
+
+        ## sensor intialization
+        anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
+        speedometer_par = Speedometer(MixedError(0.01, 5), offset_angle=0)
+        speedometer_per = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
+        compass = Compass(AbsoluteError(3*np.pi/180))
+        gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+
+        # actuators initialization
+        rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.20)
+        wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
+        motor_controller = MotorController(Motor(200, 0.85, 1024))
+
+        # boat initialization
+        boat = Boat(80, 5, None, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
+        boat.position = np.zeros(2)
+        boat.velocity = np.zeros(2)
+        boat.heading = polar_to_cartesian(1, 0)
+
+        # boat ekf setup
+        ekf_constants = boat.mass, boat.length, boat.drag_damping, boat.wing.area, wind.density, boat.motor_controller.motor.efficiency
+        boat.ekf.set_initial_state(boat.measure_state())
+        boat.ekf.set_initial_state_variance(boat.get_state_variance())
+        boat.ekf.set_constants(ekf_constants)
         
-    #     # world initialization
-    #     world = World(9.81, wind)
+        boats.append(boat)
+        
+        targets.append([np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])])
+        
+    colors = ['red', 'blue', 'green']
 
-    #     # boats initialization
-    #     boats: list[Boat] = []
-    #     boats_n = 3
+    dt = 0.1
+    simulation_time = 200
+    sensor_reading_prob = 1
 
-    #     for i in range(boats_n):
+    # setup drawer
+    # win_width = 1400
+    # win_height = 800
 
-    #         ## sensor intialization
-    #         anemometer = Anemometer(RelativeError(0.05), AbsoluteError(np.pi/180))
-    #         speedometer_par = Speedometer(MixedError(0.01, 5), offset_angle=0)
-    #         speedometer_per = Speedometer(MixedError(0.01, 5), offset_angle=-np.pi/2)
-    #         compass = Compass(AbsoluteError(3*np.pi/180))
-    #         gnss = GNSS(AbsoluteError(1.5), AbsoluteError(1.5))
+    # world_width = 700
+    # world_height = 300
+    
+    # drawer = Drawer(win_width, win_height, world_width, world_height)
+    
+    # draw
+    # drawer.draw_axis()
 
-    #         # actuators initialization
-    #         rudder_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0), np.pi * 0.20)
-    #         wing_controller = StepperController(Stepper(100, 0.3), PID(0.5, 0, 0))
-    #         motor_controller = MotorController(Motor(200, 0.85, 1024))
+    retries = 5
+    gnss_compass_period_min = 1
+    gnss_compass_period_max = 10
+    other_period_min = 1
+    other_period_max = 2
 
-    #         # boat initialization
-    #         boat = Boat(80, 5, None, Wing(15, wing_controller), Rudder(rudder_controller), motor_controller, gnss, compass, anemometer, speedometer_par, speedometer_per, None, EKF())
-    #         boat.position = np.zeros(2)
-    #         boat.velocity = np.zeros(2)
-    #         boat.heading = polar_to_cartesian(1, 0)
+    file_content = ""
 
-    #         # boat ekf setup
-    #         ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
-    #         boat.ekf.set_initial_state(boat.measure_state())
-    #         boat.ekf.set_initial_state_variance(boat.get_state_variance())
-    #         boat.ekf.set_constants(ekf_constants)
+    file_content += f"ekf,gnss_compass_period,other_compass_period,position_error_min,position_error_max,position_error_avg\n"
+
+    for gnss_compass_dt in range(gnss_compass_period_min, gnss_compass_period_max + 1):
+        for other_sensors_dt in range(other_period_min, other_period_max + 1):
             
-    #         boats.append(boat)
+            position_error_measured_min = []
+            position_error_measured_max = []
+            position_error_measured_avg = []
 
-    #     targets = [
-    #         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
-    #         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])],
-    #         [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
-    #     ]
+            position_error_filtered_min = []
+            position_error_filtered_max = []
+            position_error_filtered_avg = []
+
+            print(f"GNSS/Compass period: {gnss_compass_dt}, other sensors period: {other_sensors_dt}")
+
+            for r in range(retries):
+
+                for b in boats:
+                    b.reset()
+                
+                completed, time_elapsed, states = simulate(
+                    boats,
+                    world,
+                    targets,
+                    dt,
+                    simulation_time,
+                    [
+                        BoatConfiguration(True, False, False, False, follow_target_period=dt),
+                        BoatConfiguration(False, True, False, False, gnss_compass_dt, gnss_compass_dt, other_sensors_dt, dt, dt, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
+                        BoatConfiguration(False, False, True, False, gnss_compass_dt, gnss_compass_dt, other_sensors_dt, dt, dt, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
+                    ]
+                )
+
+                for i in range(2):
+
+                    z_measured = list(zip(states[0], states[i+1]))
+
+                    error = [np.round(compute_magnitude(state[0].position - state[1].position), 2) for state in z_measured]
+
+                    error_min = min(*error)
+                    error_max = max(*error)
+                    error_avg = sum(error) / len(error)
+
+                    if i == 0:
+                        position_error_measured_min.append(error_min)
+                        position_error_measured_max.append(error_max)
+                        position_error_measured_avg.append(error_avg)
+                    else:
+                        position_error_filtered_min.append(error_min)
+                        position_error_filtered_max.append(error_max)
+                        position_error_filtered_avg.append(error_avg)
+                    
+                # drawer.clear()
+                # for i in range(len(boats)):
+                #     route = [s.position for s in states[i]]
+                #     drawer.draw_route(route, colors[i])
+        
+            position_error_measured_min = round(sum(position_error_measured_min) / len(position_error_measured_min), 2)
+            position_error_measured_max = round(sum(position_error_measured_max) / len(position_error_measured_max), 2)
+            position_error_measured_avg = round(sum(position_error_measured_avg) / len(position_error_measured_avg), 2)
+
+            file_content += f"no,{gnss_compass_dt},{other_sensors_dt},{position_error_measured_min},{position_error_measured_max},{position_error_measured_avg}\n"
             
-    #     colors = ['red', 'blue', 'green']
+            position_error_filtered_min = round(sum(position_error_filtered_min) / len(position_error_filtered_min), 2)
+            position_error_filtered_max = round(sum(position_error_filtered_max) / len(position_error_filtered_max), 2)
+            position_error_filtered_avg = round(sum(position_error_filtered_avg) / len(position_error_filtered_avg), 2)
 
-    #     dt = 0.1
-    #     simulation_time = 200
-    #     sensor_reading_prob = 1
-
-    #     # setup drawer
-    #     win_width = 1400
-    #     win_height = 800
-
-    #     world_width = 700
-    #     world_height = 300
-        
-    #     drawer = Drawer(win_width, win_height, world_width, world_height)
-        
-    #     # draw
-    #     drawer.draw_axis()
-
-    #     completed, time_elapsed, states = simulate(
-    #         boats,
-    #         world,
-    #         targets,
-    #         dt,
-    #         simulation_time,
-    #         [
-    #             BoatConfiguration(True, False, False, False, follow_target_period=dt),
-    #             BoatConfiguration(False, True, False, False, 10, 10, 1, dt, 0.1, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
-    #             BoatConfiguration(False, False, True, False, 10, 10, 1, dt, 0.1, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
-    #         ]
-    #     )
-
-    #     for i in range(len(boats)):
-    #         route = [s.position for s in states[i]]
-    #         drawer.draw_route(route, colors[i])
-
-
-    #     z_measured = list(zip(states[0], states[2]))
-
-    #     x_errors = [np.round(np.abs(state[0].position[0] - state[1].position[0]), 2) for state in z_measured]
-
-    #     x_errors_min = min(*x_errors)
-    #     x_errors_max = max(*x_errors)
-    #     x_errors_avg = sum(x_errors) / len(x_errors)
-
-    #     print(f'measured X error: min {x_errors_min} max {x_errors_max} avg {x_errors_avg}')
-
-    #     y_errors = [np.round(np.abs(state[0].position[1] - state[1].position[1]), 2) for state in z_measured]
-
-    #     y_errors_min = min(*y_errors)
-    #     y_errors_max = max(*y_errors)
-    #     y_errors_avg = sum(y_errors) / len(y_errors)
-
-    #     print(f'measured X error: min {y_errors_min} max {y_errors_max} avg {y_errors_avg}')
-
+            file_content += f"yes,{gnss_compass_dt},{other_sensors_dt},{position_error_filtered_min},{position_error_filtered_max},{position_error_filtered_avg}\n"
+            
+            # input()
+    
+    print(file_content)
 
     # min_gnss_compass_period = 1
     # max_gnss_compass_period = 10

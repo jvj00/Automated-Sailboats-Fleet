@@ -34,3 +34,10 @@ class RigidBody:
     
     def apply_acceleration_to_velocity(self, dt):
         self.velocity += (self.acceleration * dt)
+    
+    def reset(self):
+        self.position = np.zeros(2)
+        self.velocity = np.zeros(2)
+        self.acceleration = np.zeros(2)
+        self.angular_speed = 0
+        self.heading = polar_to_cartesian(1, 0)
