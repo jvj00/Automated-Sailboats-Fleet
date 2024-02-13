@@ -121,7 +121,7 @@ def experiment(config: Config):
         boat.heading = polar_to_cartesian(1, 0)
 
         # boat ekf setup
-        ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
+        ekf_constants = boat.mass, boat.length, boat.drag_damping, boat.wing.area, wind.density, boat.motor_controller.motor.efficiency
 
         boat.ekf.set_constants(ekf_constants)
         

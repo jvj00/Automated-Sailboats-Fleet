@@ -59,7 +59,7 @@ def test_ekf(dt=0.5, total_time=1000, gnss_every_sec=10, gnss_prob=1, compass_ev
     world = World(9.81, wind, seabed)
 
     # boat ekf setup
-    ekf_constants = boat.mass, boat.length, boat.friction_mu, boat.drag_damping, boat.wing.area, wind.density, world.gravity_z, boat.motor_controller.motor.efficiency
+    ekf_constants = boat.mass, boat.length, boat.drag_damping, boat.wing.area, wind.density, boat.motor_controller.motor.efficiency
 
     boat.ekf.set_initial_state(boat.measure_state())
     boat.ekf.set_initial_state_variance(boat.get_state_variance())

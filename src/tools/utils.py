@@ -110,7 +110,7 @@ def modpi(angle):
         angle+=2*np.pi
     return angle
 
-def compute_a(gravity: float, boat_mass, boat_friction_mu, boat_drag_damping, wing_area, wind_density, motor_efficiency, dt):
+def compute_a(boat_drag_damping, wing_area, wind_density, motor_efficiency, dt):
     k_drag = compute_drag_coeff(boat_drag_damping, wind_density, wing_area)
     return np.array(
         [
