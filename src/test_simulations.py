@@ -20,13 +20,12 @@ from sensors.speedometer import Speedometer
 from components.rudder import Rudder
 from components.wing import Wing
 from tools.disegnino import Drawer
-from entities.environment import SeabedMap
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
 
 from controllers.pid import PID
-from tools.utils import check_intersection_circle_circle, compute_angle, compute_angle_between, compute_distance, compute_magnitude, is_multiple, mod2pi, modpi, polar_to_cartesian, random_color, value_from_gaussian
+from tools.utils import check_intersection_circle_circle, compute_angle, compute_magnitude, is_multiple, polar_to_cartesian, value_from_gaussian
 
 from tools.logger import Logger
 
@@ -183,7 +182,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 70.3)
+        self.assertAlmostEqual(time_elapsed[0], 70.2)
     
     def test_straight_line_opposite_simulated(self):
         ## wind initialization
@@ -207,7 +206,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 91.0)
+        self.assertAlmostEqual(time_elapsed[0], 90.9)
     
 
     def test_slalom_easy_simulated(self):
@@ -233,7 +232,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 96.0)
+        self.assertAlmostEqual(time_elapsed[0], 95.9)
     
     def test_slalom_medium_simulated(self):
 
@@ -258,7 +257,8 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 171.4)
+        self.assertAlmostEqual(time_elapsed[0], 171.3)
+
     
     def test_sparse_simulated(self):
 
@@ -283,7 +283,8 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 347.3)
+        self.assertAlmostEqual(time_elapsed[0], 347.2)
+
     
     def test_straight_line_measured(self):
         ## wind initialization
@@ -315,7 +316,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 70.0), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 70.0), 20)
     
     def test_straight_line_opposite_measured(self):
         ## wind initialization
@@ -347,7 +348,8 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 90.0), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 90.0), 20)
+
     
     def test_slalom_easy_measured(self):
 
@@ -380,7 +382,7 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 90), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 90), 20)
     
     def test_slalom_medium_measured(self):
 
@@ -412,7 +414,8 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 160), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 160), 20)
+
     
     def test_sparse_measured(self):
 
@@ -444,7 +447,8 @@ class TestMotorOnly(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, True, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 350), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 350), 20)
+
 
 class TestWingMotor(unittest.TestCase):
 
@@ -471,7 +475,8 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 70.6)
+        self.assertAlmostEqual(time_elapsed[0], 70.5)
+
     
     def test_straight_line_opposite_simulated(self):
         ## wind initialization
@@ -496,7 +501,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 91.1)
+        self.assertAlmostEqual(time_elapsed[0], 91.0)
 
     def test_slalom_easy_simulated(self):
         ## wind initialization
@@ -524,7 +529,8 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 71.2)
+        self.assertAlmostEqual(time_elapsed[0], 71.1)
+
     
     def test_slalom_medium_simulated(self):
         ## wind initialization
@@ -552,7 +558,8 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 128.5)
+        self.assertAlmostEqual(time_elapsed[0], 128.4)
+
     
     def test_sparse_simulated(self):
         ## wind initialization
@@ -580,7 +587,8 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(True, False, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertAlmostEqual(time_elapsed, 319.5)
+        self.assertAlmostEqual(time_elapsed[0], 319.4)
+
     
     def test_straight_line_measured(self):
         ## wind initialization
@@ -613,7 +621,8 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 70.0), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 70.0), 20)
+
     
     def test_straight_line_opposite_measured(self):
         ## wind initialization
@@ -646,7 +655,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 90.0), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 90.0), 20)
 
     
     def test_slalom_easy_measured(self):
@@ -682,7 +691,8 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 70), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 70), 20)
+
      
     def test_slalom_medium_measured(self):
         ## wind initialization
@@ -721,7 +731,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 135), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 135), 20)
      
     
     def test_sparse_measured(self):
@@ -757,7 +767,7 @@ class TestWingMotor(unittest.TestCase):
         completed, time_elapsed, routes = simulate([boat], world, [targets], dt, simulation_time, [BoatConfiguration(False, True, False, False, dt, dt, dt, dt)])
 
         self.assertTrue(completed)
-        self.assertLess(np.abs(time_elapsed - 325), 20)
+        self.assertLess(np.abs(time_elapsed[0] - 325), 20)
 
 
 def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gnss_compass_periods, others_periods, retries):
@@ -966,12 +976,16 @@ def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gns
 
 
 if __name__ == '__main__':
-    # targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
-    targets = [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])]
-    simulation_time = 1000
-    world_update_period = 0.1
-    gnss_compass_periods = [1, *[i*2 for i in range(1, 5 + 1)]]
-    others_periods = [1, *[i*2 for i in range(1, 3 + 1)]]
-    retries = 1
+    test = True
+    if test:
+        unittest.main()
+    else:
+        # targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
+        targets = [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])]
+        simulation_time = 1000
+        world_update_period = 0.1
+        gnss_compass_periods = [1, *[i*2 for i in range(1, 5 + 1)]]
+        others_periods = [1, *[i*2 for i in range(1, 3 + 1)]]
+        retries = 1
 
-    test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gnss_compass_periods, others_periods, retries)
+        test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gnss_compass_periods, others_periods, retries)
