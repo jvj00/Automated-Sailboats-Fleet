@@ -6,11 +6,11 @@
         },
         "duration": 3000,
         "update_period": 0.1,
-        "boats": 8,
-        "groups": 8,
+        "boats": 4,
+        "groups": 2,
         "random_target_enabled": false,
         "real_time_charts_enabled": false,
-        "real_time_drawings_enabled": false,
+        "real_time_drawings_enabled": true,
         "save_folder": "saved_metrics"
     },
     "filters":{

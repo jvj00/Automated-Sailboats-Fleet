@@ -126,11 +126,14 @@ def experiment(config: Config):
         targets_dict = create_random_targets_from_map(seabed, boats, config.simulation.duration)
     
     targets_idx = {}
+    spawn_area_x_limits = (-world_width-40, -world_width+40)
+    spawn_area_y_limits = (-world_height-40, -world_height+40)
     for b in boats:
         uuid = str(b.uuid)
-        # set the initial position of the boat to the first target 
-        target = targets_dict[uuid][0]
-        b.position = target
+        # set the initial position of the boat
+        position_x = np.random.uniform(spawn_area_x_limits[0], spawn_area_x_limits[1])
+        position_y = np.random.uniform(spawn_area_y_limits[0], spawn_area_y_limits[1])
+        b.position = np.array([position_x, position_y])
         b.gnss.update_probability = 1
         b.compass.update_probability = 1
         b.ekf.set_initial_state(b.measure_state())
