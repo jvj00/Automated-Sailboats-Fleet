@@ -3,7 +3,7 @@ from actuators.motor import Motor
 from actuators.stepper import Stepper
 from controllers.motor_controller import MotorController
 from controllers.stepper_controller import StepperController
-from estimation_algs.ekf import EKF
+from estimation.ekf import EKF
 from entities.boat import Boat
 from entities.wind import Wind
 from entities.environment import SeabedMap

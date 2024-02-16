@@ -1,10 +1,8 @@
 from entities.boat import Boat
-from entities.environment import SeabedMap, SeabedBoatMap
+from entities.environment import SeabedMap
 from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
-from entities.wind import Wind
-from tools.metrics import Metrics, GlobalMetrics
 from typing import Optional
 
 class Fleet:

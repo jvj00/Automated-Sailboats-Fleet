@@ -1,6 +1,6 @@
 from typing import Optional
 from controllers.motor_controller import MotorController
-from estimation_algs.ekf import EKF
+from estimation.ekf import EKF
 from entities.rigid_body import RigidBody
 from entities.wind import Wind
 
@@ -313,3 +313,11 @@ class Boat(RigidBody):
             Logger.warning(e)
             meas = 0
         return meas
+    
+    def reset(self):
+        super().reset()
+        self.rudder.controller.set_angle(0)
+        self.wing.controller.set_angle(0)
+        self.motor_controller.set_power(0)
+        self.ekf.set_initial_state(self.measure_state())
+        self.ekf.set_initial_state_variance(self.get_state_variance())

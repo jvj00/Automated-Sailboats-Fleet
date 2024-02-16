@@ -3,7 +3,6 @@ import numpy as np
 
 from entities.boat import Boat
 from entities.wind import Wind
-from entities.world import World
 from entities.environment import SeabedMap
 from tools.utils import *
 
@@ -142,11 +141,15 @@ class Drawer:
             draw.setOutline(color)
             draw.draw(self.win)
     
-    def draw_axis(self):
+    def draw_axis(self, undraw = True):
         x_axis = Line(Point(0, self.win.height * 0.5), Point(self.win.width, self.win.height * 0.5))
         y_axis = Line(Point(self.win.width * 0.5, 0), Point(self.win.width * 0.5, self.win.height))
         x_axis.draw(self.win)
         y_axis.draw(self.win)
+
+        if undraw:
+            self.undraw.append(x_axis)
+            self.undraw.append(y_axis)
 
         steps = 30
 
@@ -172,11 +175,13 @@ class Drawer:
             txt.draw(self.win)
             y_position += y
     
-    def draw_target(self, position):
+    def draw_target(self, position, undraw = False):
         position_canvas = self.to_canvas(position)
         draw = Circle(Point(position_canvas[0], position_canvas[1]), 10)
         self.undraw.append(draw)
         draw.draw(self.win)
+        if undraw:
+            self.undraw.append(draw)
     
     def write_description(self, text, undraw=True):
         txt = Text(Point(int(0.25*self.win.width), 30), text)
@@ -184,6 +189,10 @@ class Drawer:
         if undraw:
             self.undraw.append(txt)
         txt.draw(self.win)
+    
+    def reset(self):
+        self.undraw = []
+        self.clear()
     
         
 def rotate_polygon(vertices, angle, pivot):
