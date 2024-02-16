@@ -88,4 +88,4 @@ The file `config.json` has the following parameters that can be changed to do di
 
 ## Test
 ```bash
-python src/test_actuator.py && python src/test_entities.py && python src/test_sensor.py && python src/test_utils.py && python src/test_simulations.py
+python src/test_entities.py && python src/test_sensor.py && python src/test_utils.py && python src/test_simulations.py
