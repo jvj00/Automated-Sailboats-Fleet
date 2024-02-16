@@ -1,6 +1,4 @@
 import json
-import os
-from tools.logger import Logger
 from errors.error import Error
 class SimulationConfig:
     def __init__(

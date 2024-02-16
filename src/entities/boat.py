@@ -1,6 +1,6 @@
 from typing import Optional
 from controllers.motor_controller import MotorController
-from estimation_algs.ekf import EKF
+from estimation.ekf import EKF
 from entities.rigid_body import RigidBody
 from entities.wind import Wind
 

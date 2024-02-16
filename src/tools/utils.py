@@ -2,8 +2,6 @@ from random import gauss
 from datetime import datetime
 import numpy as np
 
-from entities.environment import SeabedMap
-
 ## VECTOR OPERATIONS
 def normalize(vec):
     mag = compute_magnitude(vec)

@@ -12,7 +12,7 @@ from entities.world import World
 from errors.absolute_error import AbsoluteError
 from errors.mixed_error import MixedError
 from errors.relative_error import RelativeError
-from estimation_algs.ekf import EKF
+from estimation.ekf import EKF
 from sensors.anemometer import Anemometer
 from sensors.compass import Compass
 from sensors.gnss import GNSS
@@ -66,9 +66,9 @@ def simulate(
         dt: float,
         simulation_time: float,
         configurations: list[BoatConfiguration],
-        variable_wind: bool = False
+        variable_wind: bool = False,
     ):
-    
+        
     # keeps, for each boat, its state at each instant dt
     states: list[list[Boat]] = [[] for _ in range(len(boats))]
 
@@ -80,12 +80,11 @@ def simulate(
         target = targets[i][0]
         boats[i].set_target(target)
     
-    time_elapsed = 0
+    time_elapsed = [0 for _ in range(len(boats))]
 
     wind_derivative = np.array([0.0, 0.0])
     
     for i in range(int(simulation_time/dt)):
-        time_elapsed = round(i * dt, 2)
 
         # update wind conditions
         if variable_wind:
@@ -101,12 +100,14 @@ def simulate(
 
             b = boats[b_i]
             c = configurations[b_i]
-    
+
             completed &= (current_targets_idx[b_i] == len(targets[b_i]))
 
             if current_targets_idx[b_i] == len(targets[b_i]):
                     continue
-                                
+
+            time_elapsed[b_i] = round(i * dt, 2)
+
             # check if the boat has reached the target        
             if check_intersection_circle_circle(b.position, b.length * 0.5, targets[b_i][current_targets_idx[b_i]], b.length * 0.5):
                 current_targets_idx[b_i] += 1
@@ -118,18 +119,18 @@ def simulate(
 
             if c.measured_data or c.filtered_data:
             
-                if is_multiple(time_elapsed, c.gnss_period):
+                if is_multiple(time_elapsed[b_i], c.gnss_period):
                     b.measure_gnss()
                 
-                if is_multiple(time_elapsed, c.compass_period):
+                if is_multiple(time_elapsed[b_i], c.compass_period):
                     b.measure_compass()
                 
-                if is_multiple(time_elapsed, c.other_sensors_period):
+                if is_multiple(time_elapsed[b_i], c.other_sensors_period):
                     b.measure_anemometer(world.wind)
                     b.measure_speedometer_par()
                     b.measure_speedometer_perp()
                 
-            if is_multiple(time_elapsed, c.follow_target_period):
+            if is_multiple(time_elapsed[b_i], c.follow_target_period):
                 b.follow_target(
                     world.wind,
                     c.follow_target_period,
@@ -139,9 +140,9 @@ def simulate(
                     c.motor_only
                 )
 
-            if c.filtered_data and is_multiple(time_elapsed, c.update_filtered_state_period):
+            if c.filtered_data and is_multiple(time_elapsed[b_i], c.update_filtered_state_period):
                 try:
-                    b.update_filtered_state(c.update_filtered_state_period, is_multiple(time_elapsed, c.gnss_period), is_multiple(time_elapsed, c.compass_period))
+                    b.update_filtered_state(c.update_filtered_state_period, is_multiple(time_elapsed[b_i], c.gnss_period), is_multiple(time_elapsed[b_i], c.compass_period))
                 except Exception as e:
                     Logger.error(e)
 
@@ -771,6 +772,7 @@ def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gns
     boats: list[Boat] = []
     boats_n = 3
 
+    colors = ['red', 'green', 'blue']
     tgts = []
 
     for i in range(boats_n):
@@ -806,26 +808,35 @@ def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gns
     dt = world_update_period
     sensor_reading_prob = 1
 
-    data = {"no_ekf": [], "ekf": []}
+    data = {"reference": [], "no_ekf": [], "ekf": []}
+
+    drawer = Drawer(1000, 500, 500, 250)
+    drawer.draw_axis(False)
 
     for gnss_compass_dt in gnss_compass_periods:
         for other_sensors_dt in others_periods:
+
+            time_elapsed_reference = []
             
             position_error_measured_min = []
             position_error_measured_max = []
             position_error_measured_avg = []
+            time_elapsed_measured = []
 
             position_error_filtered_min = []
             position_error_filtered_max = []
             position_error_filtered_avg = []
+            time_elapsed_filtered = []
 
             print(f"GNSS/Compass period: {gnss_compass_dt}, other sensors period: {other_sensors_dt}")
 
             for r in range(retries):
 
+                # drawer.clear()
+
                 for b in boats:
                     b.reset()
-                
+
                 completed, time_elapsed, states = simulate(
                     boats,
                     world,
@@ -838,6 +849,10 @@ def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gns
                         BoatConfiguration(False, False, True, False, gnss_compass_dt, gnss_compass_dt, other_sensors_dt, dt, dt, sensor_reading_prob, sensor_reading_prob, sensor_reading_prob),
                     ]
                 )
+
+                time_elapsed_reference.append(time_elapsed[0])
+                time_elapsed_measured.append(time_elapsed[1])
+                time_elapsed_filtered.append(time_elapsed[2])
 
                 for i in range(2):
 
@@ -858,24 +873,56 @@ def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gns
                         position_error_filtered_max.append(error_max)
                         position_error_filtered_avg.append(error_avg)
                     
-                # drawer.clear()
-                # for i in range(len(boats)):
-                #     route = [s.position for s in states[i]]
-                #     drawer.draw_route(route, colors[i])
+                drawer.clear()
+                for t in targets:
+                    drawer.draw_target(t)
+                for i in range(len(boats)):
+                    route = [s.position for s in states[i]]
+                    drawer.draw_route(route, colors[i])
+            
+            time_elapsed_reference = round(sum(time_elapsed_reference) / len(time_elapsed_reference), 2)
+            
+            d = {
+                "gnss_compass_period": gnss_compass_dt,
+                "sensors_period": other_sensors_dt,
+                "time_elapsed": time_elapsed_reference
+            }
+
+            data["reference"].append(d)
         
             position_error_measured_min = round(sum(position_error_measured_min) / len(position_error_measured_min), 2)
             position_error_measured_max = round(sum(position_error_measured_max) / len(position_error_measured_max), 2)
             position_error_measured_avg = round(sum(position_error_measured_avg) / len(position_error_measured_avg), 2)
+            time_elapsed_measured = round(sum(time_elapsed_measured) / len(time_elapsed_measured), 2)
 
-            d = {"gnss_compass_period": gnss_compass_dt, "sensors_period": other_sensors_dt, "min": position_error_measured_min, "max": position_error_measured_max, "avg": position_error_measured_avg}
+            d = {
+                "gnss_compass_period": gnss_compass_dt,
+                "sensors_period": other_sensors_dt,
+                "min": position_error_measured_min,
+                "max": position_error_measured_max,
+                "avg": position_error_measured_avg,
+                "time_elapsed": time_elapsed_measured
+            }
+
             data["no_ekf"].append(d)
             
             position_error_filtered_min = round(sum(position_error_filtered_min) / len(position_error_filtered_min), 2)
             position_error_filtered_max = round(sum(position_error_filtered_max) / len(position_error_filtered_max), 2)
             position_error_filtered_avg = round(sum(position_error_filtered_avg) / len(position_error_filtered_avg), 2)
+            time_elapsed_filtered = round(sum(time_elapsed_filtered) / len(time_elapsed_filtered), 2)
 
-            d = {"gnss_compass_period": gnss_compass_dt, "sensors_period": other_sensors_dt, "min": position_error_filtered_min, "max": position_error_filtered_max, "avg": position_error_filtered_avg}
+            d = {
+                "gnss_compass_period": gnss_compass_dt,
+                "sensors_period": other_sensors_dt,
+                "min": position_error_filtered_min,
+                "max": position_error_filtered_max,
+                "avg": position_error_filtered_avg,
+                "time_elapsed": time_elapsed_filtered
+            }
+
             data["ekf"].append(d)
+
+            input()
 
     plt.figure(1)
     plt.cla()
@@ -891,19 +938,40 @@ def test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gns
         filtered = [d["avg"] for d in data["ekf"] if d["sensors_period"] == i]
         plt.plot(x, filtered, label=f"EKF / Other sensors: {i}")
 
-    plt.xlabel("GNSS/Compass udpate period")
-    plt.ylabel("Position error")
+    plt.xlabel("GNSS/Compass udpate period (s)")
+    plt.ylabel("Position error (m)")
+    
+    plt.legend()
+
+    plt.figure(2)
+    plt.cla()
+    plt.title('Time elapsed')
+
+    y = [d["time_elapsed"] for d in data["reference"] if d["sensors_period"] == others_periods[0]]
+    plt.plot(x, y, label=f"Reference")
+
+    for i in others_periods:
+        y = [d["time_elapsed"] for d in data["no_ekf"] if d["sensors_period"] == i]
+        plt.plot(x, y, label=f"No EKF / Other sensors: {i}")
+    
+    for i in others_periods:
+        filtered = [d["time_elapsed"] for d in data["ekf"] if d["sensors_period"] == i]
+        plt.plot(x, filtered, label=f"EKF / Other sensors: {i}")
+
+    plt.xlabel("GNSS/Compass udpate period (s)")
+    plt.ylabel("Time elapsed (s)")
     
     plt.legend()
     plt.show()
 
 
 if __name__ == '__main__':
-    targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
-    simulation_time = 500
+    # targets = [np.array([50, 20]), np.array([100, -20]), np.array([150, 20]), np.array([200, -20])]
+    targets = [np.array([50, 50]), np.array([-100, -50]), np.array([150, 50]), np.array([-200, -50])]
+    simulation_time = 1000
     world_update_period = 0.1
-    gnss_compass_periods = [i for i in range(1, 10 + 1, 1)]
-    others_periods = [2**i for i in range(3 + 1)]
-    retries = 3
+    gnss_compass_periods = [1, *[i*2 for i in range(1, 5 + 1)]]
+    others_periods = [1, *[i*2 for i in range(1, 3 + 1)]]
+    retries = 1
 
     test_ekf_noekf_comparison(targets, simulation_time, world_update_period, gnss_compass_periods, others_periods, retries)

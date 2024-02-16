@@ -3,7 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from tools.utils import *
 from tools.logger import Logger
-from entities.boat import Boat
 
 class Metrics:
     def __init__(self) -> None:
