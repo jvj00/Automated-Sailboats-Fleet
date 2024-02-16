@@ -4,21 +4,21 @@
             "width": 200,
             "height": 200
         },
-        "duration": 1000,
+        "duration": 3000,
         "update_period": 0.1,
-        "boats": 2,
-        "groups": 1,
+        "boats": 8,
+        "groups": 8,
         "random_target_enabled": false,
         "real_time_charts_enabled": false,
-        "real_time_drawings_enabled": true,
-        "save_folder": "../saved_metrics"
+        "real_time_drawings_enabled": false,
+        "save_folder": "saved_metrics"
     },
     "filters":{
         "ekf":{
             "update_period": 0.1
         },
         "fleet":{
-            "update_period": 1,
+            "update_period": 10,
             "update_probability": 0.9
         }
     },
@@ -43,14 +43,7 @@
                 "speed": {"relative": 0.05},
                 "angle": {"absolute": 0.017}
             },
-            "update_period": 1,
-            "update_probability": 1
-        },
-        "sonar":{
-            "error":{
-                "relative": 0.01
-            },
-            "update_period": 1,
+            "update_period": 0.1,
             "update_probability": 1
         },
         "speedometer":{
@@ -58,8 +51,15 @@
                 "threshold": 5,
                 "relative": 0.01
             },
-            "update_period": 1,
+            "update_period": 0.1,
             "update_probability": 1
+        },
+        "sonar":{
+            "error":{
+                "relative": 0.5
+            },
+            "update_period": 4,
+            "update_probability": 0.5
         }
     },
     "actuators":{
