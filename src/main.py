@@ -14,6 +14,7 @@ from entities.world import World
 from errors.absolute_error import AbsoluteError
 from errors.mixed_error import MixedError
 from errors.relative_error import RelativeError
+from planner.planner import create_random_targets_from_map
 from sensors.anemometer import Anemometer
 from sensors.compass import Compass
 from sensors.gnss import GNSS
@@ -30,20 +31,8 @@ from estimation.fleet import Fleet
 from tools.utils import *
 from tools.metrics import Metrics, GlobalMetrics
 from tools.configurator import Config
-from main import create_targets_from_map
+from planner.planner import create_targets_from_map
 import sys
-
-def create_random_targets_from_map(seabed, boats, time_experiment):
-    targets_dict = {}
-    for b in boats:
-        key = str(b.uuid)
-        targets_dict[key] = []
-        for _ in range(time_experiment):
-            x = 0.9 * (np.random.rand() * (seabed.max_x - seabed.min_x) + seabed.min_x)
-            y = 0.9 * (np.random.rand() * (seabed.max_y - seabed.min_y) + seabed.min_y)
-            target = np.array([x, y])
-            targets_dict[key].append(np.copy(target))
-    return targets_dict
 
 def experiment(config: Config):
 

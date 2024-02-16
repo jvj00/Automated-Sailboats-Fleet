@@ -43,3 +43,15 @@ def create_targets_from_map(map: SeabedMap, boats: list[Boat], boats_per_group_n
         targets_dict[key] = [x for xs in grouped_lists for x in xs]
     
     return targets_dict
+
+def create_random_targets_from_map(seabed, boats, time_experiment):
+    targets_dict = {}
+    for b in boats:
+        key = str(b.uuid)
+        targets_dict[key] = []
+        for _ in range(time_experiment):
+            x = 0.9 * (np.random.rand() * (seabed.max_x - seabed.min_x) + seabed.min_x)
+            y = 0.9 * (np.random.rand() * (seabed.max_y - seabed.min_y) + seabed.min_y)
+            target = np.array([x, y])
+            targets_dict[key].append(np.copy(target))
+    return targets_dict
